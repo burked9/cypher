@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Cypher · in-browser PDF table extractor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Extract structured tables from aviation maintenance PDFs (OCCM, Avionic Inventory, Aircraft Equipment List). Runs in your browser — files never leave your device.">
+  <!-- Word-of-mouth distribution: keep this URL out of public search indexes.
+       Visitors arriving via a direct link still see the page normally;
+       crawlers (Google, Bing, etc.) are asked to skip it. -->
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+  <header class="hero">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">/&nbsp;/</div>
+      <span class="brand-name">cypher</span>
+    </div>
+    <h1>Extract tables from aviation maintenance PDFs.</h1>
+    <p class="lede">
+      OCCM &middot; Avionic Inventory Listing &middot; Aircraft Equipment List Report.
+      Auto-detects the format. Validates against aviation-domain rules.
+      <strong>Runs entirely in your browser</strong> — your files never leave your device.
+    </p>
+  </header>
+
+  <main>
+
+    <!-- Step indicator / status panel -->
+    <section class="panel" id="panel-load">
+      <ol class="steps">
+        <li class="step current" data-step="1"><span>1</span>Choose PDF</li>
+        <li class="step" data-step="2"><span>2</span>Auto-detect variant</li>
+        <li class="step" data-step="3"><span>3</span>Extract &amp; download</li>
+      </ol>
+
+      <div class="action">
+        <label class="file-picker">
+          <input type="file" id="pdf-input" accept="application/pdf">
+          <span id="file-picker-label">Choose a PDF</span>
+        </label>
+        <button id="run" disabled>Extract</button>
+      </div>
+
+      <p class="status" id="status">Loading the runtime…</p>
+    </section>
+
+    <!-- Empty state — three info cards (replaced when a result lands) -->
+    <section class="panel cards" id="empty-state">
+      <article class="card">
+        <h3>Private by design</h3>
+        <p>Python runs in your browser via Pyodide. The PDF you select is parsed locally — no upload, no server, no telemetry. Disconnect your network after the page loads if you want to be sure.</p>
+      </article>
+      <article class="card">
+        <h3>Variant-aware</h3>
+        <p>Different operators and MIS systems produce different OCCM layouts. Cypher detects the format from page-1 text and dispatches to a parser tuned for it.</p>
+      </article>
+      <article class="card">
+        <h3>Soft validation</h3>
+        <p>Every cell is checked against aviation conventions (uppercase codes, no <code>O</code>/<code>I</code> in part numbers, ATA chapter range, etc.). Suspicious cells are flagged for analyst review — never silently dropped.</p>
+      </article>
+    </section>
+
+    <!-- Result panels — hidden until extraction completes -->
+    <section id="variant-info" class="panel info-panel" hidden></section>
+    <section id="summary"      class="panel info-panel" hidden></section>
+    <section id="downloads"    class="panel downloads"  hidden>
+      <a id="download-csv" download="cypher_extract.csv">↓ Download CSV</a>
+    </section>
+
+    <section id="results" class="panel results"></section>
+
+  </main>
+
+  <footer>
+    <div class="footer-grid">
+      <div>
+        <strong>Open source.</strong> MIT licensed.
+      </div>
+      <div>
+        <strong>Privacy.</strong> No upload, no telemetry, no cookies.
+      </div>
+      <div>
+        <strong>Built with.</strong> Pyodide, pdfplumber, pdfminer.six.
+      </div>
+    </div>
+    <p class="footer-note">Cypher is for component-list extraction from aviation maintenance documents. Generated rows should always be verified by a qualified analyst before any operational use.</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+  <!-- pdf.js — renders PDF pages to canvas in the browser. Required by L3 OCR. -->
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs" type="module"></script>
+  <!-- Tesseract.js — runs OCR on canvas data, returns text + word bounding boxes.
+       Used only when the detected variant requires L3 (currently Aeroflot). Not
+       loaded eagerly — app.js fetches it on demand to avoid bloating the
+       initial page weight. -->
+  <script type="module" src="assets/app.js"></script>
+</body>
+</html>

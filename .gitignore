@@ -1,0 +1,46 @@
+# Test PDFs and extraction outputs — never commit user data
+research/test_pdfs/*
+!research/test_pdfs/.gitkeep
+research/results/by_pdf/*
+!research/results/by_pdf/.gitkeep
+research/results/*
+!research/results/by_pdf/
+!research/results/.gitkeep
+research/report.html
+
+# Bundled binary assets
+shared/pn_master.bloom
+deploy/_pymods/shared/pn_master.bloom
+
+# Build artifacts that should never be committed
+deploy/_pymods/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~
+
+# Marketing assets — keep the markdown, gitignore the screenshots
+# (they live in the consultancy site's repo, not this one)
+marketing/assets/*.png

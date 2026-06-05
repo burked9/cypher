@@ -1,0 +1,78 @@
+# Cypher — project metadata and dependency manifest.
+#
+# Cypher is a static-site application, not a library. We do not publish to
+# PyPI by design (see docs/decisions.md for rationale). This file exists so
+# that a contributor cloning the repo can install everything in one command:
+#
+#     pip install -e ".[dev]"
+#
+# The runtime dependencies are deliberately conservative — pdfplumber pinned
+# to 0.9.0 because Pyodide cannot resolve pypdfium2 (which 0.10+ requires).
+
+[project]
+name            = "cypher"
+version         = "0.1.0"
+description     = "In-browser PDF table extractor for aviation maintenance documents."
+readme          = "README.md"
+license         = { file = "LICENSE" }
+requires-python = ">=3.9"
+authors         = [{ name = "Daniel Burke" }]
+
+# Note on classifiers: deliberately minimal. We do not publish to PyPI and
+# do not want to surface in PyPI search. The classifiers below are
+# informational for anyone reading the repo only.
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering",
+    "Private :: Do Not Upload",         # safety net: prevents accidental `twine upload`
+]
+
+dependencies = [
+    "pdfplumber==0.9.0",     # pinned for Pyodide compatibility (avoids pypdfium2 dep)
+    "pymupdf>=1.23",         # local-only — used by L3 OCR, debug renderer, report builder
+    "pytesseract>=0.3.10",   # local-only — Tesseract bridge for L3
+    "Pillow>=9.0",           # image handling
+    "pandas>=2.0",           # DataFrames
+    "openpyxl>=3.1",         # XLSX writing
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+dev = [
+    "jupyter>=1.0",
+    "ipykernel>=6.0",
+    "notebook>=7.0",
+    "ruff>=0.1",
+    "mypy>=1.5",
+]
+
+# L4 (PaddleOCR) is intentionally omitted — see research/colab_L4_paddleocr.ipynb
+# for the heavy-OCR fallback, which runs on Colab compute, not locally.
+
+[project.urls]
+# No homepage / repository URL on purpose. The project is open-source but
+# not publicly advertised — distribution is by direct link.
+
+[build-system]
+requires      = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+# This isn't a packaged library, but listing the source directories here lets
+# `pip install -e .` work for local development without errors.
+packages = ["shared", "sheet_types", "levels"]
+
+[tool.ruff]
+line-length    = 110
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "B"]
+ignore = ["E501"]   # we already cap at 110
+
+[tool.mypy]
+python_version    = "3.9"
+ignore_missing_imports = true
+warn_unused_ignores    = true
