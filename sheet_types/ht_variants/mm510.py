@@ -113,8 +113,11 @@ def _parse_line(line: str, page_num: int) -> dict | None:
     if pn_idx is None or pn_idx + 1 >= date_idx:
         return None
     pos = toks[1]
-    pn = toks[pn_idx]
-    sn = toks[pn_idx + 1]
+    # PDF text extraction occasionally splits long PN/SN tokens across a
+    # line wrap, leaving a trailing `-` on the visible token. Strip it so
+    # the value passes the global PN/SN regex.
+    pn = toks[pn_idx].rstrip("-")
+    sn = toks[pn_idx + 1].rstrip("-")
     description = " ".join(toks[pn_idx + 2:date_idx]) if pn_idx + 2 < date_idx else ""
     # Post-date: task-number ref, then interval/remaining values.
     tail = toks[date_idx + 1:]
