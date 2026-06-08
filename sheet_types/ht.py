@@ -7,14 +7,15 @@ from __future__ import annotations
 import pdfplumber
 
 from sheet_types.ht_variants import (
-    vietnam_airlines, amos, mm510, tap, iberia,
+    vietnam_airlines, amos, mm510, tap, iberia, oases_lifed_components,
 )
 from shared.cleanup import clean_record
 
 # Order matters: more-specific signatures must precede generic ones, same
-# pattern as the OCCM router. mm510, tap, iberia each have distinctive
-# headers so they sit safely alongside the AMOS catch-all.
-VARIANTS = [vietnam_airlines, mm510, tap, iberia, amos]
+# pattern as the OCCM router. mm510, tap, iberia, oases_lifed_components
+# each have distinctive headers so they sit safely alongside the AMOS
+# catch-all.
+VARIANTS = [vietnam_airlines, mm510, tap, iberia, oases_lifed_components, amos]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
