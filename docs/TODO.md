@@ -71,16 +71,22 @@ Open items in priority order. Each item has a category, a brief description, and
     * slot-joined wide (one row per `(aircraft_key, position)`, OCCM + HT
       columns side-by-side)
     * Sextant ground-truth feed (slot + expected PN + actual PN + HT tasks)
-- **Status**: unified `positions.sqlite` (sheet_type column, 30 cross-sheet
-  airframes joinable today) lands ~90% of the merge logic. Remaining work:
-    * **Phase 0** — close HT parser coverage (~10 unbuilt clusters,
-      ~200 files; mostly direct siblings of OCCM parsers). Rate-limiter.
-    * **Phase 1** — local CLI combiner (`tools/export_combined.py
-      --aircraft <key>` → xlsx with 3 sheets). 1–2 days.
-    * **Phase 2** — `link_pair()` + manual-override flow. 1 day.
+- **Status**: unified `positions.sqlite` (sheet_type column, 45 cross-sheet
+  airframes joinable today, `cross_sheet_slot` SQL view in place) plus
+  Phase-1 local combiner shipped. Remaining work:
+    * ✅ **Phase 0** — HT parser coverage (~110 files / 7 variants /
+      ~27k rows across 4 waves; singletons + OCR deferred).
+    * ✅ **Phase 1** — `tools/export_combined.py --aircraft <key>`
+      writes a 3-sheet xlsx (Combined / OCCM / HT) plus a Sextant-
+      shaped CSV sidecar. `--all-cross-sheet` emits all 45 airframes
+      in one run.
+    * **Phase 2** — `link_pair()` for the in-browser case (two PDFs in,
+      one airframe out): MSN > registration > user override. 1 day.
     * **Phase 3** — in-browser combined-mode UI (dual drop zone, pairing
       confirmation, three-view download). 2–3 days.
-    * **Phase 4** — Sextant integration spec + sample export. 1 day.
+    * **Phase 4** — Sextant integration spec + sample export.
+      Sidecar CSV shape already defined in `tools/export_combined.py`'s
+      `SEXTANT_COLS` — first concrete contract.
 - **Position-semantic gotcha**: HT often uses coarser positions than OCCM
   (one HT task covers "all 4 brakes", OCCM lists 4 separate slots). Default
   to repeat-and-tag (each OCCM slot shows applicable HT obligations) with a
