@@ -25,6 +25,11 @@ SIGNATURES = [
     # ends up in the HT folder rather than the OCCM folder because the
     # operator generated it from the HT-task subset of their AMOS data.
     "Aircraft Equipment List Report",
+    # Hyphenated variant of the same report, used by Alitalia / I-BI**,
+    # 4X-EAR (EL AL), VT-JGA (JetGo) and others. Identical row layout but
+    # the title carries hyphens and the column header row is sometimes
+    # printed in a doubled-character font (AATTAA DDeessccrriippttiioonn …).
+    "Aircraft-Equipment-List",
 ]
 
 CANONICAL_COLUMNS = _amos_occm.CANONICAL_COLUMNS

@@ -50,6 +50,8 @@ POSITION_MAP = {
     # the OCCM POS column.
     "AMOS HT (Aircraft Equipment List Report)": ("POS", "POS", None, None),
     "MM_510 HARD TIME LLP Components":          ("POSITION", "POSITION", None, None),
+    "TAP HT (compact)":                         ("POSITION", "POSITION", None, None),
+    "Iberia Listado HT":                        ("LOCATION", "LOCATION", None, None),
     # B777 Annex 7 is a master parts template — no per-row position data.
     # Rows land with empty position/serial; filter by variant to retrieve.
     "B777 Annex 7 OCCM":                   (None, "TEMPLATE", None, None),
