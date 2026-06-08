@@ -56,6 +56,48 @@ Open items in priority order. Each item has a category, a brief description, and
 - **Why**: When the corpus grows we'll want to know where time is going.
 - **Approach**: `python -m cProfile` over a 50-doc run; surface in `docs/`.
 
+## Priority 1.5 — Cypher OCCM+HT (new combined mode)
+
+### Combined OCCM + HT extraction mode
+- **Why**: Sextant (the follow-up project — slot-level expected-PN advisory)
+  consumes OCCM **and** HT data combined per airframe. Pre-joining the two
+  sheets in Cypher means Sextant has one input contract instead of two, and
+  every downstream consumer benefits from the same slot-level merge.
+- **Shape**: same Cypher engine, new UI mode alongside OCCM / HT:
+    `[ OCCM ]   [ HT ]   [ OCCM + HT (combined) ]`
+  Combined mode takes two drop zones, auto-pairs on MSN → registration →
+  user override, and produces three views:
+    * long-form union (existing `positions.sqlite` shape)
+    * slot-joined wide (one row per `(aircraft_key, position)`, OCCM + HT
+      columns side-by-side)
+    * Sextant ground-truth feed (slot + expected PN + actual PN + HT tasks)
+- **Status**: unified `positions.sqlite` (sheet_type column, 30 cross-sheet
+  airframes joinable today) lands ~90% of the merge logic. Remaining work:
+    * **Phase 0** — close HT parser coverage (~10 unbuilt clusters,
+      ~200 files; mostly direct siblings of OCCM parsers). Rate-limiter.
+    * **Phase 1** — local CLI combiner (`tools/export_combined.py
+      --aircraft <key>` → xlsx with 3 sheets). 1–2 days.
+    * **Phase 2** — `link_pair()` + manual-override flow. 1 day.
+    * **Phase 3** — in-browser combined-mode UI (dual drop zone, pairing
+      confirmation, three-view download). 2–3 days.
+    * **Phase 4** — Sextant integration spec + sample export. 1 day.
+- **Position-semantic gotcha**: HT often uses coarser positions than OCCM
+  (one HT task covers "all 4 brakes", OCCM lists 4 separate slots). Default
+  to repeat-and-tag (each OCCM slot shows applicable HT obligations) with a
+  `applies_to_all_in_ATA: <n>` flag for transparency.
+- **Done when**: an analyst drops one OCCM PDF and one HT PDF, Cypher
+  auto-pairs them, and the download contains the three views with the slot
+  join behaving correctly across all 30 currently-joinable airframes.
+
+### L5 — non-OCR fallback layer
+- **Why**: L3/L4 OCR has a documented ceiling (~0.4% recovery on the
+  image-only HT corpus). A non-OCR alternative may close that gap for
+  certain PDF classes. User to share specific approach.
+- **Status**: placeholder — awaiting user notes on the proposed L5 strategy.
+- **Done when**: at least one test PDF that L1–L4 cannot parse is parsed
+  cleanly by L5, journey records `rows_l5`, and the report shows it
+  alongside other levels.
+
 ## Priority 5 — distribution
 
 ### Publish on GitHub Pages
