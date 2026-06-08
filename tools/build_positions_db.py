@@ -53,6 +53,7 @@ POSITION_MAP = {
     "TAP HT (compact)":                         ("POSITION", "POSITION", None, None),
     "Iberia Listado HT":                        ("LOCATION", "LOCATION", None, None),
     "OASES Lifed Component Report":             ("POSITION", "POSITION", None, None),
+    "STARS Trax HT":                            ("POSITION", "POSITION", None, None),
     # B777 Annex 7 is a master parts template — no per-row position data.
     # Rows land with empty position/serial; filter by variant to retrieve.
     "B777 Annex 7 OCCM":                   (None, "TEMPLATE", None, None),

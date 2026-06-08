@@ -8,14 +8,16 @@ import pdfplumber
 
 from sheet_types.ht_variants import (
     vietnam_airlines, amos, mm510, tap, iberia, oases_lifed_components,
+    stars_trax,
 )
 from shared.cleanup import clean_record
 
 # Order matters: more-specific signatures must precede generic ones, same
-# pattern as the OCCM router. mm510, tap, iberia, oases_lifed_components
-# each have distinctive headers so they sit safely alongside the AMOS
-# catch-all.
-VARIANTS = [vietnam_airlines, mm510, tap, iberia, oases_lifed_components, amos]
+# pattern as the OCCM router. mm510, tap, iberia, oases_lifed_components,
+# stars_trax each have distinctive headers so they sit safely alongside
+# the AMOS catch-all.
+VARIANTS = [vietnam_airlines, mm510, tap, iberia,
+            oases_lifed_components, stars_trax, amos]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)

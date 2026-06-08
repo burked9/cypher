@@ -67,6 +67,25 @@ def _revert_I_in_pn_prefix(value: str) -> str:
     return "".join(chars)
 
 
+# Per-file normalisation counters — caller resets via reset_normalize_counters()
+# before processing each file, then reads the dict to report "stripped N
+# leading-punctuation PNs/SNs from this file." Module-level on purpose:
+# the cleanup pipeline is a per-call function and we don't want to thread
+# a context object through every clean_cell invocation.
+_NORMALIZE_COUNTERS: dict[str, int] = {"leading_punct": 0}
+
+
+def reset_normalize_counters() -> None:
+    """Reset normalisation counters; call before each per-file batch."""
+    for k in _NORMALIZE_COUNTERS:
+        _NORMALIZE_COUNTERS[k] = 0
+
+
+def get_normalize_counters() -> dict[str, int]:
+    """Return a snapshot of normalisation counters since the last reset."""
+    return dict(_NORMALIZE_COUNTERS)
+
+
 def clean_cell(value: str, rule: dict | None) -> Tuple[str, List[str]]:
     issues: List[str] = []
     if value is None:
@@ -91,6 +110,23 @@ def clean_cell(value: str, rule: dict | None) -> Tuple[str, List[str]]:
 
     # 3. Always strip pipes (OCR artifacts from table borders)
     s = s.replace("|", "").strip()
+
+    # 3b. Strip leading punctuation from PN / SN values. Several MIS
+    # exports (TAP HT/OCCM, Swiss A340 OCCM, EL AL B767 MSN 28132) use
+    # leading `.`, `,` or `..` as indentation markers for sub-component
+    # rows in the source PDF. The dots are formatting artefacts, not
+    # real characters in the part-number — strip them so downstream
+    # consumers see the clean PN rather than a `PART_NUMBER:bad_format`
+    # flag they have to work around.
+    #
+    # `_strip_leading_punct_count` is a global counter that lets callers
+    # (build_positions_db.py) emit a "stripped N PNs in this file" log
+    # line. It's reset per file via `reset_normalize_counters()`.
+    if rule.get("_strip_leading_punct"):
+        stripped = s.lstrip(".,;:•·*")
+        if stripped != s:
+            _NORMALIZE_COUNTERS["leading_punct"] += 1
+            s = stripped
 
     # 4. Collapse internal whitespace where forbidden
     if rule.get("no_spaces"):
