@@ -6,12 +6,13 @@ dispatches to the variant's `extract()`.
 from __future__ import annotations
 import pdfplumber
 
-from sheet_types.ht_variants import vietnam_airlines, amos
+from sheet_types.ht_variants import vietnam_airlines, amos, mm510
 from shared.cleanup import clean_record
 
 # Order matters: more-specific signatures must precede generic ones, same
-# pattern as the OCCM router.
-VARIANTS = [vietnam_airlines, amos]
+# pattern as the OCCM router. mm510 has a distinctive signature so it can
+# safely sit alongside the AMOS catch-all.
+VARIANTS = [vietnam_airlines, mm510, amos]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)

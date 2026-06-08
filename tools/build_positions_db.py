@@ -45,6 +45,10 @@ POSITION_MAP = {
     # and components. Rows land with empty position — filter by variant.
     "EL AL B767 MSN 28132":                (None, "NONE", None, None),
     "Georgian Airways B737":               ("POSITION", "POSITION", None, None),
+    # HT-side variants — same layout as their OCCM siblings, so the OCCM
+    # parser is reused with an HT-flavoured NAME. Position semantics match
+    # the OCCM POS column.
+    "AMOS HT (Aircraft Equipment List Report)": ("POS", "POS", None, None),
     # B777 Annex 7 is a master parts template — no per-row position data.
     # Rows land with empty position/serial; filter by variant to retrieve.
     "B777 Annex 7 OCCM":                   (None, "TEMPLATE", None, None),
@@ -270,10 +274,27 @@ def _first_present(row: dict, candidates: list[str]) -> str:
 
 
 def load_triage() -> list[dict]:
-    local = pathlib.Path("/tmp/triage_occm.csv")
-    path = local if local.exists() else ROOT / "research/results/triage_occm.csv"
-    with path.open() as f:
-        return list(csv.DictReader(f))
+    """Load OCCM + HT triages concatenated; each row carries `sheet_type`.
+
+    Triage CSVs occasionally contain stray NUL bytes from interrupted
+    writes — strip them before parsing.
+    """
+    import io
+    rows: list[dict] = []
+    for tag, candidates in (
+        ("OCCM", ("/tmp/triage_occm.csv", "research/results/triage_occm.csv")),
+        ("HT",   ("/tmp/triage_ht.csv",   "research/results/triage_ht.csv")),
+    ):
+        for p in candidates:
+            path = pathlib.Path(p) if p.startswith("/") else ROOT / p
+            if not path.exists():
+                continue
+            raw = path.read_bytes().replace(b"\x00", b"")
+            for r in csv.DictReader(io.StringIO(raw.decode("utf-8", errors="ignore"))):
+                r["sheet_type"] = tag
+                rows.append(r)
+            break
+    return rows
 
 
 def load_metadata() -> dict[str, dict]:
@@ -322,6 +343,7 @@ def build():
         CREATE TABLE positions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             source_file        TEXT,
+            sheet_type         TEXT,
             variant            TEXT,
             aircraft_key       TEXT,
             aircraft_key_source TEXT,
@@ -356,6 +378,7 @@ def build():
     for r in triage:
         variant = (r.get("variant") or "").strip()
         filename = (r.get("filename") or "").strip()
+        sheet_type = (r.get("sheet_type") or "OCCM").strip()
         if not variant or variant in ("Unknown", "Timeout"):
             continue
         posmap = POSITION_MAP.get(variant)
@@ -402,7 +425,7 @@ def build():
                 batch = []
                 for row in reader:
                     batch.append((
-                        filename, variant, ak, aksrc,
+                        filename, sheet_type, variant, ak, aksrc,
                         reg, msn, family, fam_conf, model_raw,
                         report_date, report_date_iso,
                         _first_present(row, ATA_CANDIDATES),
@@ -417,18 +440,41 @@ def build():
                         int(row["_page"]) if (row.get("_page") or "").strip().isdigit() else None,
                     ))
                 cur.executemany(
-                    "INSERT INTO positions (source_file,variant,aircraft_key,"
-                    "aircraft_key_source,registration,msn,family,family_confidence,"
-                    "model_raw,report_date,report_date_iso,ata,position,"
-                    "position_source,zone,kardex,description,part_number,"
-                    "serial_number,row_issues,page) "
-                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", batch)
+                    "INSERT INTO positions (source_file,sheet_type,variant,"
+                    "aircraft_key,aircraft_key_source,registration,msn,family,"
+                    "family_confidence,model_raw,report_date,report_date_iso,"
+                    "ata,position,position_source,zone,kardex,description,"
+                    "part_number,serial_number,row_issues,page) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", batch)
                 n_rows += len(batch)
                 n_files += 1
         except OSError as e:
             print(f"  [!] read failed: {csv_path.name} ({type(e).__name__})", flush=True)
 
+    # HT family inheritance: for any HT row whose family is Unknown but
+    # whose aircraft_key matches an OCCM row with a known family, copy that
+    # family over. This is the cheapest way to flow OCCM-side classification
+    # to HT files for the same airframe (AMOS HT headers don't carry a model
+    # token, so the standalone classifier returns Unknown even when the OCCM
+    # twin clearly identifies the family).
+    cur.execute("""
+        UPDATE positions
+           SET family = (
+               SELECT o.family FROM positions o
+                WHERE o.sheet_type='OCCM' AND o.aircraft_key=positions.aircraft_key
+                  AND o.family NOT IN ('','Unknown')
+                LIMIT 1),
+               family_confidence = 'occm_sibling'
+         WHERE sheet_type='HT'
+           AND family IN ('','Unknown')
+           AND aircraft_key IN (
+               SELECT DISTINCT aircraft_key FROM positions
+                WHERE sheet_type='OCCM' AND family NOT IN ('','Unknown'))
+    """)
+    print(f"  HT family-inheritance: {cur.rowcount} rows updated from OCCM siblings")
+
     # Indexes
+    cur.execute("CREATE INDEX idx_sheet ON positions(sheet_type)")
     cur.execute("CREATE INDEX idx_ak ON positions(aircraft_key)")
     cur.execute("CREATE INDEX idx_pos ON positions(aircraft_key, position)")
     cur.execute("CREATE INDEX idx_pn ON positions(part_number)")

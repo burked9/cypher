@@ -12,7 +12,7 @@ Output:
     header_snippet so they can be reviewed/matched by hand.
 """
 from __future__ import annotations
-import csv, re, os, pathlib, sys
+import csv, io, re, os, pathlib, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 EVALSP = pathlib.Path("/Users/danielburke/Library/CloudStorage/OneDrive-Personal/work/KEEL_aviation_records/evalsp")
@@ -42,6 +42,7 @@ _FAMILY_FROM_AIRBUS = {
 # extraction. Keep keys as strings, exactly as MSN appears in the header.
 _MANUAL_MSN_FAMILY = {
     "30875": ("B777", "B777-200ER"),       # 9V-SQJ Singapore Airlines, user-confirmed
+    "4174":  ("A320 family", "A320-232"),  # HA-LPZ Wizz Air, fixes B747 false positive
     "1541":  ("A320 family", "A319-112"),  # B-2215 China Eastern (D-AVWI delivery), user-confirmed
 }
 
@@ -55,7 +56,13 @@ _MODEL_LINE_RE = re.compile(
 # accepts alphanumeric variant codes (`767-300ER`, `767-3Q8ER`, `737-73S`).
 # Use a non-word lookahead instead of `\b` so the regex doesn't fail when the
 # token continues with letters (`...300ER`).
-_BOEING_DASH_RE = re.compile(r"\bB?7(37|47|57|67|77|87)-[0-9A-Z]{1,6}(?:[^A-Z0-9]|$)")
+# Real Boeing dash-suffix variants:
+#   737-700 / 737-86N / 767-300ER / 767-3Q8ER / 747-400 / 777-300ER.
+# A valid suffix is up to 3 digits, optionally followed by 1-4 letters/digits
+# (variant code). This explicitly rules out 5+ digit codes like `747-06209`
+# (a task-card reference that previously misclassified MSN 4174 as B747).
+_BOEING_DASH_RE = re.compile(
+    r"\bB?7(37|47|57|67|77|87)-[0-9]{1,3}(?![0-9])[0-9A-Z]{0,5}(?:[^A-Z0-9]|$)")
 # Bare `B777` / `B737` / `B767` etc. — reliable Boeing model token with the
 # explicit B prefix, no dash required. Catches files like the 9V-SQJ Annex 8
 # where rows say "4100945B B777 HS PBH: FAN…" (the 777 appears per-row).
@@ -243,23 +250,52 @@ def read_header(path: str, max_pages: int = 2) -> str:
     return "\n".join(parts)
 
 
+def _load_triage_rows():
+    """Load both OCCM and HT triages, tagging each row with `sheet_type`.
+
+    Each row carries an absolute `path` column from the triage step, so we
+    don't need EVALSP/fn fallbacks any more — files from the HT folder are
+    found via their triage row directly.
+    """
+    out = []
+    for tag, candidates in (
+        ("OCCM", ("/tmp/triage_occm.csv", "research/results/triage_occm.csv")),
+        ("HT",   ("/tmp/triage_ht.csv",   "research/results/triage_ht.csv")),
+    ):
+        for p in candidates:
+            path = pathlib.Path(p) if p.startswith("/") else ROOT / p
+            if not path.exists():
+                continue
+            # Tolerant of triage CSVs that contain NULs (we've seen this on
+            # some OneDrive copies).
+            raw = path.read_bytes().replace(b"\x00", b"")
+            for r in csv.DictReader(io.StringIO(raw.decode("utf-8", errors="ignore"))):
+                r["sheet_type"] = tag
+                out.append(r)
+            break
+    return out
+
+
 def main():
-    tri_local = pathlib.Path("/tmp/triage_occm.csv")
-    tri = tri_local if tri_local.exists() else ROOT / "research/results/triage_occm.csv"
-    rows = list(csv.DictReader(tri.open()))
+    rows = _load_triage_rows()
+    print(f"  loaded {len(rows)} triage rows (OCCM + HT)")
 
     out_rows = []
     n = 0
     for r in rows:
         v = (r.get("variant") or "").strip()
         fn = (r.get("filename") or "").strip()
+        sheet_type = r.get("sheet_type", "OCCM")
         # Process Unknown-variant files too — they often carry a clear
         # model/family in the header even when no parser signature fires
         # (e.g. the 25+ Boeing-MSN Unknown files in this corpus). Skip only
         # files with no variant cell at all or a Timeout marker.
         if not v or v == "Timeout":
             continue
-        path = EVALSP / fn
+        # Prefer absolute path from triage (handles HT folder + OCCM folder);
+        # fall back to EVALSP/fn for backwards-compatible behaviour.
+        triage_path = (r.get("path") or "").strip()
+        path = pathlib.Path(triage_path) if triage_path else EVALSP / fn
         if not path.exists():
             continue
         head = read_header(str(path))
@@ -288,7 +324,7 @@ def main():
         date = extract_report_date(head)
         snippet = " ".join(head[:200].split())
         out_rows.append({
-            "source_file": fn, "variant": v,
+            "source_file": fn, "variant": v, "sheet_type": sheet_type,
             "registration": reg, "msn": msn,
             "model_raw": model_raw, "family": fam, "family_confidence": conf,
             "report_date": date, "header_snippet": snippet,
@@ -297,8 +333,9 @@ def main():
         if n % 30 == 0:
             print(f"  [{n}] {fn[:40]:40s} fam={fam}", flush=True)
 
-    cols = ["source_file", "variant", "registration", "msn", "model_raw",
-            "family", "family_confidence", "report_date", "header_snippet"]
+    cols = ["source_file", "variant", "sheet_type", "registration", "msn",
+            "model_raw", "family", "family_confidence", "report_date",
+            "header_snippet"]
     # /tmp backup always
     with open("/tmp/file_metadata.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=cols); w.writeheader(); w.writerows(out_rows)
