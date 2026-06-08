@@ -10,18 +10,23 @@ Aircraft maintenance teams routinely receive lengthy PDFs listing installed comp
 
 ## Project status
 
-**26 OCCM variants** + **7 LLP variants** + **3 HT variants** implemented. Current corpus (502 OCCM PDFs):
+**28 OCCM variants** + **7 HT variants** + **7 LLP variants** implemented. Combined
+corpus: 502 OCCM PDFs + 503 HT PDFs in `/KEEL_aviation_records/`.
 
-- **158k positioned rows** across **139 distinct airframes** spanning **9 confirmed families**:
-  - A320 family (94 files), A330 (19), B737 (41), B767 (14), A340 (6), Embraer (6),
-    Bombardier CRJ (5), B777 (6), B757 (1)
-- **94.7% of rows family-classified** (a manual-review override system handles the residual)
-- **94% of aircraft on "strong" join keys** (header MSN or registration) — only 6 aircraft
-  fall back to filename-based keys
-- **95% of rows carry a parseable report_date_iso** for the `current_fit` view
+- **186k rows** in the unified `positions.sqlite` (159k OCCM + 27k HT)
+- **325 source PDFs parsed** (215 OCCM / 110 HT) — the rest are image-only
+  scans (OCR ceiling) or per-component certs / non-list documents
+- **177 distinct airframes**, **45 of which carry BOTH an OCCM and an HT
+  list** and are joinable on `aircraft_key` for cross-sheet queries
+- **9 confirmed families** (A320 family, A330, A340, B737, B757, B767,
+  B777, Embraer, Bombardier CRJ); A350 is not present in the corpus
+- **95% of rows carry a parseable `report_date_iso`** for the
+  `current_fit` view; manual-review override system handles the rest
+- **Zero leading-punctuation PNs/SNs** in the DB after the global
+  cleanup step strips `.,;:` indentation artefacts from MIS exports
 
-Adding a new variant is one new file under `sheet_types/occm_variants/<name>.py` exposing
-`NAME`, `SIGNATURES`, `CANONICAL_COLUMNS`, `RULES`, and `extract(pdf_path)`.
+Adding a new variant is one new file under `sheet_types/<sheet>_variants/<name>.py`
+exposing `NAME`, `SIGNATURES`, `CANONICAL_COLUMNS`, `RULES`, and `extract(pdf_path)`.
 
 ## Architecture (four-level extraction)
 
@@ -125,7 +130,7 @@ The deploy uses Pyodide; first load installs `pdfplumber==0.9.0` (last release b
 
 ## Variant catalogue
 
-The OCCM router (`sheet_types/occm.py`) dispatches to one of these 26 modules. Order matters
+The OCCM router (`sheet_types/occm.py`) dispatches to one of these 28 modules. Order matters
 for detection — more-specific signatures are listed first so they win over generic ones.
 
 | Variant | What it parses | Notes |
@@ -156,6 +161,22 @@ for detection — more-specific signatures are listed first so they win over gen
 | `msn_components_status_list.py` | B-2215 MSN 1541 A319-112 | `N-####`-prefix Item column |
 | `on_condition_monitoring_occm.py` | Citilink / Garuda B737-800 | Indonesian operator fleet |
 | `sedor_b737_occm.py` | SE-DOR / LN-RRC B737-600 | 3-line vertical layout with IPC Ref anchor |
+| `elal_b767_msn28132.py` | EL AL 4X-EAM B767-3Q8ER records-package | 27-PDF per-ATA-chapter mixed-content cluster |
+| `georgian_airways_b737.py` | Georgian Airways 4L-TGM B737-700 | clean `AIRCRAFT COMPONENT LOG` per-row layout |
+
+HT variants under `sheet_types/ht_variants/` mirror the OCCM pattern.
+Seven implemented, covering 110 source PDFs / 27k rows:
+
+| Variant | What it parses |
+|---|---|
+| `amos.py` | AMOS `Aircraft Equipment List Report` (HT-side) — broadest HT matcher, 64 files |
+| `mm510.py` | MM_510 `HARD TIME/LLP COMPONENTS` (Sun Express, Atlas Global, Red Wings, IKAR) |
+| `tap.py` | TAP Portugal `PROG. MAN: TAP` compact one-line layout |
+| `oases_lifed_components.py` | OASES `Lifed Component Report` (TR42) |
+| `stars_trax.py` | STARS / Trax MIS `A/C Detail Items Print`, dual position/category column order |
+| `iberia.py` | Iberia bilingual ES/EN `LISTADO DE EQUIPOS INSTALADOS` (HT subset) |
+| `aircraft_rotables_ht.py` | Single-line `Aircraft Rotables Report` HT layout (EC-LU* fleet) |
+| `vietnam_airlines.py` | Vietnam Airlines deadline-tracking HT (no per-row position) |
 
 LLP variants under `sheet_types/llp_variants/` follow the same pattern:
 `amos.py`, `vietnam_airlines.py`, `lan_engine_llp.py`, `pro_rata_engine_llp.py`,

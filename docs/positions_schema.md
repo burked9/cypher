@@ -16,7 +16,8 @@ rows that fail soft validation stay in, with their issues visible in `row_issues
 |---|---|---|
 | `id` | INTEGER PK | autoincrement primary key |
 | `source_file` | TEXT | original PDF filename — provenance, never modified |
-| `variant` | TEXT | which OCCM parser produced this row (see README variant catalogue) |
+| `sheet_type` | TEXT | `OCCM` or `HT` — which sheet type the source PDF belongs to. Indexed via `idx_sheet`. |
+| `variant` | TEXT | which parser produced this row (see README variant catalogue) |
 | `aircraft_key` | TEXT | **join key for cross-snapshot queries** — see [`aircraft_key`](#aircraft_key-derivation) |
 | `aircraft_key_source` | TEXT | how that key was derived (see table below) |
 | `registration` | TEXT | tail/fin number from PDF header (`VN-A350`, `PK-CMJ`) — nullable |
@@ -68,12 +69,12 @@ WHERE aircraft_key_source IN
 The `position` column is a normalised identifier coming from one of **seven different
 source columns** across the variants. `position_source` preserves which one.
 
-| `position_source` | Looks like | Variants |
+| `position_source` | Looks like | Variants (OCCM + HT combined) |
 |---|---|---|
 | `FIN` | `10HC`, `282HN`, `5319HL` | Standard OCCM, OCCM Status List, MSN Components Status List, A330 Engineering Planning |
-| `POSITION` | `21`, `1002TW1`, `7SQ` (mixed shapes) | OASES, Avianca, On Condition Monitoring, B777 Annex 8, CONFIG SLOT, others |
-| `POS` | `30HQ`, `4022HM` | AMOS, Aircraft Spec File OCCM |
-| `LOCATION` | `E/E`, `CARGO`, `FRONT CARGO` (coarser) | Cathay OCCM, Iberia Listado, CCA A340 OCCM |
+| `POSITION` | `21`, `1002TW1`, `7SQ`, `521HH17` (mixed shapes) | OASES, Avianca, On Condition Monitoring, B777 Annex 8, CONFIG SLOT, Georgian Airways B737, MM_510 HT, TAP HT, OASES Lifed HT, STARS Trax HT, Aircraft Rotables HT |
+| `POS` | `30HQ`, `4022HM` | AMOS, Aircraft Spec File OCCM, AMOS HT |
+| `LOCATION` | `E/E`, `CARGO`, `FRONT CARGO` (coarser) | Cathay OCCM, Iberia Listado, CCA A340 OCCM, Iberia Listado HT |
 | `POSN` | mixed | OCCM List As At |
 | `FUNCTIONAL_LOCATION` | SAP-style | Technical Object Listing |
 | `AMM_FIN` | AMM-derived FIN (often `O/C` placeholder — use `kardex` instead) | Remaining Potentials |
@@ -137,6 +138,36 @@ Auto-derived in `tools/extract_file_metadata.py`. Possible values:
 - `ocr` — derived from OCR'd text (image-only PDFs)
 - `none` — Unknown
 
+## Sheet-type unification (OCCM ↔ HT)
+
+As of the OCCM+HT unification, `positions` carries a `sheet_type` column
+tagging each row as `OCCM` or `HT`. Both sheet types are written by the
+same build script (`tools/build_positions_db.py`), share the same
+`aircraft_key` derivation, and join via a single SQL on
+`positions.aircraft_key`.
+
+* **HT family inheritance** — HT files that have an Unknown family but
+  share an `aircraft_key` with an OCCM file inherit the OCCM family
+  (recorded as `family_confidence = 'occm_sibling'`). This is what makes
+  cross-sheet queries family-aware even when the HT header itself is
+  silent on model.
+* **45 airframes** in the current corpus carry rows for BOTH sheet
+  types and are joinable today.
+* **No special HT view** — the existing `distinct_positions`,
+  `current_fit` and `position_history` views work over both sheets;
+  filter by `sheet_type` if you need to constrain.
+
+```sql
+-- Which airframes carry both OCCM and HT data?
+SELECT aircraft_key, family,
+       SUM(CASE WHEN sheet_type='OCCM' THEN 1 ELSE 0 END) AS occm_rows,
+       SUM(CASE WHEN sheet_type='HT'   THEN 1 ELSE 0 END) AS ht_rows
+FROM positions WHERE aircraft_key<>''
+GROUP BY aircraft_key
+HAVING occm_rows>0 AND ht_rows>0
+ORDER BY family, aircraft_key;
+```
+
 ## Views
 
 ### `distinct_positions`
@@ -190,6 +221,14 @@ Tag forms you'll see in the comma-joined `row_issues` column:
 | `_imputed:ATA` | ATA was forward-filled from the most recent section header |
 | `_imputed:POSITION` | position was synthetically generated (reserved — not currently used) |
 | `PART_NUMBER:unknown_pn` | (reserved) PN not in the master Bloom filter |
+
+**Note on `PART_NUMBER` / `SERIAL_NUMBER` cleanup**: leading punctuation
+(`.,;:•·*`) on PN/SN tokens — a PDF indentation artefact emitted by TAP,
+Swiss A340, EL AL B767 and a handful of other MIS exports — is **stripped
+before validation**. PNs like `.968A0000-03` land in the DB as
+`968A0000-03`, not flagged. Callers can use
+`shared.cleanup.get_normalize_counters()` to surface a per-file count
+of stripped tokens.
 
 **No row is ever silently dropped.** Failed validation = flagged.
 
