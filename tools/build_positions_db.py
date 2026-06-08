@@ -525,6 +525,79 @@ def build():
         ORDER BY aircraft_key, position, source_file
     """)
 
+    # cross_sheet_slot: slot-joined wide view for OCCM+HT combined mode.
+    # One row per (aircraft_key, position) with the LATEST OCCM row and
+    # LATEST HT row side-by-side. Picks the most recent snapshot per
+    # (aircraft_key, position, sheet_type) using the same date-ordering as
+    # `current_fit`, then FULL-OUTER-joins OCCM ↔ HT on (aircraft_key,
+    # position). FULL OUTER is emulated as `UNION` of LEFT and RIGHT joins.
+    #
+    # This is the SQL preview of what `tools/export_combined.py` will emit
+    # — Sextant's expected input. Position-semantic mismatches (HT slot
+    # `10HM6` vs OCCM slot `LEFT PRIMARY HX`) surface as `occm_*` columns
+    # NULL on an HT row, or vice versa.
+    cur.execute("""
+        CREATE VIEW cross_sheet_slot AS
+        WITH latest_per_sheet AS (
+            -- Pick the newest row per (aircraft_key, position, sheet_type).
+            SELECT p.*
+            FROM positions p
+            JOIN (
+                SELECT aircraft_key, position, sheet_type,
+                       (SELECT id FROM positions q
+                         WHERE q.aircraft_key = positions.aircraft_key
+                           AND q.position     = positions.position
+                           AND q.sheet_type   = positions.sheet_type
+                           AND q.position <> ''
+                         ORDER BY (q.report_date_iso = '') ASC,
+                                  q.report_date_iso DESC,
+                                  q.id DESC
+                         LIMIT 1) AS best_id
+                  FROM positions
+                 WHERE position <> ''
+                 GROUP BY aircraft_key, position, sheet_type
+            ) m ON p.id = m.best_id
+        ),
+        occm AS (SELECT * FROM latest_per_sheet WHERE sheet_type='OCCM'),
+        ht   AS (SELECT * FROM latest_per_sheet WHERE sheet_type='HT')
+        -- LEFT side: every OCCM slot, with HT joined where present
+        SELECT
+            COALESCE(occm.aircraft_key, ht.aircraft_key)               AS aircraft_key,
+            COALESCE(occm.position,     ht.position)                   AS position,
+            COALESCE(occm.family,       ht.family)                     AS family,
+            COALESCE(occm.ata,          ht.ata)                        AS ata,
+            occm.part_number   AS occm_part_number,
+            occm.serial_number AS occm_serial_number,
+            occm.description   AS occm_description,
+            occm.report_date_iso AS occm_report_date,
+            occm.source_file   AS occm_source_file,
+            occm.variant       AS occm_variant,
+            ht.part_number     AS ht_part_number,
+            ht.serial_number   AS ht_serial_number,
+            ht.description     AS ht_description,
+            ht.report_date_iso AS ht_report_date,
+            ht.source_file     AS ht_source_file,
+            ht.variant         AS ht_variant,
+            CASE WHEN occm.id IS NOT NULL AND ht.id IS NOT NULL THEN 'both'
+                 WHEN occm.id IS NOT NULL THEN 'occm_only'
+                 ELSE 'ht_only' END AS slot_coverage
+        FROM occm
+        LEFT JOIN ht ON occm.aircraft_key = ht.aircraft_key
+                    AND occm.position     = ht.position
+        UNION
+        -- RIGHT side: HT slots not present in OCCM
+        SELECT
+            ht.aircraft_key, ht.position, ht.family, ht.ata,
+            NULL, NULL, NULL, NULL, NULL, NULL,
+            ht.part_number, ht.serial_number, ht.description,
+            ht.report_date_iso, ht.source_file, ht.variant,
+            'ht_only'
+        FROM ht
+        LEFT JOIN occm ON occm.aircraft_key = ht.aircraft_key
+                      AND occm.position     = ht.position
+        WHERE occm.id IS NULL
+    """)
+
     conn.commit()
 
     # Quick stats

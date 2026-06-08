@@ -195,6 +195,43 @@ For each `(aircraft_key, position)`, returns the most recent row by
 `report_date_iso` sort to the bottom — they only win when no dated alternative
 exists.
 
+### `cross_sheet_slot`
+
+```sql
+-- One row per (aircraft_key, position), latest OCCM snapshot joined
+-- side-by-side with latest HT snapshot. Columns occm_* / ht_* expose
+-- the per-sheet data; slot_coverage is 'both' | 'occm_only' | 'ht_only'.
+```
+
+**Pre-joined slot view — the input contract for downstream OCCM+HT
+combined-mode work (Sextant et al.).** Picks the most recent row per
+`(aircraft_key, position, sheet_type)` using the same date-ordering as
+`current_fit`, then FULL-OUTER-joins OCCM ↔ HT on `(aircraft_key,
+position)`. Row-multiplication from multi-snapshot data is eliminated
+by the `current_fit`-style inner selection.
+
+Current corpus (45 cross-sheet airframes):
+
+| `slot_coverage` | rows | meaning |
+|---|---:|---|
+| `both` | 593 | slot exists in both OCCM and HT lists; PNs typically match byte-for-byte when the parser pair preserves the FIN naming |
+| `occm_only` | 46,911 | slot installed (OCCM lists it) but no HT obligation — the bulk of the OCCM corpus |
+| `ht_only` | 7,384 | slot has an HT task but the OCCM list doesn't show that position — usually a naming-convention mismatch (HT uses `10HM6`, OCCM uses `LEFT PRIMARY HX`) on the same physical location |
+
+```sql
+-- Slot-by-slot OCCM ↔ HT comparison for one airframe (sextant input shape)
+SELECT position, ata, slot_coverage,
+       occm_part_number, occm_serial_number, occm_report_date,
+       ht_part_number,   ht_description,     ht_report_date
+FROM cross_sheet_slot WHERE aircraft_key='2333'
+ORDER BY ata, position;
+
+-- Just the matched slots — clean PN-vs-PN comparison
+SELECT position, occm_part_number, ht_part_number
+FROM cross_sheet_slot
+WHERE aircraft_key='2333' AND slot_coverage='both';
+```
+
 ### `position_history`
 
 ```sql
