@@ -30,6 +30,10 @@ SIGNATURES = [
     # the title carries hyphens and the column header row is sometimes
     # printed in a doubled-character font (AATTAA DDeessccrriippttiioonn …).
     "Aircraft-Equipment-List",
+    # Some operators (EI-FFM Stobart Air, FFM HT List) strip the AMOS
+    # branding from the header but emit the exact same column layout.
+    # The column header line itself is the cleanest signature.
+    "PART NO. SERIAL NO. DESCRIPTION POS.",
 ]
 
 CANONICAL_COLUMNS = _amos_occm.CANONICAL_COLUMNS
