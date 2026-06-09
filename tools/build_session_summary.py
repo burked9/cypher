@@ -131,20 +131,22 @@ VARIANT_NOTES = {
 
 
 DEFERRED_CLUSTERS = [
-    ("Image-only / scanned PDFs", 15,
-     "No text layer. OCR scan classified 35 by signature and 46 by family hint, "
-     "but row-extraction via existing parsers hit a noise ceiling (OCR table borders "
-     "read as content). Would need dedicated OCR-tolerant parsers per cluster."),
-    ("MSN 28132 EL AL B767 records-package", 10,
-     "Single airframe split into per-ATA-chapter files with mixed content (cover/TOC + tabular). "
-     "Family classified as B767 via overrides; row extraction would need a mixed-content parser."),
+    ("Image-only / scanned PDFs (HT corpus, 133 files)", 133,
+     "No text layer. OCR scan returned ~0.4% recovery — table borders read as content, "
+     "dates mangled, broken spacing. Documented ceiling. Would need dedicated "
+     "OCR-tolerant parsers per cluster; the bulk are not parseable upstream."),
+    ("HT long-tail singletons", "~16 files across 11 clusters",
+     "Singapore TCC B-186##, VP-CYE TCC, VP-BFA 737-NG, SU-LBJ 1054, Flynas redelivery, "
+     "CCA A340 HT, Xiamen B-5038, Air Malta M&E, Frontier N###FR, AerCap O2 GEN, CAI Italy. "
+     "Each is a 1-2 file cluster with its own format. Bespoke parsers individually low-ROI; "
+     "could revisit as a long-tail catch-all later."),
     ("PR-MAP CONFIG SLOT sub-format", 2,
      "Same MIS as LV-IQW/CC-CZU but slightly different row structure. Date placement varies."),
-    ("Georgian Airways + Print Date singletons", 4,
-     "Small specialised parsers, low diversity yield. Two operators, two distinct formats."),
-    ("Long-tail singletons", "~10",
-     "Each one is a 1-2 file cluster with its own format. Most have been family-classified via "
-     "the manual review pass but row extraction is per-cluster low-leverage."),
+    ("OCR pipeline activation in browser", 1,
+     "L3 OCR scaffold present (deploy/assets/ocr_bridge.js + main.run_with_ocr stub) "
+     "but not wired end-to-end. Half a day of work when there's demand."),
+    ("L5 non-OCR fallback layer", 1,
+     "Placeholder in docs/TODO.md — pending user notes on the proposed L5 strategy."),
 ]
 
 
@@ -494,6 +496,18 @@ COVERAGE_PROGRESSION = [
     ("Validation-rule sweep (allow_empty for optional columns)", 59.6),
     ("Manual family review (67 airframes confirmed by user)", 59.6),
     ("Family-classification coverage (DB rows with confirmed family)", 98.8),
+    # Third-session work — HT corpus + OCCM+HT combined mode
+    ("EL AL B767 MSN 28132 mixed-content (8 ARL files / 973 rows)", 60.5),
+    ("Georgian Airways B737 AIRCRAFT COMPONENT LOG (2 files)", 60.9),
+    ("OCCM + HT unified into single positions.sqlite (sheet_type col)", 60.9),
+    ("HT Wave 1 — AMOS HT, MM_510, TAP HT shim, Iberia HT, EI-FFM", 64.1),
+    ("HT Wave 2 — OASES Lifed Component Report + TAP HT bespoke parser", 65.4),
+    ("HT Wave 3 — STARS / Trax MIS A/C Detail Items Print", 66.7),
+    ("HT Wave 4 — Aircraft Rotables HT + EI-FFM signature widening", 68.1),
+    ("Global PN/SN leading-punctuation cleanup (651 → 0 affected rows)", 68.1),
+    ("Searchable HTML index (occm_index.html, 322 files)", 68.1),
+    ("Phase-1 OCCM+HT combiner: tools/export_combined.py (45 airframes)", 68.1),
+    ("Phase-2 link_pair() — two-PDF pairing on MSN / reg / manual override", 68.1),
 ]
 
 

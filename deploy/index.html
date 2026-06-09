@@ -36,12 +36,35 @@
         <li class="step" data-step="3"><span>3</span>Extract &amp; download</li>
       </ol>
 
-      <div class="action">
+      <!-- Mode selector — single PDF (default) or OCCM+HT combined -->
+      <div class="mode-selector" role="radiogroup" aria-label="Extraction mode">
+        <label><input type="radio" name="mode" value="single" checked>
+               Single PDF</label>
+        <label><input type="radio" name="mode" value="combined">
+               OCCM + HT (combined)</label>
+      </div>
+
+      <div class="action" id="action-single">
         <label class="file-picker">
           <input type="file" id="pdf-input" accept="application/pdf">
           <span id="file-picker-label">Choose a PDF</span>
         </label>
         <button id="run" disabled>Extract</button>
+      </div>
+
+      <!-- Combined mode — dual drop zone, hidden until selected -->
+      <div class="action action-combined" id="action-combined" hidden>
+        <label class="file-picker">
+          <input type="file" id="occm-input" accept="application/pdf">
+          <span id="occm-picker-label">Choose OCCM PDF</span>
+        </label>
+        <label class="file-picker">
+          <input type="file" id="ht-input" accept="application/pdf">
+          <span id="ht-picker-label">Choose HT PDF</span>
+        </label>
+        <input type="text" id="manual-key" class="manual-key"
+               placeholder="(optional) aircraft_key override">
+        <button id="run-combined" disabled>Pair &amp; Extract</button>
       </div>
 
       <p class="status" id="status">Loading the runtime…</p>

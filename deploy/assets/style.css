@@ -131,6 +131,29 @@ main { max-width: 1080px; margin: 0 auto; padding: 0 24px 80px; }
   gap: 12px;
   flex-wrap: wrap;
 }
+.mode-selector {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--fg);
+}
+.mode-selector label { cursor: pointer; }
+.action-combined .manual-key {
+  padding: 9px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-family: var(--mono, monospace);
+  min-width: 220px;
+}
+.results-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 20px 0 8px;
+  color: var(--fg);
+}
+.issues { font-family: var(--mono, monospace); font-size: 12px; }
 .file-picker { cursor: pointer; }
 .file-picker input { display: none; }
 .file-picker span {
@@ -147,7 +170,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 0 24px 80px; }
 }
 .file-picker:hover span { border-color: var(--accent); background: var(--accent-soft); }
 
-button#run {
+button#run, button#run-combined {
   padding: 10px 22px;
   background: var(--accent);
   color: white;
@@ -158,9 +181,13 @@ button#run {
   cursor: pointer;
   transition: background 120ms, transform 60ms;
 }
-button#run:hover:not(:disabled) { background: #163a6d; }
-button#run:active:not(:disabled) { transform: translateY(1px); }
-button#run:disabled {
+button#run:hover:not(:disabled), button#run-combined:hover:not(:disabled) {
+  background: #163a6d;
+}
+button#run:active:not(:disabled), button#run-combined:active:not(:disabled) {
+  transform: translateY(1px);
+}
+button#run:disabled, button#run-combined:disabled {
   background: #d8dde3; border-color: #d8dde3; color: white; cursor: not-allowed;
 }
 

@@ -31,6 +31,15 @@ SOURCES = [
     "shared/aviation_rules.py",
     "shared/pn_master.py",
     "shared/cleanup.py",
+    "shared/pairing.py",   # OCCM+HT combined-mode link_pair() (Phase 2)
+    # tools.extract_file_metadata + tools.build_positions_db are pure-Python
+    # modules that pairing.py imports for the header-parse + filename-key
+    # helpers. Mirrored here so the in-browser combined mode can pair PDFs.
+    # NOTE: only their importable surface is used in the browser — main()
+    # of either module is not invoked under Pyodide.
+    "tools/__init__.py",
+    "tools/extract_file_metadata.py",
+    "tools/build_positions_db.py",
 
     # variants — pure leaves, no inter-variant dependencies
     "sheet_types/__init__.py",
@@ -64,10 +73,20 @@ SOURCES = [
     "sheet_types/occm_variants/on_condition_monitoring_occm.py",
     "sheet_types/occm_variants/sedor_b737_occm.py",
     "sheet_types/occm_variants/swiss_a340_occm.py",
-    # HT variants
+    # OCCM variants added in the OCCM+HT session
+    "sheet_types/occm_variants/elal_b767_msn28132.py",
+    "sheet_types/occm_variants/georgian_airways_b737.py",
+    # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
     "sheet_types/ht_variants/vietnam_airlines.py",
+    "sheet_types/ht_variants/amos.py",
+    "sheet_types/ht_variants/mm510.py",
+    "sheet_types/ht_variants/tap.py",
+    "sheet_types/ht_variants/iberia.py",
+    "sheet_types/ht_variants/oases_lifed_components.py",
+    "sheet_types/ht_variants/stars_trax.py",
+    "sheet_types/ht_variants/aircraft_rotables_ht.py",
     # LLP variants — original + 5 added this session
     "sheet_types/llp_variants/__init__.py",
     "sheet_types/llp_variants/_base.py",

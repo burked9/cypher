@@ -75,7 +75,42 @@ import main
 
   status.textContent = "Ready. Choose a PDF.";
   $("run").disabled = false;
+  // Combined-mode pair button is enabled once both files are chosen
+  // (the picker change handlers manage that).
 }
+
+// ---------------------------------------------------------------------------
+// Mode selector — toggles between single-PDF and OCCM+HT combined input
+// ---------------------------------------------------------------------------
+document.querySelectorAll("input[name='mode']").forEach((radio) => {
+  radio.addEventListener("change", () => {
+    const mode = document.querySelector("input[name='mode']:checked").value;
+    $("action-single").hidden = (mode !== "single");
+    $("action-combined").hidden = (mode !== "combined");
+    hide("variant-info"); hide("summary"); hide("downloads");
+    $("results").innerHTML = "";
+    $("empty-state").hidden = false;
+    status.textContent = (mode === "combined"
+      ? "Combined mode — choose one OCCM PDF and one HT PDF."
+      : "Choose a PDF.");
+  });
+});
+
+function _updateCombinedReady() {
+  const haveBoth = $("occm-input").files[0] && $("ht-input").files[0];
+  const btn = $("run-combined");
+  if (btn) btn.disabled = !haveBoth || !pyodide;
+}
+["occm-input", "ht-input"].forEach((id) => {
+  const el = $(id);
+  if (!el) return;
+  el.addEventListener("change", () => {
+    const lbl = $(id === "occm-input" ? "occm-picker-label" : "ht-picker-label");
+    const f = el.files[0];
+    if (lbl) lbl.textContent = f ? f.name : (id === "occm-input" ? "Choose OCCM PDF" : "Choose HT PDF");
+    _updateCombinedReady();
+  });
+});
 
 boot().catch((e) => {
   status.textContent = "Failed to load: " + e.message;
@@ -224,6 +259,134 @@ window.toggleFlagged = function (on) {
   const search = document.querySelector(".search-box");
   window.filterTable(search ? search.value : "");
 };
+
+// ---------------------------------------------------------------------------
+// Combined-mode Extract — pair two PDFs, then route through main.run_combined()
+// ---------------------------------------------------------------------------
+const runCombinedBtn = $("run-combined");
+if (runCombinedBtn) runCombinedBtn.addEventListener("click", async () => {
+  const occmFile = $("occm-input").files[0];
+  const htFile   = $("ht-input").files[0];
+  if (!occmFile || !htFile) { status.textContent = "Choose both PDFs first."; return; }
+  const manualKey = ($("manual-key") && $("manual-key").value || "").trim();
+
+  markStep(2, "current");
+  status.textContent = `Pairing ${occmFile.name} ⟷ ${htFile.name}…`;
+  $("run-combined").disabled = true;
+  hide("variant-info"); hide("summary"); hide("downloads");
+  $("results").innerHTML = "";
+  hide("empty-state");
+
+  try {
+    const occmBuf = await occmFile.arrayBuffer();
+    const htBuf   = await htFile.arrayBuffer();
+    pyodide.FS.writeFile("/tmp/_occm.pdf", new Uint8Array(occmBuf));
+    pyodide.FS.writeFile("/tmp/_ht.pdf",   new Uint8Array(htBuf));
+    pyodide.globals.set("_manual_key", manualKey);
+    const jsonStr = await pyodide.runPythonAsync(`
+import json
+with open("/tmp/_occm.pdf", "rb") as fh: _occm = fh.read()
+with open("/tmp/_ht.pdf", "rb") as fh:   _ht   = fh.read()
+json.dumps(main.run_combined(_occm, _ht, _manual_key))
+`);
+    const data = JSON.parse(jsonStr);
+    lastResult = data;
+    renderCombined(data);
+  } catch (e) {
+    status.textContent = "Error: " + e.message;
+    console.error(e);
+  } finally {
+    $("run-combined").disabled = false;
+  }
+});
+
+function renderCombined(data) {
+  if (!data.ok) {
+    showStatus(`Extraction failed (${data.stage || "?"}): ${data.error || "unknown"}`, "error");
+    return;
+  }
+  const pair = data.pair || {};
+  const sevClass = pair.is_hard_mismatch ? "error"
+                 : pair.status === "manual_override" ? "warning"
+                 : pair.is_safe_auto_pair ? "" : "warning";
+  $("variant-info").hidden = false;
+  $("variant-info").innerHTML =
+    `<strong>Pair:</strong> ${escapeHtml(pair.status || "?")} ` +
+    `(${escapeHtml(pair.confidence || "")}) &middot; ` +
+    `aircraft_key: <code>${escapeHtml(pair.aircraft_key || "(none)")}</code><br>` +
+    `<small>OCCM: ${escapeHtml(pair.occm_filename || "")} — msn=${escapeHtml(pair.occm_msn || "-")}, reg=${escapeHtml(pair.occm_registration || "-")} &middot; ` +
+    `HT: ${escapeHtml(pair.ht_filename || "")} — msn=${escapeHtml(pair.ht_msn || "-")}, reg=${escapeHtml(pair.ht_registration || "-")}</small>`;
+  if (pair.warnings && pair.warnings.length) {
+    $("variant-info").innerHTML += `<br><small class="warning">⚠ ${pair.warnings.map(escapeHtml).join("; ")}</small>`;
+  }
+
+  if (!data.combined_ok) {
+    showStatus("Pair was a hard mismatch — combined view not generated. "
+               + "Type an aircraft_key into the override box if you want to force a pair.", "warning");
+    // Still expose per-sheet rows
+    _renderPerSheetTabs(data);
+    return;
+  }
+
+  const cov = data.combined.coverage;
+  status.textContent = "Done.";
+  markStep(2, "done"); markStep(3, "done");
+  $("summary").hidden = false;
+  $("summary").innerHTML =
+    `<strong>${cov.both}</strong> joined slots &middot; ` +
+    `<strong>${cov.occm_only}</strong> OCCM-only &middot; ` +
+    `<strong>${cov.ht_only}</strong> HT-only &middot; ` +
+    `<strong>${data.occm.rows.length + data.ht.rows.length}</strong> total source rows`;
+
+  _renderPerSheetTabs(data);
+
+  // Downloads — combined CSV is primary; per-sheet CSVs available too
+  const occmCsv = toCSV(data.occm.rows, data.occm.columns);
+  const htCsv   = toCSV(data.ht.rows,   data.ht.columns);
+  const combinedCsv = toCSV(data.combined.rows, data.combined.columns);
+  const ak = (data.pair && data.pair.aircraft_key) || "combined";
+  $("downloads").hidden = false;
+  $("downloads").innerHTML =
+    `<a id="download-csv" download="${escapeHtml(ak)}_combined.csv" ` +
+    `href="${URL.createObjectURL(new Blob([combinedCsv], {type:'text/csv'}))}">↓ Combined CSV</a>` +
+    `<a download="${escapeHtml(ak)}_occm.csv" ` +
+    `href="${URL.createObjectURL(new Blob([occmCsv], {type:'text/csv'}))}">↓ OCCM CSV</a>` +
+    `<a download="${escapeHtml(ak)}_ht.csv" ` +
+    `href="${URL.createObjectURL(new Blob([htCsv], {type:'text/csv'}))}">↓ HT CSV</a>`;
+}
+
+function _renderPerSheetTabs(data) {
+  // Three stacked sections: Combined, OCCM, HT (combined section may be absent
+  // when the pair was a hard mismatch).
+  let html = "";
+  if (data.combined_ok && data.combined && data.combined.rows.length) {
+    html += `<h3 class="results-section-title">Combined slot view</h3>` +
+            _buildResultsTable(data.combined.columns, data.combined.rows, "combined-table");
+  }
+  html += `<h3 class="results-section-title">OCCM rows (${data.occm.rows.length})</h3>` +
+          _buildResultsTable(data.occm.columns, data.occm.rows, "occm-table");
+  html += `<h3 class="results-section-title">HT rows (${data.ht.rows.length})</h3>` +
+          _buildResultsTable(data.ht.columns, data.ht.rows, "ht-table");
+  $("results").innerHTML = html;
+}
+
+function _buildResultsTable(cols, rows, id) {
+  let html = `<div class="table-scroll"><table id="${id}"><thead><tr>`;
+  for (const c of cols) html += `<th>${escapeHtml(c)}</th>`;
+  html += "</tr></thead><tbody>";
+  for (const r of rows) {
+    const flagged = r._issues ? "flagged" : "";
+    html += `<tr class="${flagged}">`;
+    for (const c of cols) {
+      const v = r[c] == null ? "" : String(r[c]);
+      const cls = c === "_issues" || c === "slot_coverage" ? "issues" : "";
+      html += `<td class="${cls}">${escapeHtml(v)}</td>`;
+    }
+    html += "</tr>";
+  }
+  html += "</tbody></table></div>";
+  return html;
+}
 
 function hide(id) { const e = $(id); if (e) e.hidden = true; }
 function showStatus(msg, type) {
