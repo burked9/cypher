@@ -2,6 +2,50 @@
 
 Open items in priority order. Each item has a category, a brief description, and a one-line "definition of done" so it's easy to pick up.
 
+## Priority 0 — pre-publication checklist
+
+### Local end-to-end smoke test in a real browser
+- **Why**: Pyodide-only failures (top-level imports of stdlib modules
+  Pyodide doesn't ship, side-effects at module load) only surface in a
+  real browser, not in CLI tests. Already caught one: `sqlite3` was a
+  top-level import in `tools/build_positions_db.py` which broke the
+  in-browser pair flow. Lazy-imported it inside `build()` — fix landed,
+  but a fresh test confirms no other landmines.
+- **Done when**: `cd deploy && python3 -m http.server 8765`, open
+  localhost, exercise both single-PDF and combined modes end-to-end with
+  no console errors. (Pyodide first-load ~10–15 MB; cached after.)
+
+### Verify in-browser combined-mode UI works with real PDFs
+- **Why**: Phase 3 was smoke-tested via simulated Pyodide path (Python
+  CLI invoking the deploy modules). The real browser execution path is
+  slightly different (web worker, micropip-installed pdfplumber, file
+  system mounted by Pyodide.FS).
+- **Done when**: dropping an OCCM PDF + HT PDF for a known cross-sheet
+  airframe (MSN 223 is the cleanest test case — 100% HT overlap) gives
+  pair status, slot view, and three downloadable CSVs.
+
+### GitHub Pages integration into existing consultancy site
+- **Why**: User has an existing static GitHub Pages consultancy site
+  and wants Cypher mounted under a subdirectory (e.g. `/dev/cypher/`).
+- **Compatibility notes** (verified):
+  * All paths inside `deploy/` are relative — Cypher can be hosted at
+    any sub-path. No `<base href>` rewrite needed.
+  * Pyodide + pdf.js + Tesseract.js load from jsdelivr CDN — no auth,
+    no API key.
+  * `noindex, nofollow` already in `deploy/index.html` head.
+  * `deploy/` is self-contained — drop the whole folder under the
+    target subdirectory.
+  * **CSS class names are generic** (`.action`, `.panel`,
+    `.results-section-title`). If the parent consultancy site uses
+    broad CSS resets that bleed into the Cypher subdirectory, scope
+    drift is possible. Fix is either (a) keep Cypher's `index.html`
+    as the standalone page served from its own subdirectory, or (b)
+    namespace Cypher's CSS under `.cypher-app { ... }` and wrap the
+    `<body>` content in `<div class="cypher-app">`. Defer until we
+    see actual drift.
+- **Done when**: Cypher is reachable under the consultancy-site
+  domain, both modes work, no styling drift from the parent site.
+
 ## Priority 1 — near-term, high impact
 
 ### Bloom-filter PN master cross-check

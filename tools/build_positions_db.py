@@ -23,7 +23,12 @@ Design choices (confirmed with the user):
     (FIN / POS / POSITION / LOCATION / POSN / FUNCTIONAL_LOCATION / AMM_FIN).
 """
 from __future__ import annotations
-import csv, re, sqlite3, pathlib, sys
+# NOTE: sqlite3 is intentionally imported lazily inside `build()` rather
+# than at module load. Pyodide builds bundled in the deploy can lack the
+# sqlite3 module, and shared/pairing.py imports `derive_aircraft_key`
+# from here — a top-level sqlite3 import would break the in-browser
+# combined mode even though it never runs build().
+import csv, re, pathlib, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 BY_PDF = ROOT / "research/results/by_pdf"
@@ -339,6 +344,7 @@ def load_aircraft_key_overrides() -> dict[str, tuple[str, str]]:
 
 
 def build():
+    import sqlite3   # local — keep top-level import optional (see header note)
     triage = load_triage()
     db_tmp = pathlib.Path("/tmp/positions.sqlite")
     if db_tmp.exists():
