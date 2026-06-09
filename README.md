@@ -36,6 +36,7 @@ exposing `NAME`, `SIGNATURES`, `CANONICAL_COLUMNS`, `RULES`, and `extract(pdf_pa
 | L2 | Layout-aware (word coordinates) | `pdfplumber` word boxes | ⏳ reserved |
 | L3 | OCR | [Tesseract](https://github.com/tesseract-ocr/tesseract) (locally) | ✅ local · 🚧 in-browser TODO |
 | L4 | Alternative OCR | [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) `PP-Structure` | 🔬 Colab notebook |
+| L5 | Layout-aware structured extraction | [docling](https://github.com/docling-project/docling) (TableFormer + layout-analysis ML) | 🔬 Colab notebook — recon in progress |
 
 Per-cell validation comes from `shared/aviation_rules.py` (uppercase-alphanumeric codes, OCR character corrections, regex patterns) and `shared/cleanup.py` (multi-stage cleaning + ATA forward-fill).
 

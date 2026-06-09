@@ -139,14 +139,36 @@ Open items in priority order. Each item has a category, a brief description, and
   auto-pairs them, and the download contains the three views with the slot
   join behaving correctly across all 30 currently-joinable airframes.
 
-### L5 — non-OCR fallback layer
-- **Why**: L3/L4 OCR has a documented ceiling (~0.4% recovery on the
-  image-only HT corpus). A non-OCR alternative may close that gap for
-  certain PDF classes. User to share specific approach.
-- **Status**: placeholder — awaiting user notes on the proposed L5 strategy.
-- **Done when**: at least one test PDF that L1–L4 cannot parse is parsed
-  cleanly by L5, journey records `rows_l5`, and the report shows it
-  alongside other levels.
+### L5 — layout-aware document understanding (docling)
+- **Why**: L3 Tesseract / L4 PaddleOCR have a documented ceiling on the
+  ~133 image-only HT PDFs (~0.4% recovery). They give a flat OCR string;
+  the per-variant line parsers can't recover row structure from that.
+  **docling** (IBM Research, LF AI & Data, MIT) ships layout-analysis +
+  TableFormer + integrated OCR — output is a `DoclingDocument` with
+  per-table cells indexed by row/col with bounding boxes, exactly the
+  structured intermediate Cypher's per-variant adapters need.
+- **Architecture decision (user preference)**: main pipeline stays on
+  Python 3.9 / Pyodide-friendly stack. L5 lives in a Colab notebook
+  (cloud burst), mirroring the existing L4 PaddleOCR pattern. Heavy
+  dependencies (PyTorch, transformers, layout models, TableFormer) all
+  stay off the local install and the deploy.
+- **Status**: Colab notebook landed at `research/colab_L5_docling.ipynb`.
+  Recon experiment ready — point at one of the recommended image-only
+  HT PDFs, run sections 1–6, and the notebook tells you whether
+  docling's TableItem output is recoverable enough to power a generic
+  L5 adapter.
+- **Decision point after recon**:
+  * **If recovery looks good** → wire L5 into `sheet_types/router.py`
+    as a fallback when L1 returns 0 rows on an image-only PDF. Adapter
+    module at `levels/L5_docling/extract.py` (local-only); deploy keeps
+    its current "needs local L5" friendly stub for these cases.
+  * **If recovery is poor on aviation layouts** → stop. Note the
+    finding in docs/TODO.md and revisit when newer layout models ship.
+- **Done when**: the recon notebook produces a `<stem>_l5_docling.csv`
+  that, after a quick visual cross-check against the source PDF,
+  contains ≥80% of the visible component rows for at least one of the
+  five recommended sample files. (Reuse the notebook on more files if
+  the first sample is borderline.)
 
 ## Priority 5 — distribution
 
