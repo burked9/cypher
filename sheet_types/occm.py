@@ -56,6 +56,17 @@ SIGNATURES = [
     "OCCM COMPONENTS STATUS LIST",
     "OCCM STATUS",
     "AIRCRAFT REGISTRATION:",
+    # Variants added later that don't carry "OCCM" in the header text but
+    # ARE OCCM-class data. Without these the in-browser top-level router
+    # returns "Unknown" on these files and the single-PDF UI shows a
+    # confusing "sheet type not recognised" error — even though we have
+    # working per-variant parsers for each.
+    "PROG. MAN:",                         # TAP Compact OCCM (CS-T**)
+    "AIRCRAFT-EQUIPMENT-LIST",            # hyphenated AMOS variant
+    "AIRCRAFT COMPONENT LOG",             # Georgian Airways 4L-TGM
+    "Parts Remaining Fitted at Build",    # EL AL B767 MSN 28132 records-package
+    "Parts Remaining fitted at Build",    # same, case variation
+    "I-BIX",                              # Alitalia I-BIX* registrations
 ]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
