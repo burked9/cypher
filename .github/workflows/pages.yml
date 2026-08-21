@@ -1,11 +1,17 @@
 name: Deploy Cypher to GitHub Pages
 
-# No build step -- deploy/ is committed as-is (including deploy/_pymods/,
-# which deploy/build.py generates locally and must be re-run + committed
-# before each push that changes shared/, sheet_types/, or levels/L1_text/).
-# This workflow only packages the existing deploy/ folder as the Pages
-# artifact, since GitHub Pages' branch-based deploy only supports the repo
-# root or a folder literally named /docs -- neither fits this repo's layout.
+# Rebuilds deploy/_pymods/ fresh on every push, then uploads deploy/ as the
+# Pages artifact -- no build step of its own beyond that. GitHub Pages'
+# branch-based deploy only supports the repo root or a folder literally
+# named /docs (neither fits: deploy/ is a self-contained static site, docs/
+# is already used for internal project notes), so this workflow serves that
+# role instead.
+#
+# deploy/_pymods/ is NOT committed (see .gitignore) -- it's pure build
+# output of `python3 deploy/build.py` against shared/, sheet_types/, and
+# levels/L1_text/, generated here on every run so it can never silently go
+# stale relative to those sources. If this build step ever breaks, the
+# workflow fails loudly instead of quietly deploying old Python logic.
 
 on:
   push:
@@ -30,6 +36,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Build deploy/_pymods/ (stdlib only -- no dependencies to install)
+        run: python3 deploy/build.py
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload deploy/ as the Pages artifact

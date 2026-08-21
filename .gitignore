@@ -12,13 +12,15 @@ research/report.html
 shared/pn_master.bloom
 deploy/_pymods/shared/pn_master.bloom
 
-# deploy/_pymods/ is NOT ignored, on purpose: GitHub Pages serves this repo
-# with no build step, so whatever app.js fetches at runtime must already be
-# committed. `deploy/_pymods/` used to be excluded here as a "build
-# artifact," which is correct instincts for a pipeline WITH a build step and
-# wrong for one without -- it meant the entire Python module mirror
-# (including manifest.json) would never have reached a real push. Run
-# `python3 deploy/build.py` and commit the result before every push.
+# Build artifact -- .github/workflows/pages.yml runs `python3 deploy/build.py`
+# fresh on every deploy, so this can never silently go stale relative to
+# shared/, sheet_types/, or levels/L1_text/. (History: this was gitignored,
+# then briefly un-ignored and committed directly when GitHub Pages had no
+# build step of its own, then re-ignored once the Pages workflow took over
+# rebuilding it. If you ever remove that workflow's build step, re-commit
+# this directory the same way, or the live site will silently serve stale
+# Python logic.)
+deploy/_pymods/
 
 # Python
 __pycache__/
