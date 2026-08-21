@@ -350,11 +350,16 @@ if (runCombinedBtn) runCombinedBtn.addEventListener("click", async () => {
     pyodide.FS.writeFile("/tmp/_occm.pdf", new Uint8Array(occmBuf));
     pyodide.FS.writeFile("/tmp/_ht.pdf",   new Uint8Array(htBuf));
     pyodide.globals.set("_manual_key", manualKey);
+    // Original filenames, so shared/pairing.py's filename-derived fallback
+    // (used when neither PDF's header carries a usable MSN/registration)
+    // has something real to read instead of a temp path it never sees.
+    pyodide.globals.set("_occm_filename", occmFile.name);
+    pyodide.globals.set("_ht_filename", htFile.name);
     const jsonStr = await pyodide.runPythonAsync(`
 import json
 with open("/tmp/_occm.pdf", "rb") as fh: _occm = fh.read()
 with open("/tmp/_ht.pdf", "rb") as fh:   _ht   = fh.read()
-json.dumps(main.run_combined(_occm, _ht, _manual_key))
+json.dumps(main.run_combined(_occm, _ht, _manual_key, _occm_filename, _ht_filename))
 `);
     const data = JSON.parse(jsonStr);
     lastResult = data;

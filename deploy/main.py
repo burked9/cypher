@@ -26,7 +26,20 @@ import pdfplumber
 from sheet_types import router
 
 
-def _save_temp(pdf_bytes: bytes) -> str:
+def _save_temp(pdf_bytes: bytes, original_name: str | None = None) -> str:
+    """`original_name`, when given, is preserved in the saved path instead of
+    a fully random name. shared.pairing.link_pair() falls back to a
+    filename-derived aircraft_key when neither PDF's header carries a
+    usable MSN/registration -- with the plain tempfile.mkstemp() name this
+    always wrote before, that fallback was silently unreachable no matter
+    what the user's upload was actually called."""
+    if original_name:
+        safe_name = os.path.basename(original_name) or "upload.pdf"
+        tmpdir = tempfile.mkdtemp()
+        path = os.path.join(tmpdir, safe_name)
+        with open(path, "wb") as fh:
+            fh.write(pdf_bytes)
+        return path
     fd, path = tempfile.mkstemp(suffix=".pdf")
     with os.fdopen(fd, "wb") as fh:
         fh.write(pdf_bytes)
@@ -126,12 +139,12 @@ def run(pdf_bytes: bytes, level: str = "auto"):
 # a slot-joined view alongside the long-form per-sheet rows.
 # ---------------------------------------------------------------------------
 
-def _extract_one(pdf_bytes: bytes, expected_sheet: str) -> dict:
+def _extract_one(pdf_bytes: bytes, expected_sheet: str, filename: str | None = None) -> dict:
     """Extract one PDF for the combined flow. The user has already told us
     which sheet this is via the drop-zone choice, so we go directly through
     the relevant sheet-type router (occm / ht) — the top-level router's
     coarse signatures don't always recognize HT-style headers."""
-    path = _save_temp(bytes(pdf_bytes))
+    path = _save_temp(bytes(pdf_bytes), filename)
     if _has_no_text_layer(path):
         return {"ok": False, "path": path,
                 "error": ("This PDF has no extractable text layer (looks scanned "
@@ -227,15 +240,16 @@ def _build_combined_slots(occm_rows: list[dict], ht_rows: list[dict],
 
 
 def run_combined(occm_bytes: bytes, ht_bytes: bytes,
-                 manual_aircraft_key: str = ""):
+                 manual_aircraft_key: str = "",
+                 occm_filename: str = "", ht_filename: str = ""):
     """In-browser combined OCCM+HT extraction.
 
     Saves both PDFs, extracts each via the existing routers, pairs them
     via `shared.pairing.link_pair`, and returns the long-form rows from
     each sheet plus the slot-joined combined view.
     """
-    occm = _extract_one(occm_bytes, "OCCM")
-    ht   = _extract_one(ht_bytes,   "HT")
+    occm = _extract_one(occm_bytes, "OCCM", occm_filename or None)
+    ht   = _extract_one(ht_bytes,   "HT",   ht_filename or None)
     if not occm["ok"]:
         return {"ok": False, "stage": "occm", **occm}
     if not ht["ok"]:
