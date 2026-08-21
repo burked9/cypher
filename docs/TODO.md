@@ -57,27 +57,29 @@ Open items in priority order. Each item has a category, a brief description, and
   text but a meaningful original filename (e.g. containing `MSN1234`)
   still pairs via the filename fallback.
 
-### GitHub Pages integration into existing consultancy site
-- **Why**: User has an existing static GitHub Pages consultancy site
-  and wants Cypher mounted under a subdirectory (e.g. `/dev/cypher/`).
-- **Compatibility notes** (verified):
-  * All paths inside `deploy/` are relative — Cypher can be hosted at
-    any sub-path. No `<base href>` rewrite needed.
-  * Pyodide + pdf.js + Tesseract.js load from jsdelivr CDN — no auth,
-    no API key.
-  * `noindex, nofollow` already in `deploy/index.html` head.
-  * `deploy/` is self-contained — drop the whole folder under the
-    target subdirectory.
-  * **CSS class names are generic** (`.action`, `.panel`,
-    `.results-section-title`). If the parent consultancy site uses
-    broad CSS resets that bleed into the Cypher subdirectory, scope
-    drift is possible. Fix is either (a) keep Cypher's `index.html`
-    as the standalone page served from its own subdirectory, or (b)
-    namespace Cypher's CSS under `.cypher-app { ... }` and wrap the
-    `<body>` content in `<div class="cypher-app">`. Defer until we
-    see actual drift.
-- **Done when**: Cypher is reachable under the consultancy-site
-  domain, both modes work, no styling drift from the parent site.
+### Add the live link on the consultancy site
+- **Superseded plan**: this item originally proposed mounting Cypher
+  under a subdirectory of the consultancy site itself (e.g.
+  `/dev/cypher/`), which is why the compatibility notes below were
+  about CSS bleed from a shared parent page. The actual decision
+  (2026-08-21): a plain, generic GitHub Pages site — discoverability
+  minimization was the priority, and a separate github.io origin also
+  makes the CSS-bleed concern moot entirely (different origin, nothing
+  shared) rather than something to defend against.
+- **Status**: Cypher is live at `https://burked9.github.io/cypher/` —
+  pushed, deployed via `.github/workflows/pages.yml`, smoke-tested.
+  Still outstanding: you add the actual `<a href>` on
+  `https://churchbayconsulting.com/pages/cypher.html` — that's a plain
+  action item on your side, not a code change.
+- **Old compatibility notes** (kept for reference, apply only if a real
+  subdirectory-mount is ever revisited instead): all paths inside
+  `deploy/` are relative, so it *can* be hosted at any sub-path with no
+  `<base href>` rewrite; Pyodide/pdf.js/Tesseract.js load from jsdelivr
+  with no auth; CSS class names are generic (`.action`, `.panel`,
+  `.results-section-title`) and could bleed under a shared-origin
+  mount with broad resets — not a concern for the separate-origin
+  approach actually shipped.
+- **Done when**: the link is live on the consultancy page.
 
 ## Priority 1 — near-term, high impact
 
@@ -259,17 +261,21 @@ Open items in priority order. Each item has a category, a brief description, and
   compare against a hand-checked source) shows whether this recovers
   enough rows to be worth building into the pipeline as a real fallback.
 
-## Priority 5 — distribution
-
-### Publish on GitHub Pages
-- **Status**: deferred until the corpus is broader (user preference).
-- **When ready**: push the repo, **Settings → Pages → branch + folder `/deploy`**.
-- **Discoverability minimization**: leave repo About / Topics / pinned-repos blank; do not tag releases; no PyPI / npm registration; `noindex, nofollow` already in deploy.
-
 ---
 
 ## Done since the last revision
 
+- ✅ **Published on GitHub Pages** — live at
+  `https://burked9.github.io/cypher/`, repo public at
+  `github.com/burked9/cypher`. Discoverability minimization followed:
+  repo Topics blank, no releases tagged, no PyPI/npm registration,
+  `noindex, nofollow` already in `deploy/index.html`. Deployed via
+  `.github/workflows/pages.yml` (GitHub Actions source, not the
+  branch-based option — GitHub Pages' basic mode only supports the repo
+  root or a folder literally named `/docs`, neither fits this repo's
+  layout). One deliberate deviation from the original minimization
+  plan: the repo description is set (`"Cypher technical datasheet PDF
+  conversion"`) — user reviewed and is fine leaving it.
 - ✅ **Scanned-PDF browser hang, fixed.** `pdfplumber`/`pdfminer.six` under
   Pyodide could take 2.5+ minutes with zero feedback determining a
   genuinely scanned PDF has no text (confirmed on files down to 89KB/1
