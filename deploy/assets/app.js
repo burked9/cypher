@@ -4,7 +4,7 @@
 // modules into the Pyodide virtual filesystem, then routes PDF bytes through
 // main.run() which auto-detects the OCCM variant and dispatches.
 
-import { hasTextLayer } from "./ocr_bridge.js?v=1";
+import { hasTextLayer } from "./ocr_bridge.js?__CACHE_BUST__";
 
 const NO_TEXT_LAYER_WARNING = (
   "This PDF has no extractable text layer, which usually means it's a " +

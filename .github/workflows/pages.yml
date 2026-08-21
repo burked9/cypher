@@ -12,6 +12,13 @@ name: Deploy Cypher to GitHub Pages
 # levels/L1_text/, generated here on every run so it can never silently go
 # stale relative to those sources. If this build step ever breaks, the
 # workflow fails loudly instead of quietly deploying old Python logic.
+#
+# The __CACHE_BUST__ placeholders in deploy/index.html and deploy/assets/app.js
+# get the commit SHA stamped in below. Python-mounted files use a per-page-load
+# timestamp instead (see app.js's own _cacheBust) because that cost is a one-time
+# Pyodide-boot expense; these are plain browser-cached JS assets, where busting
+# on every load would defeat caching for no reason -- busting only when the
+# deployed commit actually changes is the right level of aggression here.
 
 on:
   push:
@@ -42,6 +49,9 @@ jobs:
           python-version: '3.x'
       - name: Build deploy/_pymods/ (stdlib only -- no dependencies to install)
         run: python3 deploy/build.py
+      - name: Stamp the commit SHA into cache-busting placeholders
+        run: |
+          sed -i "s/__CACHE_BUST__/${GITHUB_SHA}/g" deploy/index.html deploy/assets/app.js
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload deploy/ as the Pages artifact
