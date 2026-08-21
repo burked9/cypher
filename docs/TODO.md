@@ -263,6 +263,25 @@ Open items in priority order. Each item has a category, a brief description, and
   returning visitor could silently keep running stale Python code after
   a future deploy — every mounted-file fetch now carries a per-page-load
   cache-busting param.
+- ⚠️ **CORRECTION to the item above, same evening**: the "2.5+ minute
+  hang" was almost certainly never real. Root-caused it properly this
+  time — loaded an isolated Pyodide instance under direct control (not
+  the page's own, and not relying on watching the UI) and replicated the
+  *exact* original pre-fix code (`git show 16b40cf:...`) byte-for-byte:
+  `detect_sheet_type()`'s blind OCCM default → `occm.detect_variant()`'s
+  blind Aeroflot default, on the same file that supposedly hung. It
+  completed in **17 milliseconds**. Every sub-step (`pdfplumber.open()`,
+  `.chars`, `.extract_text()`) individually timed in the low
+  milliseconds too. The actual bug: `showStatus()` writes results to
+  `#summary`, a *different* element than the `#status` "Detecting
+  variant…" line being watched — which never updates on the
+  warning/error path. The original test almost certainly finished in
+  milliseconds; the observation kept checking a frozen piece of text for
+  2.5 minutes and concluded the app was stuck. `hasTextLayer()` and the
+  cache-busting fixes above are still worth keeping (fast, harmless,
+  fail-open, genuinely fine engineering) — but they were not fixing a
+  real pdfminer/Pyodide performance bug, because there wasn't one. No
+  outstanding "unidentified WASM landmine" risk remains from this.
 - ✅ **`deploy/_pymods/` is no longer gitignored.** It was excluded as a
   "build artifact," which is right instinct for a pipeline WITH a build
   step and silently wrong for this one (plain static GitHub Pages, no CI):
