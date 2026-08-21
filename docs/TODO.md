@@ -63,6 +63,43 @@ Open items in priority order. Each item has a category, a brief description, and
 
 ## Priority 2 — quality and depth
 
+### Improve Part M Engine Disk Sheet OCR accuracy
+- **Why**: `sheet_types/llp_variants/part_m_engine_disk_sheet.py` (new — see
+  "Done" below) is the first scanned/no-text-layer LLP variant. Confirmed
+  against two real files (MSN29924 ESN888813 / ESN890419): row/column
+  structure is 100% reliable (grid detection + `_cycles_sum_check`
+  self-validation), but individual numeric cells still need spot-checking —
+  common failure modes are a lone "0" cell misreading as junk, and
+  occasional cross-column digit bleed on tightly-packed cells. The
+  cycles-sum self-check catches nearly all of these (rows fail the check
+  rather than silently passing), but that currently means *most* rows on
+  both known files get flagged, not a minority.
+- **Approach ideas, untried**: per-cell confidence scores from
+  `pytesseract.image_to_data` to target retries only at low-confidence
+  tokens; a second OCR pass with different preprocessing (e.g. adaptive
+  threshold) voted against the first; widening the corpus past 2 files
+  before tuning further, since it's easy to overfit thresholds to just these
+  two.
+- **Done when**: `_cycles_sum_check` reports "OK" on a clear majority of
+  rows across a handful of different source files, not just structural
+  correctness on the two known ones.
+
+### Fix occm.py's blank-text fallback (found while building the above)
+- **Why**: `sheet_types/occm.py:92-97` defaults `detect_variant()` to
+  `"Aeroflot"` for *any* PDF with no text layer, with a comment noting this
+  "will need revisiting when we encounter another scanned-only OCCM." We hit
+  exactly that this session, except worse than anticipated: the blank-text
+  PDF wasn't OCCM at all (it was an engine LLP sheet), so the tool
+  confidently mislabeled it as "OCCM · Aeroflot" instead of saying
+  "Unknown." `sheet_types/llp.py` now has a non-blind alternative — an
+  optional `ocr_detect(pdf_path) -> bool` per variant, tried only when the
+  text layer is empty, each variant confirming its own template via a cheap
+  header OCR rather than any variant being a default guess.
+- **Done when**: `occm.py` uses the same opt-in `ocr_detect` pattern (or
+  equivalent) instead of a blind default, checked against how
+  `deploy/main.py`/`app.js` trigger "needs OCR" messaging so the UX doesn't
+  regress for genuine Aeroflot scans.
+
 ### Tesseract.js for in-browser L3
 - **Status**: scaffold in place. `deploy/assets/ocr_bridge.js` wires up Tesseract.js + pdf.js; index.html loads them. Top-level entry `runOcrPipeline()` returns a clear "not finished" error so failures are visible, not silent.
 - **Remaining work**: a Python entry-point `main.run_with_ocr(pages, sheet_type, variant)` that accepts pre-OCR'd word lists from JS, plus a small extractor refactor in `levels/L3_ocr/extract.py` so the column-projection logic can run on browser-supplied word boxes instead of always calling pytesseract locally. Roughly half a day's work.
@@ -181,6 +218,24 @@ Open items in priority order. Each item has a category, a brief description, and
 
 ## Done since the last revision
 
+- ✅ **`part_m_engine_disk_sheet.py`** — first scanned/no-text-layer LLP
+  variant (Part M Aviation Ireland's engine LLP status sheet). Grid-detects
+  the ruled table directly, OCRs full rows (not per-cell — per-cell crops
+  of this layout were confirmed unreliable) and bucket-assigns words to
+  columns by known x-position. Every row is self-checked
+  (`CYCLES_R1..R4` sums to `TOTAL_CYCLES`) and flagged via
+  `_cycles_sum_check` rather than trusted blind. See the new P2 item above
+  for known accuracy gaps — this is a working v1, not a finished pipeline.
+  Local-only (needs `pytesseract` + native Tesseract; `sheet_types/llp.py`
+  imports it defensively so the Pyodide deploy is unaffected).
+- ✅ **Manually-verified reference data** for both known Part M source files
+  (`research/results/by_pdf/MSN29924_ESN{888813,890419}_llp_verified.csv`)
+  — hand-transcribed and pixel-checked against the source scans, used as
+  ground truth to build and test the variant above. Confirmed finding: the
+  "-5C4" rating's REMAINING figure is never derivable from LIMIT−TOTAL on
+  this sheet (checked on nearly every row with a numeric -5C4 limiter, both
+  files) — Part M evidently tracks it against a different basis not shown
+  here. Not a parse error; never re-derive it.
 - ✅ **Snapshot diffing tool** — `tools/snapshot_diff.py` and `diff_snapshots()` API. Smoke-tested on synthetic data (added / removed / changed / unchanged correctly partitioned, per-column deltas in the `_changes` cell).
 - ✅ **Tesseract.js scaffold** — `deploy/assets/ocr_bridge.js`, index.html script tags, runtime-loaded Tesseract; full implementation deferred (see P2).
 - ✅ **Open-source housekeeping** — `pyproject.toml` (with `Private :: Do Not Upload` safety classifier and ruff/mypy config), `SECURITY.md`, expanded `.gitignore` (test_pdfs, results, journey, report, bloom binary, dev artefacts).
@@ -192,4 +247,4 @@ Open items in priority order. Each item has a category, a brief description, and
 
 ---
 
-Last updated: 2026-05-08
+Last updated: 2026-08-21

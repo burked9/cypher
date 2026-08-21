@@ -183,6 +183,18 @@ LLP variants under `sheet_types/llp_variants/` follow the same pattern:
 `amos.py`, `vietnam_airlines.py`, `lan_engine_llp.py`, `pro_rata_engine_llp.py`,
 `cfm_overhaul_llp.py`, `cfm56_7b_llp.py`, plus `subject.py` (Engine/APU/LandingGear classifier).
 
+`part_m_engine_disk_sheet.py` is different from the rest: it's the first **scanned,
+no-text-layer** LLP variant (Part M Aviation Ireland's "Life Limited Parts (Engine
+Disk Sheets) Time/Cycle Record"). It detects the ruled grid directly and OCRs each
+row, self-checking every row against `CYCLES_R1..R4` summing to `TOTAL_CYCLES` — a
+row that fails this is flagged via `_cycles_sum_check` rather than trusted blind.
+Confirmed on two real files: expect most numeric cells to be correct but budget time
+to spot-check flagged rows against the source PDF; this is genuinely hard to OCR
+perfectly (dense grid, small print) and the self-check exists because of that, not
+despite it. Local-only — needs `pytesseract` + the native Tesseract binary, neither
+of which exist under Pyodide, so `sheet_types/llp.py` imports it defensively and it
+is never mirrored into `deploy/`.
+
 ## Family classification & manual overrides
 
 Beyond variant detection (which parser to run), Cypher derives a **family** — the airframe

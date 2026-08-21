@@ -12,6 +12,17 @@ VARIANTS = [
     vietnam_airlines, amos, lan_engine_llp, pro_rata_engine_llp,
     cfm_overhaul_llp, cfm56_7b_llp,
 ]
+
+# OCR-based variants depend on pytesseract (the native Tesseract binary),
+# which doesn't exist under Pyodide. Import defensively so the deploy build
+# (which never mirrors this file) still loads everything else fine; locally,
+# where pytesseract is installed, it participates normally.
+try:
+    from sheet_types.llp_variants import part_m_engine_disk_sheet
+    VARIANTS.append(part_m_engine_disk_sheet)
+except ImportError:
+    pass
+
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 SIGNATURES = [
@@ -41,6 +52,17 @@ def detect_variant(pdf_path: str) -> str:
     for v in VARIANTS:
         for sig in v.SIGNATURES:
             if sig.upper() in head:
+                return v.NAME
+    if len(head.strip()) < 50:
+        # No usable text layer -- likely a scanned PDF. Ask any OCR-capable
+        # variants to confirm their own template via a cheap header OCR pass
+        # rather than guessing; each must self-check, there's no blind
+        # default here (unlike occm.py's Aeroflot fallback, which defaults
+        # ANY blank-text PDF to one specific variant -- exactly the mislabel
+        # that sent a real LLP document through as "OCCM . Aeroflot").
+        for v in VARIANTS:
+            ocr_check = getattr(v, "ocr_detect", None)
+            if ocr_check and ocr_check(pdf_path):
                 return v.NAME
     return "Unknown"
 
