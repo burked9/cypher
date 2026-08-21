@@ -4,41 +4,6 @@ Open items in priority order. Each item has a category, a brief description, and
 
 ## Priority 0 — pre-publication checklist
 
-### CRITICAL: scanned PDFs may hang the browser tab for minutes (or longer)
-- **Why**: found while finally running the smoke test below. Dropped
-  `research/test_pdfs/afl_test.pdf` (530KB, 2-page scanned Aeroflot OCCM, no
-  text layer) into the real deployed page in an actual browser. It never
-  completed — stuck on "Detecting variant and extracting…" past 2.5 minutes
-  with zero progress and no console error. Isolated the variable with a
-  side-by-side test: a similarly-sized (408KB) **text-layer** PDF completed
-  in ~5-10s in a separate, equally-cold tab, ruling out "first Pyodide call
-  is slow to import everything" as the explanation. This is specific to
-  scanned/image-heavy PDFs under Pyodide, most likely `pdfplumber`/
-  `pdfminer.six` pathologically slow (or stuck) parsing this file's content
-  stream in WASM — confirmed the exact same file processes fine natively
-  (`router.extract()` returned 71 records quickly outside the browser).
-  **Not caused by this session's router.py/occm.py/deploy/main.py changes**
-  — the original code hit the identical `pdfplumber.open()` +
-  `extract_text()` call via a different function (`router.py`'s
-  `_read_head_text`), so this would have hung just as badly before those
-  edits. It simply had never been tested end-to-end in a real browser
-  before now, which is exactly what this checklist item was for.
-  Given aviation maintenance PDFs are frequently scans/photocopies, this is
-  a likely-common case for a real visitor, not an edge case.
-- **Not yet done**: root-cause *why* pdfminer chokes on this file under
-  Pyodide specifically (xref recovery fallback? something about how the
-  embedded image stream is structured?), and whether it's this file
-  specifically or scanned PDFs generally.
-- **Approach ideas, untried**: a page-count/file-size pre-check with a
-  timeout-and-abort around the detection call, so the UI fails fast with a
-  message instead of hanging silently; testing a few more scanned PDFs to
-  see if it's universal or file-specific; profiling the pdfplumber call
-  under Pyodide directly (`pyodide.runPythonAsync` with `time.time()`
-  around just the `pdfplumber.open()` call, isolated from everything else).
-- **Done when**: dropping a scanned PDF into the real deployed page either
-  completes in a reasonable time or fails fast with a clear message —
-  never hangs with no feedback.
-
 ### Local end-to-end smoke test in a real browser
 - **Why**: Pyodide-only failures (top-level imports of stdlib modules
   Pyodide doesn't ship, side-effects at module load) only surface in a
@@ -48,7 +13,12 @@ Open items in priority order. Each item has a category, a brief description, and
   but a fresh test confirms no other landmines.
 - **Done when**: `cd deploy && python3 -m http.server 8765`, open
   localhost, exercise both single-PDF and combined modes end-to-end with
-  no console errors. (Pyodide first-load ~10–15 MB; cached after.)
+  no console errors. (Pyodide first-load ~10–15 MB; cached after.) ✅ DONE
+  2026-08-21 — single-PDF mode: a real 30-page text OCCM file extracted
+  1155 rows correctly (1044 clean, 111 flagged); a real scanned file
+  (`afl_test.pdf`) correctly showed the no-text-layer warning in seconds
+  instead of hanging. No console errors beyond the two known/expected ones
+  (`pn_master.bloom` 404, a pre-existing docstring `SyntaxWarning`).
 
 ### Verify in-browser combined-mode UI works with real PDFs
 - **Why**: Phase 3 was smoke-tested via simulated Pyodide path (Python
@@ -57,7 +27,15 @@ Open items in priority order. Each item has a category, a brief description, and
   system mounted by Pyodide.FS).
 - **Done when**: dropping an OCCM PDF + HT PDF for a known cross-sheet
   airframe (MSN 223 is the cleanest test case — 100% HT overlap) gives
-  pair status, slot view, and three downloadable CSVs.
+  pair status, slot view, and three downloadable CSVs. ✅ MECHANISM
+  CONFIRMED 2026-08-21 — dropped a real OCCM+HT pair (MSN 3005) into the
+  actual browser: both files extracted correctly (1092+ rows), pair
+  status/slot view/three CSVs (Combined/OCCM/HT) all rendered. Pairing
+  itself reported `no_match` because the test files were renamed to
+  generic names first, losing the MSN-bearing original filename the
+  pairing heuristic reads from — a test-methodology artifact, not a
+  pipeline bug. Still worth a follow-up run with original filenames (or
+  the MSN 223 pair specifically) for a clean pair-match confirmation.
 
 ### GitHub Pages integration into existing consultancy site
 - **Why**: User has an existing static GitHub Pages consultancy site
@@ -237,6 +215,19 @@ Open items in priority order. Each item has a category, a brief description, and
 
 ## Done since the last revision
 
+- ✅ **Scanned-PDF browser hang, fixed.** `pdfplumber`/`pdfminer.six` under
+  Pyodide could take 2.5+ minutes with zero feedback determining a
+  genuinely scanned PDF has no text (confirmed on files down to 89KB/1
+  page, ruling out size; root cause in pdfminer/WASM never identified).
+  Fix: `hasTextLayer()` in `ocr_bridge.js` checks via `pdf.js` (a separate
+  codebase, no such issue) BEFORE ever handing bytes to Pyodide — both
+  known-hanging files now resolve in under 600ms. Wired into single-PDF
+  and combined-mode paths in `app.js`; fails open to the old path if the
+  check itself throws. Also fixed along the way: none of `app.js`'s
+  fetches for the mounted Python modules had cache-busting, so a
+  returning visitor could silently keep running stale Python code after
+  a future deploy — every mounted-file fetch now carries a per-page-load
+  cache-busting param.
 - ✅ **`deploy/_pymods/` is no longer gitignored.** It was excluded as a
   "build artifact," which is right instinct for a pipeline WITH a build
   step and silently wrong for this one (plain static GitHub Pages, no CI):
