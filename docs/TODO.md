@@ -119,22 +119,6 @@ Open items in priority order. Each item has a category, a brief description, and
   rows across a handful of different source files, not just structural
   correctness on the two known ones.
 
-### Fix occm.py's blank-text fallback (found while building the above)
-- **Why**: `sheet_types/occm.py:92-97` defaults `detect_variant()` to
-  `"Aeroflot"` for *any* PDF with no text layer, with a comment noting this
-  "will need revisiting when we encounter another scanned-only OCCM." We hit
-  exactly that this session, except worse than anticipated: the blank-text
-  PDF wasn't OCCM at all (it was an engine LLP sheet), so the tool
-  confidently mislabeled it as "OCCM · Aeroflot" instead of saying
-  "Unknown." `sheet_types/llp.py` now has a non-blind alternative — an
-  optional `ocr_detect(pdf_path) -> bool` per variant, tried only when the
-  text layer is empty, each variant confirming its own template via a cheap
-  header OCR rather than any variant being a default guess.
-- **Done when**: `occm.py` uses the same opt-in `ocr_detect` pattern (or
-  equivalent) instead of a blind default, checked against how
-  `deploy/main.py`/`app.js` trigger "needs OCR" messaging so the UX doesn't
-  regress for genuine Aeroflot scans.
-
 ### Tesseract.js for in-browser L3
 - **Status**: scaffold in place. `deploy/assets/ocr_bridge.js` wires up Tesseract.js + pdf.js; index.html loads them. Top-level entry `runOcrPipeline()` returns a clear "not finished" error so failures are visible, not silent.
 - **Remaining work**: a Python entry-point `main.run_with_ocr(pages, sheet_type, variant)` that accepts pre-OCR'd word lists from JS, plus a small extractor refactor in `levels/L3_ocr/extract.py` so the column-projection logic can run on browser-supplied word boxes instead of always calling pytesseract locally. Roughly half a day's work.
@@ -253,6 +237,32 @@ Open items in priority order. Each item has a category, a brief description, and
 
 ## Done since the last revision
 
+- ✅ **`deploy/_pymods/` is no longer gitignored.** It was excluded as a
+  "build artifact," which is right instinct for a pipeline WITH a build
+  step and silently wrong for this one (plain static GitHub Pages, no CI):
+  the entire 66-file Python mirror `app.js` fetches at runtime, including
+  `manifest.json`, would never have reached a real push. Verified directly
+  against the committed tree (`git ls-tree -r HEAD deploy/`) rather than
+  the working directory — 73 tracked files under `deploy/`, matching every
+  file actually on disk. Run `python3 deploy/build.py` and commit the
+  result before every push from now on; nothing enforces that yet (see the
+  CI item below).
+- ✅ **occm.py's blind blank-text fallback, fixed at its actual root.**
+  Turned out to be two stacked defaults, not one: `sheet_types/router.py`
+  was defaulting *any* no-text-layer PDF to `"OCCM"` before variant
+  detection even ran, then `occm.py` defaulted that to `"Aeroflot"`.
+  Together they mislabeled a scanned LLP engine sheet as "OCCM · Aeroflot"
+  this session. Both now use a non-blind `ocr_detect(pdf_path) -> bool`
+  per variant, tried only when the text layer is empty — each variant
+  confirms its own template via a cheap header OCR pass rather than any
+  one being a guessed default. `aeroflot.py` gained this check, tested
+  against the real `afl_test.pdf` sample. `deploy/main.py`'s "needs OCR"
+  messaging is generalized the same way for both single-PDF and
+  combined-mode paths — any blank-text upload gets one honest "looks
+  scanned, no in-browser OCR yet" message instead of a guess. This is what
+  surfaced the CRITICAL scanned-PDF-hang finding above (the real-browser
+  test this fix required was the first time that path had ever been
+  exercised end-to-end).
 - ✅ **`part_m_engine_disk_sheet.py`** — first scanned/no-text-layer LLP
   variant (Part M Aviation Ireland's engine LLP status sheet). Grid-detects
   the ruled table directly, OCRs full rows (not per-cell — per-cell crops
