@@ -4,6 +4,16 @@
 // modules into the Pyodide virtual filesystem, then routes PDF bytes through
 // main.run() which auto-detects the OCCM variant and dispatches.
 
+import { hasTextLayer } from "./ocr_bridge.js?v=1";
+
+const NO_TEXT_LAYER_WARNING = (
+  "This PDF has no extractable text layer, which usually means it's a " +
+  "scanned or image-only document. This build has no in-browser OCR yet " +
+  "(Tesseract.js isn't wired in), so it can't be processed here. If you " +
+  "have local Python access to this project, the local pipeline already " +
+  "handles some scanned formats."
+);
+
 const $ = (id) => document.getElementById(id);
 const status = $("status");
 let pyodide = null;
@@ -16,8 +26,20 @@ let lastResult = null;
 // would silently drift, breaking the deploy.)
 let PY_FILES = null;   // populated at boot
 
+// Python's http.server (and possibly a future host) sends no strong
+// cache-control headers, so browsers are free to serve a stale cached copy
+// of any of these on a repeat visit -- after any future deploy update, a
+// returning visitor could keep running yesterday's Python modules with no
+// indication anything is wrong. One cache-busting query param per page
+// load, applied to every mounted-file fetch, forces a fresh copy each time
+// without needing no-store everywhere.
+const _cacheBust = Date.now();
+function _bust(path) {
+  return path + (path.includes("?") ? "&" : "?") + "v=" + _cacheBust;
+}
+
 async function fetchText(path) {
-  const resp = await fetch(path);
+  const resp = await fetch(_bust(path));
   if (!resp.ok) throw new Error(`Failed to fetch ${path}: ${resp.status}`);
   return resp.text();
 }
@@ -39,7 +61,7 @@ await micropip.install(["pdfplumber==0.9.0"])
 
   status.textContent = "Mounting modules…";
   // Pull the manifest written by deploy/build.py.
-  const manifestResp = await fetch("_pymods/manifest.json");
+  const manifestResp = await fetch(_bust("_pymods/manifest.json"));
   if (!manifestResp.ok) {
     throw new Error("Could not fetch _pymods/manifest.json — did you run deploy/build.py?");
   }
@@ -60,7 +82,7 @@ await micropip.install(["pdfplumber==0.9.0"])
   // If a Bloom filter binary is shipped, copy it into Pyodide's filesystem
   // alongside shared/pn_master.py so the loader finds it.
   try {
-    const bloomResp = await fetch("_pymods/shared/pn_master.bloom");
+    const bloomResp = await fetch(_bust("_pymods/shared/pn_master.bloom"));
     if (bloomResp.ok) {
       const buf = new Uint8Array(await bloomResp.arrayBuffer());
       pyodide.FS.writeFile("/home/pyodide/shared/pn_master.bloom", buf);
@@ -150,7 +172,31 @@ $("run").addEventListener("click", async () => {
   hide("empty-state");
 
   try {
-    const buf = await f.arrayBuffer();
+    // Fast pre-check in pdf.js, BEFORE ever touching Pyodide: confirmed that
+    // pdfplumber/pdfminer.six under Pyodide can take 2.5+ minutes with zero
+    // feedback on a genuinely scanned PDF (root cause not identified --
+    // ruled out image size/format/count, cold-import cost, and
+    // page.chars vs extract_text() as explanations). pdf.js is a separate
+    // codebase with no such issue: both known-hanging files processed in
+    // under 600ms here. If this pre-check itself fails for any reason,
+    // fall through to the normal path rather than block on it -- it's a
+    // fast-path optimization, not a gate.
+    let hasText = true;
+    try {
+      const checkBuf = await f.arrayBuffer();
+      hasText = await hasTextLayer(new Uint8Array(checkBuf));
+    } catch (checkErr) {
+      console.warn("Text-layer pre-check failed, proceeding without it:", checkErr);
+    }
+    if (!hasText) {
+      const data = { ok: true, sheet_type: "Unknown", variant: "Unknown",
+                      columns: [], rows: [], warning: NO_TEXT_LAYER_WARNING };
+      lastResult = data;
+      render(data, f.name);
+      return;
+    }
+
+    const buf = await f.arrayBuffer();   // fresh read -- pdf.js may have detached the check buffer
     pyodide.FS.writeFile("/tmp/_input.pdf", new Uint8Array(buf));
     const jsonStr = await pyodide.runPythonAsync(`
 import json
@@ -278,7 +324,28 @@ if (runCombinedBtn) runCombinedBtn.addEventListener("click", async () => {
   hide("empty-state");
 
   try {
-    const occmBuf = await occmFile.arrayBuffer();
+    // Same fast pre-check as the single-PDF path (see its comment for why):
+    // catch a scanned PDF here in under a second rather than let Pyodide
+    // hang on it for minutes. Checked independently per file so the error
+    // names the actual problem drop zone.
+    for (const [file, stage, label] of [[occmFile, "occm", "OCCM"], [htFile, "ht", "HT"]]) {
+      let hasText = true;
+      try {
+        hasText = await hasTextLayer(new Uint8Array(await file.arrayBuffer()));
+      } catch (checkErr) {
+        console.warn("Text-layer pre-check failed, proceeding without it:", checkErr);
+      }
+      if (!hasText) {
+        const data = { ok: false, stage,
+          error: `The ${label} PDF ("${file.name}") has no extractable text layer ` +
+                 `(looks scanned or image-only). This build has no in-browser OCR yet.` };
+        lastResult = data;
+        renderCombined(data);
+        return;
+      }
+    }
+
+    const occmBuf = await occmFile.arrayBuffer();   // fresh reads -- pdf.js may have detached the check buffers
     const htBuf   = await htFile.arrayBuffer();
     pyodide.FS.writeFile("/tmp/_occm.pdf", new Uint8Array(occmBuf));
     pyodide.FS.writeFile("/tmp/_ht.pdf",   new Uint8Array(htBuf));

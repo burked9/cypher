@@ -34,12 +34,18 @@ def _save_temp(pdf_bytes: bytes) -> str:
 
 
 def _has_no_text_layer(pdf_path: str, n_pages: int = 3, threshold: int = 50) -> bool:
+    """Backup check only. app.js already runs a fast pdf.js-based check
+    (see hasTextLayer() in ocr_bridge.js) before ever calling into Pyodide,
+    specifically because THIS check can itself take minutes under Pyodide
+    on a genuinely scanned PDF (root cause not identified). This still
+    exists for callers that reach main.run() without going through that
+    JS pre-check, or if it ever fails open."""
     try:
         with pdfplumber.open(pdf_path) as pdf:
-            text = "\n".join((p.extract_text() or "") for p in pdf.pages[:n_pages])
+            n_chars = sum(len(p.chars) for p in pdf.pages[:n_pages])
     except Exception:
         return False
-    return len(text.strip()) < threshold
+    return n_chars < threshold
 
 
 def run(pdf_bytes: bytes, level: str = "auto"):

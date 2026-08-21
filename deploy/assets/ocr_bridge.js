@@ -45,6 +45,36 @@ async function loadPdfJs() {
   return lib;
 }
 
+/**
+ * Fast text-layer check using pdf.js, run BEFORE handing bytes to Pyodide.
+ *
+ * Why this exists: pdfplumber/pdfminer.six under Pyodide can take minutes
+ * (confirmed: 2.5+ min with zero feedback, on files as small as 89KB) to
+ * determine that a genuinely scanned/image-only PDF has no text -- the
+ * exact files most likely to need this check are the ones where the
+ * Python-side check itself is what hangs. Root cause not identified (ruled
+ * out: image size/format/count, cold-import cost, page.chars vs
+ * extract_text()); all confirmed slow cases were genuinely zero-text scans.
+ * pdf.js is a separate, mature codebase with no such issue -- confirmed
+ * directly: both known-hanging files processed in under 600ms here, and a
+ * real 30-page text PDF correctly returned 12k+ characters in ~1.5s.
+ *
+ * Returns true if the first `maxPages` pages have fewer than `threshold`
+ * total characters combined.
+ */
+export async function hasTextLayer(pdfBytes, maxPages = 3, threshold = 50) {
+  const lib = await loadPdfJs();
+  const pdf = await lib.getDocument({ data: pdfBytes }).promise;
+  let totalChars = 0;
+  for (let i = 1; i <= Math.min(maxPages, pdf.numPages); i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    totalChars += content.items.reduce((s, it) => s + (it.str || "").length, 0);
+    if (totalChars >= threshold) return true;
+  }
+  return totalChars >= threshold;
+}
+
 async function renderPageToCanvas(pdfBytes, pageNum, dpi = 300) {
   const lib = await loadPdfJs();
   const pdf = await lib.getDocument({ data: pdfBytes }).promise;
