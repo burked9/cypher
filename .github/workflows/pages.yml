@@ -1,0 +1,41 @@
+name: Deploy Cypher to GitHub Pages
+
+# No build step -- deploy/ is committed as-is (including deploy/_pymods/,
+# which deploy/build.py generates locally and must be re-run + committed
+# before each push that changes shared/, sheet_types/, or levels/L1_text/).
+# This workflow only packages the existing deploy/ folder as the Pages
+# artifact, since GitHub Pages' branch-based deploy only supports the repo
+# root or a folder literally named /docs -- neither fits this repo's layout.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload deploy/ as the Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: deploy
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
