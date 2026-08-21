@@ -4,6 +4,41 @@ Open items in priority order. Each item has a category, a brief description, and
 
 ## Priority 0 — pre-publication checklist
 
+### CRITICAL: scanned PDFs may hang the browser tab for minutes (or longer)
+- **Why**: found while finally running the smoke test below. Dropped
+  `research/test_pdfs/afl_test.pdf` (530KB, 2-page scanned Aeroflot OCCM, no
+  text layer) into the real deployed page in an actual browser. It never
+  completed — stuck on "Detecting variant and extracting…" past 2.5 minutes
+  with zero progress and no console error. Isolated the variable with a
+  side-by-side test: a similarly-sized (408KB) **text-layer** PDF completed
+  in ~5-10s in a separate, equally-cold tab, ruling out "first Pyodide call
+  is slow to import everything" as the explanation. This is specific to
+  scanned/image-heavy PDFs under Pyodide, most likely `pdfplumber`/
+  `pdfminer.six` pathologically slow (or stuck) parsing this file's content
+  stream in WASM — confirmed the exact same file processes fine natively
+  (`router.extract()` returned 71 records quickly outside the browser).
+  **Not caused by this session's router.py/occm.py/deploy/main.py changes**
+  — the original code hit the identical `pdfplumber.open()` +
+  `extract_text()` call via a different function (`router.py`'s
+  `_read_head_text`), so this would have hung just as badly before those
+  edits. It simply had never been tested end-to-end in a real browser
+  before now, which is exactly what this checklist item was for.
+  Given aviation maintenance PDFs are frequently scans/photocopies, this is
+  a likely-common case for a real visitor, not an edge case.
+- **Not yet done**: root-cause *why* pdfminer chokes on this file under
+  Pyodide specifically (xref recovery fallback? something about how the
+  embedded image stream is structured?), and whether it's this file
+  specifically or scanned PDFs generally.
+- **Approach ideas, untried**: a page-count/file-size pre-check with a
+  timeout-and-abort around the detection call, so the UI fails fast with a
+  message instead of hanging silently; testing a few more scanned PDFs to
+  see if it's universal or file-specific; profiling the pdfplumber call
+  under Pyodide directly (`pyodide.runPythonAsync` with `time.time()`
+  around just the `pdfplumber.open()` call, isolated from everything else).
+- **Done when**: dropping a scanned PDF into the real deployed page either
+  completes in a reasonable time or fails fast with a clear message —
+  never hangs with no feedback.
+
 ### Local end-to-end smoke test in a real browser
 - **Why**: Pyodide-only failures (top-level imports of stdlib modules
   Pyodide doesn't ship, side-effects at module load) only surface in a

@@ -44,13 +44,25 @@ def _read_head_text(pdf_path: str, n_pages: int = 3) -> str:
 def detect_sheet_type(pdf_path: str) -> str:
     """Return 'OCCM' / 'HT' / 'LLP' / 'Unknown' based on first-pages text."""
     head = _read_head_text(pdf_path).upper()
-    if not head.strip():
-        # No text layer at all — only the Aeroflot OCCM variant fits this today.
-        return "OCCM"
+    if head.strip():
+        for st in DETECTION_ORDER:
+            mod = SHEET_TYPES[st]
+            for sig in mod.SIGNATURES:
+                if sig.upper() in head:
+                    return st
+        return "Unknown"
+    # No text layer at all -- ask any OCR-capable variant, across every
+    # sheet type, to confirm its own template via a cheap header OCR pass.
+    # This used to default blind to "OCCM" (only Aeroflot fit that when it
+    # was written), which meant a blank-text PDF got labeled OCCM before
+    # variant detection even ran -- exactly what mislabeled a scanned LLP
+    # engine sheet as "OCCM . Aeroflot" in practice. No sheet type is a safe
+    # default for "no text at all"; each variant must self-confirm.
     for st in DETECTION_ORDER:
         mod = SHEET_TYPES[st]
-        for sig in mod.SIGNATURES:
-            if sig.upper() in head:
+        for variant in getattr(mod, "VARIANTS", []):
+            ocr_check = getattr(variant, "ocr_detect", None)
+            if ocr_check and ocr_check(pdf_path):
                 return st
     return "Unknown"
 

@@ -5,8 +5,14 @@ Called from app.js with raw PDF bytes. Auto-detects sheet type (OCCM/HT/LLP)
 JSON-serializable dict containing variant, columns, rows, summary stats,
 and any warning.
 
-Aeroflot OCCM (the only L3 variant) returns a friendly warning because
-Tesseract.js isn't wired in to the deploy yet.
+Any PDF with no text layer at all gets one general "looks scanned" warning
+rather than a sheet-type/variant guess. This deploy has no OCR capability of
+any kind — it uses pdfplumber only; the OCR-capable local variants (Aeroflot,
+Part M engine LLP) need `fitz` + `pytesseract`, neither available under
+Pyodide, so there is no way to tell WHICH variant a blank-text PDF is here.
+Guessing one specific answer is exactly what mislabeled a scanned LLP sheet
+as "OCCM . Aeroflot" for a real user this session — the fix is to say
+"can't tell, no text layer" honestly instead of picking an answer.
 
 L4 (PaddleOCR) is intentionally not in the deploy — too heavy. The user
 runs `research/colab_L4_paddleocr.ipynb` on demand for fringe cases.
@@ -14,6 +20,8 @@ runs `research/colab_L4_paddleocr.ipynb` on demand for fringe cases.
 from __future__ import annotations
 import os
 import tempfile
+
+import pdfplumber
 
 from sheet_types import router
 
@@ -25,34 +33,41 @@ def _save_temp(pdf_bytes: bytes) -> str:
     return path
 
 
+def _has_no_text_layer(pdf_path: str, n_pages: int = 3, threshold: int = 50) -> bool:
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            text = "\n".join((p.extract_text() or "") for p in pdf.pages[:n_pages])
+    except Exception:
+        return False
+    return len(text.strip()) < threshold
+
+
 def run(pdf_bytes: bytes, level: str = "auto"):
     try:
         path = _save_temp(bytes(pdf_bytes))
     except Exception as e:
         return {"ok": False, "error": f"Could not buffer PDF: {e}"}
 
+    if _has_no_text_layer(path):
+        return {
+            "ok": True,
+            "sheet_type": "Unknown",
+            "variant": "Unknown",
+            "columns": [],
+            "rows": [],
+            "warning": ("This PDF has no extractable text layer, which usually "
+                        "means it's a scanned or image-only document. This build "
+                        "has no in-browser OCR yet (Tesseract.js isn't wired in), "
+                        "so it can't tell what kind of sheet this is or process "
+                        "it here. If you have local Python access to this "
+                        "project, the local pipeline already handles some "
+                        "scanned formats."),
+        }
+
     try:
         sheet_type = router.detect_sheet_type(path)
     except Exception as e:
         return {"ok": False, "error": f"Sheet-type detection failed: {e}"}
-
-    # Aeroflot OCCM needs L3 OCR — not available in this build of the deploy.
-    # We probe the OCCM router specifically because Aeroflot sets the OCCM
-    # sheet type even for empty text layers.
-    if sheet_type == "OCCM":
-        from sheet_types import occm
-        if occm.detect_variant(path) == "Aeroflot":
-            return {
-                "ok": True,
-                "sheet_type": "OCCM",
-                "variant": "Aeroflot",
-                "columns": [],
-                "rows": [],
-                "warning": ("This PDF is the Aeroflot variant (Avionic Inventory "
-                            "Listing) with no text layer. It requires L3 OCR, which "
-                            "runs in the browser via Tesseract.js — not yet wired "
-                            "into this build. Use the local Python pipeline for now."),
-            }
 
     try:
         result = router.extract(path)
@@ -111,6 +126,12 @@ def _extract_one(pdf_bytes: bytes, expected_sheet: str) -> dict:
     the relevant sheet-type router (occm / ht) — the top-level router's
     coarse signatures don't always recognize HT-style headers."""
     path = _save_temp(bytes(pdf_bytes))
+    if _has_no_text_layer(path):
+        return {"ok": False, "path": path,
+                "error": ("This PDF has no extractable text layer (looks scanned "
+                          "or image-only). This build has no in-browser OCR yet, "
+                          "so it can't be processed here regardless of which "
+                          "drop zone it's in.")}
     try:
         from sheet_types import occm, ht
         mod = occm if expected_sheet == "OCCM" else ht

@@ -89,15 +89,21 @@ def _read_head_text(pdf_path: str, n_pages: int = 3) -> str:
 
 def detect_variant(pdf_path: str) -> str:
     head = _read_head_text(pdf_path).upper()
-    # Default to Aeroflot when there's no text layer at all — Aeroflot is
-    # currently the only known no-text-layer variant. This will need
-    # revisiting when we encounter another scanned-only OCCM, at which point
-    # we'd run a tiny page-1 OCR pass to detect signatures.
-    if len(head.strip()) < 50:
-        return "Aeroflot"
     for v in VARIANTS:
         for sig in v.SIGNATURES:
             if sig.upper() in head:
+                return v.NAME
+    if len(head.strip()) < 50:
+        # No usable text layer -- ask any OCR-capable variant to confirm its
+        # own template via a cheap header OCR pass rather than guessing.
+        # This used to default blind to "Aeroflot" (the only OCR variant
+        # when that line was written), which meant ANY blank-text PDF got
+        # confidently mislabeled "Aeroflot" -- including, in practice, a
+        # scanned document that wasn't OCCM at all. Mirrors the same
+        # pattern in sheet_types/llp.py and sheet_types/router.py.
+        for v in VARIANTS:
+            ocr_check = getattr(v, "ocr_detect", None)
+            if ocr_check and ocr_check(pdf_path):
                 return v.NAME
     return "Unknown"
 
