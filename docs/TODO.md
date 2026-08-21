@@ -204,6 +204,41 @@ Open items in priority order. Each item has a category, a brief description, and
   five recommended sample files. (Reuse the notebook on more files if
   the first sample is borderline.)
 
+### L6 (proposed) — Docling-to-Markdown + LLM extraction, as a fallback tier
+- **Why**: user idea (2026-08-21) — when the deterministic PDF→Excel path
+  fails outright (no variant matches, or L1–L5 all produce unusable
+  output), route through **docling** for its PDF→Markdown conversion
+  specifically (not its TableFormer structured-cell output, which is
+  what the existing L5 item above targets) and hand that markdown to an
+  LLM to do the actual row/column extraction. Markdown is a much better
+  LLM input than raw OCR word-soup or a raw PDF — it preserves reading
+  order and table-ish structure as plain text, which an LLM can parse
+  far more reliably than either extreme (fully unstructured text or a
+  fully-parsed-but-wrong structured guess).
+- **What already exists that this would plug into**: `docs/llm_extraction_rules.md`
+  is already a purpose-built instruction set for exactly this — "reference
+  for an LLM agent extracting component-list rows... apply them and the
+  output will line up with the Cypher pipeline's existing schema and
+  validation." It currently has no defined *input* format for the LLM to
+  read from; docling's markdown output is a strong candidate for that role.
+- **Relationship to L5 above**: same tool (docling), different output mode.
+  L5 asks "can docling's own table-structure detection (TableFormer) recover
+  rows well enough to skip an LLM entirely?" L6 asks "when that (or
+  everything else) fails, can markdown + an LLM using the existing rules
+  doc recover rows well enough to be worth the LLM cost/latency?" Worth
+  running L5's recon conclusion first — if TableFormer output is already
+  good, L6 may not be needed at all.
+- **Not yet done**: no prototype yet. Untried questions: does docling's
+  markdown conversion preserve enough table structure on a genuinely
+  hard aviation layout to be usable; what's the cost/latency of routing
+  every deterministic-pipeline failure through an LLM call; does the
+  output need a machine-checkable schema (JSON) rather than free-form
+  markdown-in/CSV-out to fit the pipeline's validation step cleanly.
+- **Done when**: a recon test (mirroring L5's approach — one sample PDF,
+  docling markdown → LLM extraction using the existing rules doc →
+  compare against a hand-checked source) shows whether this recovers
+  enough rows to be worth building into the pipeline as a real fallback.
+
 ## Priority 5 — distribution
 
 ### Publish on GitHub Pages
