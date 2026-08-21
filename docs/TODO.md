@@ -27,15 +27,35 @@ Open items in priority order. Each item has a category, a brief description, and
   system mounted by Pyodide.FS).
 - **Done when**: dropping an OCCM PDF + HT PDF for a known cross-sheet
   airframe (MSN 223 is the cleanest test case — 100% HT overlap) gives
-  pair status, slot view, and three downloadable CSVs. ✅ MECHANISM
-  CONFIRMED 2026-08-21 — dropped a real OCCM+HT pair (MSN 3005) into the
-  actual browser: both files extracted correctly (1092+ rows), pair
-  status/slot view/three CSVs (Combined/OCCM/HT) all rendered. Pairing
-  itself reported `no_match` because the test files were renamed to
-  generic names first, losing the MSN-bearing original filename the
-  pairing heuristic reads from — a test-methodology artifact, not a
-  pipeline bug. Still worth a follow-up run with original filenames (or
-  the MSN 223 pair specifically) for a clean pair-match confirmation.
+  pair status, slot view, and three downloadable CSVs. ✅ DONE
+  2026-08-21 — dropped the real MSN 223 OCCM+HT pair into the actual
+  browser: `Pair: registration_match (high) · aircraft_key: CS-TOJ`,
+  109 joined slots, 1131 OCCM-only rows, 1641 total source rows, all
+  three CSVs (Combined/OCCM/HT) rendered correctly. A prior run with a
+  different (renamed) pair had reported `no_match` — turned out to be
+  those specific files genuinely having neither a readable MSN nor
+  registration in their header text, not a renaming artifact as first
+  guessed. See the filename-preservation finding below, found while
+  chasing that.
+
+### Combined-mode pairing can't fall back to filename (found 2026-08-21)
+- **Why**: `shared/pairing.py`'s `link_pair()` reads `p.name` for its
+  filename-derived aircraft_key fallback, but `deploy/main.py`'s
+  `_save_temp()` always writes to `tempfile.mkstemp(suffix=".pdf")` --
+  a randomly-generated name, discarding whatever the user's browser
+  upload was actually called before pairing.py ever sees the path. The
+  filename fallback the code clearly supports is currently unreachable
+  in the live browser flow, for any file, regardless of what it's
+  named. Didn't matter for tonight's MSN 223 test (registration-header
+  matching covered it), but a future file with weak header text and a
+  meaningful filename would silently lose that fallback too.
+- **Fix sketch**: pass `occmFile.name` / `htFile.name` from `app.js`
+  through to `main.run_combined()`, and have `_save_temp` (or a
+  filename-aware variant) write into a fresh `tempfile.mkdtemp()`
+  subdirectory using the real name instead of a random one.
+- **Done when**: a combined-mode pair with deliberately weak header
+  text but a meaningful original filename (e.g. containing `MSN1234`)
+  still pairs via the filename fallback.
 
 ### GitHub Pages integration into existing consultancy site
 - **Why**: User has an existing static GitHub Pages consultancy site
