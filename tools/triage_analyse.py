@@ -88,6 +88,14 @@ def main():
     ap.add_argument("triage_csv", type=Path)
     ap.add_argument("--threshold", type=float, default=0.55,
                     help="cosine threshold for cluster membership (default 0.55)")
+    ap.add_argument("--compare-thresholds", action="store_true",
+                    help="run clustering at several thresholds and print a "
+                         "comparison table instead of clustering once — use "
+                         "this to actually decide whether 'resolution' "
+                         "(the cosine threshold) should move, instead of "
+                         "guessing. Higher threshold = stricter match = "
+                         "more, smaller clusters ('finer resolution'). Lower "
+                         "= looser match = fewer, bigger clusters ('coarser').")
     args = ap.parse_args()
 
     rows: list[dict] = []
@@ -104,10 +112,46 @@ def main():
     for (st, v), n in bucket.most_common():
         print(f"  {st:8s}  {v:24s}  {n:4d}")
 
+    # ── 1b. L2 candidates — files where L1 is silently dropping row text ───
+    # See tools/triage.py's docstring for exactly what this checks and its
+    # caveat (only the generic pdfplumber-table + ATA/ZONE-gate pattern).
+    l2_checked = [r for r in rows if r.get("l2_kept_rows") not in (None, "", "-1")]
+    l2_na = [r for r in l2_checked if r.get("l2_candidate") == "n/a"]
+    l2_meaningful = [r for r in l2_checked if r.get("l2_candidate") in ("True", "False")]
+    l2_flagged = [r for r in l2_meaningful if r.get("l2_candidate") == "True"]
+    if l2_checked:
+        print("\n" + "=" * 60)
+        print(f"L2 candidates — {len(l2_flagged)} of {len(l2_meaningful)} files the "
+              f"generic pattern actually applies to are dropping row text")
+        print("=" * 60)
+        if l2_na:
+            print(f"  ({len(l2_na)} more had kept=0 — the generic ATA/ZONE pattern "
+                  f"didn't match their rows at all, almost always a bespoke-variant "
+                  f"file, not an L2 finding either way — excluded above)")
+        if l2_flagged:
+            by_variant = Counter((r["sheet_type"], r["variant"]) for r in l2_flagged)
+            for (st, v), n in by_variant.most_common():
+                print(f"  {st:8s}  {v:24s}  {n:4d} file(s) flagged")
+            print("\n  Worst offenders (by dropped-row count):")
+            worst = sorted(l2_flagged, key=lambda r: -int(r["l2_dropped_rows"]))[:10]
+            for r in worst:
+                print(f"    {r['l2_dropped_rows']:>4s} dropped / {r['l2_kept_rows']:>4s} kept  "
+                      f"— {r['sheet_type']}/{r['variant']}  {r['filename']}")
+        else:
+            print("  None flagged — no evidence yet that L2 is needed on this corpus.")
+
+    # "Unknown" variant alone isn't enough to mean "a real file we couldn't
+    # match" -- NotDownloaded/Timeout placeholder rows also carry
+    # variant=Unknown (for consistency with how they're written), but they
+    # were never actually opened and have no content to hint at or cluster
+    # on. Filtering sheet_type too keeps those out of both the hint
+    # frequency table and the clustering pool below.
+    real_unknown = lambda r: r["variant"] == "Unknown" and r["sheet_type"] not in ("NotDownloaded", "Timeout")
+
     # ── 2. Operator hint frequencies ────────────────────────────────────────
     hint_freq = Counter()
     for r in rows:
-        if r["variant"] == "Unknown":
+        if real_unknown(r):
             for piece in (r["operator_hint"] or "").split(" · "):
                 p = piece.strip()
                 if p:
@@ -120,7 +164,29 @@ def main():
             print(f"  {n:4d}  {hint}")
 
     # ── 3. Cluster the Unknowns ─────────────────────────────────────────────
-    unknowns = [r for r in rows if r["variant"] == "Unknown"]
+    unknowns = [r for r in rows if real_unknown(r)]
+
+    if unknowns and args.compare_thresholds:
+        print(f"\n{'=' * 60}")
+        print(f"Threshold comparison — {len(unknowns)} Unknown rows")
+        print("=" * 60)
+        print("  higher threshold → stricter match → more, smaller clusters (finer)")
+        print("  lower threshold  → looser match   → fewer, bigger clusters (coarser)\n")
+        print(f"  {'threshold':>9s}  {'clusters':>8s}  {'singletons':>10s}  {'largest':>7s}  {'median':>6s}")
+        for t in (0.35, 0.45, 0.55, 0.65, 0.75, 0.85):
+            clusters = _cluster(unknowns, threshold=t)
+            sizes = sorted((len(c) for c in clusters), reverse=True)
+            singles = sum(1 for s in sizes if s == 1)
+            median = sizes[len(sizes) // 2] if sizes else 0
+            marker = "  <- default" if abs(t - 0.55) < 1e-9 else ""
+            print(f"  {t:9.2f}  {len(clusters):8d}  {singles:10d}  {sizes[0]:7d}  {median:6d}{marker}")
+        print("\n  A good threshold: cluster count << unknown count (real grouping "
+              "happening), and singleton count isn't most of the clusters (else "
+              "it's barely different from no clustering at all). Too low a "
+              "threshold shows up as one giant cluster swallowing everything — "
+              "watch the 'largest' column for that.")
+        return
+
     if unknowns:
         print(f"\n{'=' * 60}")
         print(f"Clustering {len(unknowns)} Unknown rows (threshold {args.threshold})")
