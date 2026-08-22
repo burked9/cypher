@@ -4,6 +4,21 @@ Open items in priority order. Each item has a category, a brief description, and
 
 ## Priority 0 — pre-publication checklist
 
+### 24 new variant modules built tonight (2026-08-22) are LOCAL-CLI-ONLY
+- **Why**: `deploy/build.py`'s `SOURCES` list is a hardcoded file list, not
+  a directory scan — none of tonight's 24 new modules (see "Done" below)
+  are in it, so the live site at `burked9.github.io/cypher` does not yet
+  benefit from any of this new coverage. Only the local CLI pipeline does.
+- **Done when**: every new module that doesn't do top-level `import fitz`/
+  `import pytesseract` (i.e. all except `kalstar_aviation_llp_status.py`,
+  `thai_landing_gear_llp_status.py`, `b777_gear_llp_availability.py`,
+  which need the same defensive-import treatment `part_m_engine_disk_
+  sheet.py` already gets in `sheet_types/llp.py`) is added to `deploy/
+  build.py`'s `SOURCES`, `python3 deploy/build.py` is re-run, and a real
+  browser smoke test confirms at least one of the new variants (e.g.
+  `standard_occm.py`'s new sub-formats, or `stars_trax_occm.py`) extracts
+  correctly through the deployed site, not just the local CLI.
+
 ### Local end-to-end smoke test in a real browser
 - **Why**: Pyodide-only failures (top-level imports of stdlib modules
   Pyodide doesn't ship, side-effects at module load) only surface in a
@@ -299,6 +314,43 @@ Open items in priority order. Each item has a category, a brief description, and
 
 ## Done since the last revision
 
+- ✅ **24 new variant modules built from the 25 highest-value triage
+  clusters (2026-08-22)** — 3 OCCM, 7 HT, 14 LLP (one cluster split into
+  4 sub-formats, another consolidated 2 modules into 1). Built via
+  parallel agents, one per cluster, each required to inspect real files
+  directly and verify its own `extract()` against every file in its
+  cluster before reporting done — not templated. Final numbers, checked
+  through the actual production entry point (`sheet_types/router.
+  extract()`, not just each module called directly): **83 of 140 files
+  now extract real records, 16,680 total new rows recovered.** The other
+  57 are correctly `Unknown` — confirmed genuinely scanned with no text
+  layer (several), confirmed wrong document type entirely (EASA Form 1
+  release certificates, an Aircraft Inspection Report, flight manuals,
+  checklists, ferry-flight paperwork — folder contamination, not missing
+  coverage), or one single file with a corrupted double-page-render
+  where the readable text starts on page 6, past the router's 3-page
+  detection window (see the new Priority 0 item above for the
+  not-yet-deployed-to-the-website caveat).
+- ⚠️ **Found and deliberately left unfixed: two MIS vendors (STARS Trax,
+  MM_510, and a similar e.MES case) emit textually-identical headers for
+  both OCCM/HT-shaped and HT/LLP-shaped exports of the same underlying
+  data** — confirmed no discriminating phrase exists in the header text
+  either way; which bucket a file belongs in depends on what report was
+  actually run, not its content. Adding either shared phrase as a
+  top-level signature would risk silently stealing files from the
+  *other* sheet type's existing variant, since `sheet_types/router.py`
+  checks LLP, then HT, then OCCM and returns on first match. Where a
+  file needed a top-level signature and only an ambiguous phrase was
+  available, no top-level signature was added — the variant is
+  registered for internal dispatch only and stays unreachable via normal
+  routing until this gets a real fix. Both instances documented directly
+  in code comments (`sheet_types/occm.py`, `sheet_types/llp.py`) so this
+  isn't rediscovered from scratch. **A real fix** would classify by
+  actual row/column shape (e.g. presence of a CYCLES-REMAINING-style
+  column vs. a NEXT-DUE-interval-style column) rather than header text —
+  worth scoping as its own task if these vendors' files turn out to be
+  common in the wider corpus, not worth guessing a fix for now on 2-3
+  known files.
 - ✅ **Standard OCCM was silently returning zero rows on 5 of its 12
   corpus files — found via the triage L2 check, fixed for 3.** The
   L2 worst-offenders list flagged this variant, but the real bug turned

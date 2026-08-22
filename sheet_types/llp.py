@@ -5,23 +5,36 @@ import pdfplumber
 from sheet_types.llp_variants import (
     vietnam_airlines, amos, lan_engine_llp, pro_rata_engine_llp,
     cfm_overhaul_llp, cfm56_7b_llp,
+    erj190_landing_gear_llp, n3_engine_overhaul_llp, messier_dowty_landing_gear_llp,
+    gear_llp_status_list, emes_airframe_llp_status, serialized_unit_hard_limits,
+    cai_first_landing_gear_llp, mm510_llp, swiss_a340_ldg_llp,
+    landing_gear_llp_report, aircraft_llp_status_report, sas_drawing_item_llp,
+    sky_airlines_llp_summary, b737_gear_llp_inventory,
 )
 from shared.cleanup import clean_record
 
 VARIANTS = [
     vietnam_airlines, amos, lan_engine_llp, pro_rata_engine_llp,
     cfm_overhaul_llp, cfm56_7b_llp,
+    erj190_landing_gear_llp, n3_engine_overhaul_llp, messier_dowty_landing_gear_llp,
+    gear_llp_status_list, emes_airframe_llp_status, serialized_unit_hard_limits,
+    cai_first_landing_gear_llp, mm510_llp, swiss_a340_ldg_llp,
+    landing_gear_llp_report, aircraft_llp_status_report, sas_drawing_item_llp,
+    sky_airlines_llp_summary, b737_gear_llp_inventory,
 ]
 
 # OCR-based variants depend on pytesseract (the native Tesseract binary),
 # which doesn't exist under Pyodide. Import defensively so the deploy build
 # (which never mirrors this file) still loads everything else fine; locally,
 # where pytesseract is installed, it participates normally.
-try:
-    from sheet_types.llp_variants import part_m_engine_disk_sheet
-    VARIANTS.append(part_m_engine_disk_sheet)
-except ImportError:
-    pass
+for _modname in ("part_m_engine_disk_sheet", "kalstar_aviation_llp_status",
+                  "thai_landing_gear_llp_status", "b777_gear_llp_availability"):
+    try:
+        _mod = __import__(f"sheet_types.llp_variants.{_modname}", fromlist=[_modname])
+        VARIANTS.append(_mod)
+    except ImportError:
+        pass
+del _modname
 
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
@@ -33,6 +46,35 @@ SIGNATURES = [
     "Engine Life Limited Parts Status",
     "LIFE LIMITED PARTS SUMMARY",
     "CFM56-7B LIFE LIMITED PARTS",
+    "LIFE LIMITS PARTS STATUS LIST",       # erj190_landing_gear_llp.py
+    "LANDING GEAR STATUS",                 # messier_dowty_landing_gear_llp.py
+    "Assemblies >> Gear LLPs",             # gear_llp_status_list.py
+    "Life Limited Part Status",            # emes_airframe_llp_status.py
+    "Serialized Unit List - Hard Limits",  # serialized_unit_hard_limits.py
+    "LDG LLP COMPLIANCE STATUS",           # swiss_a340_ldg_llp.py
+    "LANDING GEAR LIFE LIMIT PARTS REPORT",# landing_gear_llp_report.py
+    "LLP Status Report",                   # aircraft_llp_status_report.py
+    "When Airframe CSN:",                  # sas_drawing_item_llp.py
+    "06331890969",                         # cai_first_landing_gear_llp.py -- the producer's
+                                            # VAT number; only 1 of its 4 real files also
+                                            # happens to contain the pre-existing "LIFE LIMITED
+                                            # PARTS SUMMARY" phrase, so this is needed for the
+                                            # other 3 to be reachable at all
+    "LOWER LIMITER",                       # kalstar_aviation_llp_status.py
+    "LANDING GEAR LIFE LIMITED PARTS STATUS",  # thai_landing_gear_llp_status.py
+    "MAINTENANCEPLANNING AND CONTROL",     # b737_gear_llp_inventory.py
+    "Available hours/cycles for Component life limited parts",  # b777_gear_llp_availability.py
+    # mm510_llp.py deliberately has NO entry here: the same "MM_510" header
+    # is emitted verbatim by the same MIS tool for both HT-relevant and
+    # LLP-relevant queries (confirmed: no discriminating phrase exists in
+    # the header either way -- which bucket a file belongs in depends on
+    # what report was run, not its content). Adding "MM_510" or "HARD
+    # TIME/LLP COMPONENTS" here would risk silently stealing genuinely-HT
+    # files from ht_variants/mm510.py, since LLP is checked before HT in
+    # router.py's DETECTION_ORDER. mm510_llp.py is registered below for
+    # internal variant dispatch only -- it's unreachable via top-level
+    # routing today. See docs/TODO.md for the real fix this needs
+    # (content-based, not header-phrase-based, disambiguation).
 ]
 
 

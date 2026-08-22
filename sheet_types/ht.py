@@ -9,18 +9,38 @@ import pdfplumber
 from sheet_types.ht_variants import (
     vietnam_airlines, amos, mm510, tap, iberia, oases_lifed_components,
     stars_trax, aircraft_rotables_ht,
+    georgian_airways_ht_components_status, mpd_hard_time_list, htll_status,
+    hard_time_component_status_mpd_task,
+    aercap_hard_time_component_status, aercap_oxygen_generator_status,
+    emes_hard_time_component_status,
 )
 from shared.cleanup import clean_record
 
 # Order matters: more-specific signatures must precede generic ones.
 # Variants with distinctive headers sit before the AMOS catch-all.
 VARIANTS = [vietnam_airlines, mm510, tap, iberia,
-            oases_lifed_components, stars_trax, aircraft_rotables_ht, amos]
+            oases_lifed_components, stars_trax, aircraft_rotables_ht, amos,
+            georgian_airways_ht_components_status, mpd_hard_time_list, htll_status,
+            hard_time_component_status_mpd_task,
+            aercap_hard_time_component_status, aercap_oxygen_generator_status,
+            emes_hard_time_component_status]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
 SIGNATURES = [
     "PLAN OF AIRCRAFT COMPONENT REPLACEMENT",
+    "HARD TIME COMPONENTS STATUS FOR A/C-REGISTRATION",  # georgian_airways_ht_components_status.py
+    "HARD TIME LIST AS AT",                              # mpd_hard_time_list.py
+    "HT-LL STATUS",                                      # htll_status.py
+    "HT&LLP STATUS",                                     # htll_status.py, other sub-format
+    "MPD TASK NO",                                       # hard_time_component_status_mpd_task.py
+    "COMP.TIMELINE",                                     # aercap_hard_time_component_status.py
+    "OXYGEN GENERATOR STATUS",                           # aercap_oxygen_generator_status.py
+    # NOT "FROM E.MES" -- that phrase is also emes_airframe_llp_status.py's
+    # (LLP) own signature, the same cross-sheet-type MIS-vendor-boilerplate
+    # pattern as MM_510/STARS Trax elsewhere in this file. This phrase is
+    # unique to the HT-side format instead.
+    "T/C # TASK HT",                                     # emes_hard_time_component_status.py
 ]
 
 

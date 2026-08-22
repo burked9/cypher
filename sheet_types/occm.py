@@ -22,6 +22,7 @@ from sheet_types.occm_variants import (
     cathay_occm, config_slot_occm, iberia_listado, oases,
     occm_list_as_at, occm_status_list, on_condition_components_report,
     remaining_potentials, standard_occm, tap_compact_occm, technical_object_listing,
+    aircraft_components_list, stars_trax_occm, sriwijaya_b737_occm,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 
@@ -46,6 +47,7 @@ VARIANTS = [
     cathay_occm, config_slot_occm, iberia_listado, oases,
     occm_list_as_at, occm_status_list, on_condition_components_report,
     remaining_potentials, standard_occm, tap_compact_occm, technical_object_listing,
+    aircraft_components_list, stars_trax_occm, sriwijaya_b737_occm,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
@@ -67,6 +69,22 @@ SIGNATURES = [
     "Parts Remaining Fitted at Build",    # EL AL B767 MSN 28132 records-package
     "Parts Remaining fitted at Build",    # same, case variation
     "I-BIX",                              # Alitalia I-BIX* registrations
+    "AIRCRAFT COMPONENTS LIST",           # aircraft_components_list.py
+    # stars_trax_occm.py's OTHER signature, "A/C Detail Items Print", is
+    # deliberately NOT added here -- it's also ht_variants/stars_trax.py's
+    # signature, and the same "STARS/Trax" MIS tool emits it verbatim for
+    # both an OCCM-shaped and an HT-shaped export (confirmed no reliable
+    # discriminating phrase exists in the header either way, same root
+    # cause as the mm510_llp.py gap below). Adding it here would risk
+    # silently stealing genuinely-HT files from stars_trax.py, since LLP
+    # and HT are both checked before OCCM in router.py's DETECTION_ORDER.
+    # This means only the "A/C Status Audit Print"-headed half of
+    # stars_trax_occm's cluster is reachable via normal routing today --
+    # see docs/TODO.md for the other half and a real fix.
+    "A/C Status Audit Print",             # stars_trax_occm.py (partial -- see above)
+    # sriwijaya_b737_occm.py needs no entry here: its files have no text
+    # layer at all (confirmed near-zero chars), so they're only ever
+    # reached via the ocr_detect fallback loop below, not this list.
 ]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
