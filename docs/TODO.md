@@ -119,10 +119,20 @@ Open items in priority order. Each item has a category, a brief description, and
   rows across a handful of different source files, not just structural
   correctness on the two known ones.
 
-### Tesseract.js for in-browser L3
-- **Status**: scaffold in place. `deploy/assets/ocr_bridge.js` wires up Tesseract.js + pdf.js; index.html loads them. Top-level entry `runOcrPipeline()` returns a clear "not finished" error so failures are visible, not silent.
-- **Remaining work**: a Python entry-point `main.run_with_ocr(pages, sheet_type, variant)` that accepts pre-OCR'd word lists from JS, plus a small extractor refactor in `levels/L3_ocr/extract.py` so the column-projection logic can run on browser-supplied word boxes instead of always calling pytesseract locally. Roughly half a day's work.
-- **Done when**: dropping `afl_test.pdf` into the deploy returns a populated table.
+### Tesseract.js for in-browser L3 — done for Aeroflot, other OCR variants still local-only
+- **Status (2026-08-21)**: ✅ confirmed end-to-end in a real browser —
+  `afl_test.pdf` extracted all 90 rows via Tesseract.js + pdf.js, no local
+  Python needed. Two real bugs surfaced and fixed getting here (see "Done"
+  below); this was not a smooth first pass, and both bugs would have
+  shipped silently broken without the real-browser test.
+- **Scope, precisely**: this covers exactly one variant — Aeroflot OCCM —
+  because that's the only one `levels/L3_ocr/extract.py`'s column-projection
+  logic (ATA/ZONE anchors) was built for. `part_m_engine_disk_sheet.py`
+  (the other OCR-needing variant, grid-detection-based LLP) has no
+  browser-side path — would need its own detector in `ocr_bridge.js` and
+  its own JS-reachable extractor, not a copy of the Aeroflot one.
+- **Done when** (met): dropping `afl_test.pdf` into the deploy returns a
+  populated table. ✅
 
 ### More OCCM / HT / LLP variants as documents arrive
 - **Why**: Each new operator typically needs one new module; that's how the system grows.
@@ -208,6 +218,30 @@ Open items in priority order. Each item has a category, a brief description, and
   (cloud burst), mirroring the existing L4 PaddleOCR pattern. Heavy
   dependencies (PyTorch, transformers, layout models, TableFormer) all
   stay off the local install and the deploy.
+- **Researched 2026-08-22: could this move to GitHub Pages like
+  Tesseract.js did?** Docling-the-package: no — it depends on PyTorch,
+  which has no Pyodide/WASM wheel and no realistic path to one (still an
+  open, unresolved ask even on docling's own repo — [issue #2393](https://github.com/docling-project/docling/issues/2393)).
+  No prior art found of anyone running docling under Pyodide. But there's
+  a real alternate path worth recording: a third-party project,
+  [`docling-onnx-models`](https://github.com/asmud/docling-onnx-models),
+  re-ships docling's layout-detection and table-structure (TableFormer)
+  models as pure ONNX Runtime — no torch required for inference. Paired
+  with **ONNX Runtime Web** (Microsoft's mature, WASM-based, browser
+  inference runtime — same "no backend, stronger privacy" pitch Cypher
+  already makes), the *models* could plausibly run client-side via a new
+  JS bridge, same shape as `ocr_bridge.js`'s Tesseract.js integration
+  (JS does the heavy inference, Python does the domain mapping). Two
+  reasons not to chase this now: (1) nobody has built that bridge before
+  — this is new engineering, days not hours, unlike Tesseract.js which
+  wired up an existing turnkey library; (2) the layout + TableFormer
+  models are ~500 MiB combined ([~164 MiB layout + ~146–213 MiB TableFormer](https://huggingface.co/docling-project/docling-models)),
+  roughly 30–50× everything else in the current stack combined (Pyodide's
+  own first-load is ~10–15 MB). **Recommendation**: don't build this
+  before the Colab recon below has actually run — no point browser-ifying
+  a capability whose accuracy on real aviation layouts is still unknown.
+  If recon comes back strong, this is the concrete answer for "how would
+  L5 ever reach production users."
 - **Status**: Colab notebook landed at `research/colab_L5_docling.ipynb`.
   Recon experiment ready — point at one of the recommended image-only
   HT PDFs, run sections 1–6, and the notebook tells you whether
@@ -265,6 +299,45 @@ Open items in priority order. Each item has a category, a brief description, and
 
 ## Done since the last revision
 
+- ✅ **In-browser Aeroflot OCR, confirmed working — two real bugs fixed
+  to get there.** (1) `ocr_bridge.js`'s `runOcrPipeline()` called pdf.js's
+  `getDocument()` once to read `pdf.numPages`, then `renderPageToCanvas()`
+  called `getDocument()` *again* on the same bytes for every page —
+  pdf.js transfers/detaches the underlying `ArrayBuffer` to its worker on
+  the first call, so every repeat threw `DataCloneError: ArrayBuffer ...
+  already detached`. `detectAeroflot()` never hit this (it only calls
+  `getDocument` once), which is why detection worked while the actual OCR
+  run didn't. Fixed by having `renderPageToCanvas()` take an
+  already-loaded document proxy instead of raw bytes, so every caller
+  loads the document exactly once and reuses it across pages. (2) Even
+  past that, `main.run_with_ocr()` failed with `ModuleNotFoundError: No
+  module named 'levels.L3_ocr'` — `deploy/build.py`'s file list still had
+  the old "L3/L4 are local-only" comment from before this session's work
+  and never mirrored `levels/L3_ocr/` into `deploy/_pymods/`, so the file
+  Pyodide needed to import was simply never on disk for it to find. Fixed
+  by adding `levels/L3_ocr/__init__.py` and `extract.py` to `build.py`'s
+  `SOURCES` and re-running it. Both bugs only surfaced because the user
+  tested in a real browser with DevTools open — neither was visible from
+  the Python side (fully correct in isolation) or from this session's own
+  sandboxed browser tool (which can't get past `page.render()` at all,
+  a separate, apparently tool-specific limitation — see the local-dev
+  caching note below for the *other* thing that cost time tonight).
+- 📝 **Local-dev testing gotcha, worth remembering**: `index.html`'s
+  `<script src="assets/app.js?__CACHE_BUST__">` and `app.js`'s import of
+  `ocr_bridge.js?__CACHE_BUST__` both use `__CACHE_BUST__` as a *literal*
+  string locally — only the CI workflow substitutes it with the real
+  commit SHA. Python's `http.server` sends no cache-control headers (see
+  `app.js`'s own comment on this), so a plain browser reload can silently
+  keep serving a stale `index.html` — including a stale `<script src>`
+  pointing at a stale cached `app.js` — indefinitely, regardless of edits
+  on disk or "hard" navigations. This cost real time tonight chasing what
+  looked like inconsistent app behavior but was actually the browser
+  running yesterday's code. **Fix for local testing**: navigate to a URL
+  with a throwaway query string (e.g. `localhost:8765/?nocache=1`) to
+  force a fresh document fetch, and temporarily bump `__CACHE_BUST__` to
+  a manual throwaway value in both files while iterating, reverting
+  before commit. Production is unaffected — CI always substitutes the
+  real SHA on every deploy.
 - ✅ **Published on GitHub Pages** — live at
   `https://burked9.github.io/cypher/`, repo public at
   `github.com/burked9/cypher`. Discoverability minimization followed:

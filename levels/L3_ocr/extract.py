@@ -17,17 +17,23 @@ import re
 from typing import Iterator, Optional
 from pathlib import Path
 
-import fitz  # pymupdf
-import pytesseract
 import numpy as np
 import pandas as pd
-from PIL import Image
+
+# fitz (PyMuPDF) and pytesseract are lazy-imported inside the two functions
+# that actually use them (_ocr_page, extract_records), not at module level.
+# Neither has a Pyodide-compatible wheel -- a top-level import here would
+# crash the moment this module loads in the browser, even though
+# extract_records_from_words() (the in-browser OCR entry point; see
+# deploy/main.py's run_with_ocr()) never touches either.
 
 
 DEFAULT_COLUMNS = ["ATA", "ZONE", "FIN", "DESCRIPTION", "VENDOR_CODE", "PART_NUMBER", "SERIAL_NUMBER"]
 
 
-def _ocr_page(page: fitz.Page, dpi: int = 300) -> pd.DataFrame:
+def _ocr_page(page, dpi: int = 300) -> pd.DataFrame:
+    import pytesseract
+    from PIL import Image
     pix = page.get_pixmap(dpi=dpi)
     img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
     df = pytesseract.image_to_data(img, output_type=pytesseract.Output.DATAFRAME, config="--psm 6")
@@ -199,14 +205,17 @@ def _assign_positional(g: pd.DataFrame, columns: list[str], right_anchors: dict[
     return [out[c] for c in columns]
 
 
-def extract_records(pdf_path: str, columns: list[str] = DEFAULT_COLUMNS) -> list[dict]:
-    """End-to-end extraction. Returns a list of dicts keyed by `columns` plus `_page`."""
-    doc = fitz.open(pdf_path)
+def _records_from_page_dfs(page_dfs: list[tuple[pd.DataFrame, int]], columns: list[str]) -> list[dict]:
+    """Shared core, independent of where the word boxes came from. Each entry
+    in `page_dfs` is (raw_word_df, page_num), where raw_word_df has columns
+    left/top/width/height/conf/text -- the shape `pytesseract.image_to_data`'s
+    DATAFRAME output has, and what the browser's Tesseract.js path (see
+    `extract_records_from_words` below) is built to match exactly."""
     page_data = []
-    for i, page in enumerate(doc):
-        df = _cluster_rows(_ocr_page(page))
-        drows = _find_data_rows(df)
-        page_data.append((df, drows, i + 1))
+    for df, page_num in page_dfs:
+        clustered = _cluster_rows(df)
+        drows = _find_data_rows(clustered)
+        page_data.append((clustered, drows, page_num))
 
     # Aggregate right-side header anchors across pages
     right_anchor_xs: dict[str, list[int]] = {c: [] for c in ("VENDOR_CODE", "PART_NUMBER", "SERIAL_NUMBER")}
@@ -223,6 +232,41 @@ def extract_records(pdf_path: str, columns: list[str] = DEFAULT_COLUMNS) -> list
             rec["_page"] = page_num
             records.append(rec)
     return records
+
+
+def extract_records(pdf_path: str, columns: list[str] = DEFAULT_COLUMNS) -> list[dict]:
+    """End-to-end extraction from a local PDF via pytesseract. Returns a list
+    of dicts keyed by `columns` plus `_page`."""
+    import fitz
+    doc = fitz.open(pdf_path)
+    page_dfs = [(_ocr_page(page), i + 1) for i, page in enumerate(doc)]
+    return _records_from_page_dfs(page_dfs, columns)
+
+
+_WORD_COLS = ["left", "top", "width", "height", "conf", "text"]
+
+
+def extract_records_from_words(pages_words: list[list[dict]],
+                                columns: list[str] = DEFAULT_COLUMNS) -> list[dict]:
+    """Same extraction as `extract_records`, but from word boxes OCR'd
+    elsewhere (the browser's Tesseract.js, via `ocr_bridge.js`'s `ocrCanvas()`)
+    instead of running pytesseract locally -- Pyodide has no `tesseract`
+    binary for pytesseract to shell out to, so this is the in-browser path's
+    only way to reach this module's column-projection logic.
+
+    `pages_words[i]` is page i+1's word list: dicts with left/top/width/
+    height/conf/text, already filtered to conf > 30 and non-empty text by
+    the JS side (mirrored here too, defensively, in case a caller doesn't).
+    """
+    page_dfs = []
+    for i, words in enumerate(pages_words):
+        df = pd.DataFrame(words, columns=_WORD_COLS) if words else pd.DataFrame(columns=_WORD_COLS)
+        if not df.empty:
+            df = df.dropna(subset=["text"])
+            df = df[df["text"].astype(str).str.strip() != ""]
+            df = df[df["conf"].astype(float) > 30].copy()
+        page_dfs.append((df, i + 1))
+    return _records_from_page_dfs(page_dfs, columns)
 
 
 def extract_tables(pdf_path: str, page_range: tuple[int, int] | None = None) -> Iterator[list[list[str]]]:

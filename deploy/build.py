@@ -106,10 +106,15 @@ SOURCES = [
     # top-level router — depends on the three sheet-type routers
     "sheet_types/router.py",
 
-    # extraction levels (L3/L4 are local-only and not in the deploy)
+    # extraction levels (L4 is local-only and not in the deploy; L3's
+    # extract_records_from_words() is Pyodide-safe -- fitz/pytesseract are
+    # lazy-imported inside the two functions that need them, neither of
+    # which the in-browser OCR path touches -- so it ships here too)
     "levels/__init__.py",
     "levels/L1_text/__init__.py",
     "levels/L1_text/extract.py",
+    "levels/L3_ocr/__init__.py",
+    "levels/L3_ocr/extract.py",
 ]
 
 

@@ -4,14 +4,17 @@
 // modules into the Pyodide virtual filesystem, then routes PDF bytes through
 // main.run() which auto-detects the OCCM variant and dispatches.
 
-import { hasTextLayer } from "./ocr_bridge.js?__CACHE_BUST__";
+import { hasTextLayer, detectAeroflot, runOcrPipeline } from "./ocr_bridge.js?__CACHE_BUST__";
 
+// Shown only when the blank-text PDF didn't match any OCR-capable variant
+// this build knows how to route (currently just Aeroflot) -- not "no OCR
+// exists at all" anymore, since some now does.
 const NO_TEXT_LAYER_WARNING = (
   "This PDF has no extractable text layer, which usually means it's a " +
-  "scanned or image-only document. This build has no in-browser OCR yet " +
-  "(Tesseract.js isn't wired in), so it can't be processed here. If you " +
-  "have local Python access to this project, the local pipeline already " +
-  "handles some scanned formats."
+  "scanned or image-only document, and this build's in-browser OCR " +
+  "doesn't recognize it as a supported variant. If you have local Python " +
+  "access to this project, the local pipeline handles more scanned " +
+  "formats than the browser does today."
 );
 
 const $ = (id) => document.getElementById(id);
@@ -49,7 +52,10 @@ async function boot() {
   pyodide = await loadPyodide();
 
   status.textContent = "Installing pdfplumber (one-time, ~10 s)…";
-  await pyodide.loadPackage("micropip");
+  // numpy/pandas are Pyodide-bundled (precompiled WASM wheels, not a PyPI
+  // install) -- needed by levels/L3_ocr/extract.py's column-projection
+  // logic, which main.run_with_ocr() (in-browser OCR) now reaches.
+  await pyodide.loadPackage(["micropip", "numpy", "pandas"]);
   await pyodide.runPythonAsync(`
 import micropip
 # IMPORTANT: pin to pdfplumber 0.9.0. From 0.10 onwards pdfplumber requires
@@ -172,15 +178,12 @@ $("run").addEventListener("click", async () => {
   hide("empty-state");
 
   try {
-    // Fast pre-check in pdf.js, BEFORE ever touching Pyodide: confirmed that
-    // pdfplumber/pdfminer.six under Pyodide can take 2.5+ minutes with zero
-    // feedback on a genuinely scanned PDF (root cause not identified --
-    // ruled out image size/format/count, cold-import cost, and
-    // page.chars vs extract_text() as explanations). pdf.js is a separate
-    // codebase with no such issue: both known-hanging files processed in
-    // under 600ms here. If this pre-check itself fails for any reason,
-    // fall through to the normal path rather than block on it -- it's a
-    // fast-path optimization, not a gate.
+    // Fast pre-check in pdf.js, BEFORE ever touching Pyodide. (Originally
+    // built to dodge a "2.5+ minute pdfminer hang" on blank-text PDFs --
+    // turned out that hang was never real, just a misread stale status
+    // line elsewhere in this file; see docs/TODO.md's correction. Keeping
+    // this check anyway: it's fast, harmless, and it's what tells us
+    // whether to even attempt the OCR path below.)
     let hasText = true;
     try {
       const checkBuf = await f.arrayBuffer();
@@ -189,6 +192,27 @@ $("run").addEventListener("click", async () => {
       console.warn("Text-layer pre-check failed, proceeding without it:", checkErr);
     }
     if (!hasText) {
+      // No text layer -- see if this is a variant the in-browser OCR path
+      // (Aeroflot only, so far) actually knows how to handle before
+      // falling back to the honest "can't process this" warning.
+      const detectBuf = await f.arrayBuffer();
+      let isAeroflot = false;
+      try {
+        isAeroflot = await detectAeroflot(new Uint8Array(detectBuf));
+      } catch (detectErr) {
+        console.warn("Aeroflot OCR-detection failed, falling back to the no-OCR warning:", detectErr);
+      }
+      if (isAeroflot) {
+        try {
+          const ocrBuf = await f.arrayBuffer();
+          const data = await runOcrPipeline(new Uint8Array(ocrBuf), pyodide, status, "OCCM", "Aeroflot");
+          lastResult = data;
+          render(data, f.name);
+          return;
+        } catch (ocrErr) {
+          console.warn("In-browser OCR pipeline failed, falling back to the no-OCR warning:", ocrErr);
+        }
+      }
       const data = { ok: true, sheet_type: "Unknown", variant: "Unknown",
                       columns: [], rows: [], warning: NO_TEXT_LAYER_WARNING };
       lastResult = data;

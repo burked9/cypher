@@ -5,14 +5,18 @@ Called from app.js with raw PDF bytes. Auto-detects sheet type (OCCM/HT/LLP)
 JSON-serializable dict containing variant, columns, rows, summary stats,
 and any warning.
 
-Any PDF with no text layer at all gets one general "looks scanned" warning
-rather than a sheet-type/variant guess. This deploy has no OCR capability of
-any kind — it uses pdfplumber only; the OCR-capable local variants (Aeroflot,
-Part M engine LLP) need `fitz` + `pytesseract`, neither available under
-Pyodide, so there is no way to tell WHICH variant a blank-text PDF is here.
-Guessing one specific answer is exactly what mislabeled a scanned LLP sheet
-as "OCCM . Aeroflot" for a real user this session — the fix is to say
-"can't tell, no text layer" honestly instead of picking an answer.
+A blank-text PDF is routed to app.js's in-browser OCR attempt (Tesseract.js
++ pdf.js, see ocr_bridge.js) before ever reaching this file's `run()`. Only
+Aeroflot is wired up on the OCR side so far (see `run_with_ocr()` below) --
+every other blank-text PDF still gets one general "looks scanned" warning
+from `run()` rather than a sheet-type/variant guess, since this file itself
+uses pdfplumber only and has no way to tell WHICH variant a blank-text PDF
+is (the OCR-capable local variants need `fitz` + `pytesseract`, neither
+available under Pyodide). Guessing one specific answer here is exactly what
+mislabeled a scanned LLP sheet as "OCCM . Aeroflot" for a real user this
+session — the fix was to say "can't tell, no text layer" honestly instead
+of picking an answer; `run_with_ocr()` is a deliberate, narrow exception to
+that for the one variant that actually has somewhere to route to.
 
 L4 (PaddleOCR) is intentionally not in the deploy — too heavy. The user
 runs `research/colab_L4_paddleocr.ipynb` on demand for fringe cases.
@@ -132,6 +136,61 @@ def run(pdf_bytes: bytes, level: str = "auto"):
             "imputed_ata": imputed,
         },
     }
+
+
+# ---------------------------------------------------------------------------
+# In-browser OCR (Tesseract.js). Pyodide has no `tesseract` binary for
+# pytesseract to shell out to, so app.js OCRs each page client-side (see
+# ocr_bridge.js's ocrCanvas(), which shapes Tesseract.js output to match
+# pytesseract.image_to_data's columns) and hands the word boxes here --
+# this is the one path into levels/L3_ocr/extract.py's column-projection
+# logic that never touches fitz or pytesseract.
+#
+# Only Aeroflot (the OCCM variant levels/L3_ocr was built for) is wired up
+# below. Every other OCR-capable local variant (e.g. Part M's engine LLP
+# sheet) has extraction logic built around a completely different layout
+# strategy (grid detection, not ATA/ZONE row anchors) and would need its
+# own adapter here, not a copy of this one.
+# ---------------------------------------------------------------------------
+
+def run_with_ocr(pages_words: list, sheet_type: str, variant: str):
+    if sheet_type == "OCCM" and variant == "Aeroflot":
+        from sheet_types.occm_variants import aeroflot
+        from levels.L3_ocr.extract import extract_records_from_words
+        from shared.cleanup import clean_record
+
+        try:
+            raw_records = extract_records_from_words(pages_words, columns=aeroflot.CANONICAL_COLUMNS)
+        except Exception as e:
+            return {"ok": False, "error": f"OCR word-box extraction failed: {e}"}
+
+        cleaned = [clean_record(dict(r), aeroflot.RULES) for r in raw_records]
+
+        if not cleaned:
+            return {
+                "ok": True, "sheet_type": sheet_type, "variant": variant,
+                "columns": [], "rows": [],
+                "warning": ("OCR ran but found no recognizable rows. The scan "
+                            "quality or layout may not fit this variant as "
+                            "cleanly as the samples this was tuned on."),
+            }
+
+        columns = list(aeroflot.CANONICAL_COLUMNS) + ["_issues", "_page"]
+        rows = [{c: ("" if r.get(c) is None else str(r.get(c, ""))) for c in columns}
+                for r in cleaned]
+        n = len(rows)
+        flagged = sum(1 for r in rows if r.get("_issues"))
+        return {
+            "ok": True,
+            "sheet_type": sheet_type,
+            "variant": variant,
+            "columns": columns,
+            "rows": rows,
+            "summary": {"total": n, "clean": n - flagged, "flagged": flagged, "imputed_ata": 0},
+        }
+
+    return {"ok": False,
+            "error": f"In-browser OCR isn't wired up yet for {sheet_type} / {variant}."}
 
 
 # ---------------------------------------------------------------------------
