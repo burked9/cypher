@@ -299,6 +299,44 @@ Open items in priority order. Each item has a category, a brief description, and
 
 ## Done since the last revision
 
+- ✅ **Standard OCCM was silently returning zero rows on 5 of its 12
+  corpus files — found via the triage L2 check, fixed for 3.** The
+  L2 worst-offenders list flagged this variant, but the real bug turned
+  out to be more interesting than row-splitting: the module's own real
+  extractor (not the generic check) returned **0 records outright** on
+  files that the router had already labeled "Standard OCCM." Three
+  genuinely distinct sibling sub-formats confirmed and fixed: (1) an
+  extra leading row-number column ("NO. ATA FIN..." vs "ATA FIN...",
+  detected once from the file's own header text, not guessed per-row —
+  row numbers and real ATA chapters can collide, both being small
+  2-digit integers); (2) dash-separated 2-digit-year dates
+  ("20-May-05") alongside the originally-assumed slash format
+  ("31/Aug/19"); (3) two structurally simpler layouts with no AC/COMP
+  FH-CY breakdown at all — one 8-column (dash dates, 4-digit year,
+  comma decimals, "UNKNOWN"/"UNKNOW"/"TBC" sentinels), one 6-column
+  (`ATA PN SN DESCRIPTION POS DATE`, POS deliberately left folded into
+  DESCRIPTION rather than guessed-split from one file's ambiguous
+  examples). Confirmed zero regressions on the 7 files that already
+  worked (~1000-1100 records each, unchanged). **Also checked Avianca
+  OCCM**, which the same L2 list flagged just as heavily (1426/90,
+  1423/90 dropped/kept) — turned out to be a **false alarm**: its real
+  extractor uses a completely different code path (line-by-line regex
+  on raw text, not the generic table-grid check) and correctly returns
+  680 real records on the flagged file. No fix needed there; this is
+  exactly the L2 check's documented "generic pattern doesn't apply"
+  blind spot working as expected, not a real bug.
+- ⚠️ **Remaining Standard OCCM gaps, left alone deliberately**: 4 files
+  still return 0. Two have corrupted/garbled source text at the PDF
+  level (`OCCM Status-20170815_msn2482.pdf`, `29344_A305_OCCM_
+  Inventory_20210221.pdf` — the latter's registration is Korean-prefix,
+  likely a font-encoding issue, not a parsing bug) — not worth a fragile
+  fix against damaged input. One (`ACP - OCCM Status.pdf`) has a
+  genuinely more complex 10-column layout (dual ATA + chapter-title
+  columns, dot-separated dates) confirmed on only one file — flagged
+  rather than force an overfit parser from a single example. One
+  (`2021-09-15_...30660...pdf`) wasn't investigated past confirming its
+  header text is clean — next person to pick this up should check its
+  actual data rows first.
 - ✅ **In-browser Aeroflot OCR, confirmed working — two real bugs fixed
   to get there.** (1) `ocr_bridge.js`'s `runOcrPipeline()` called pdf.js's
   `getDocument()` once to read `pdf.numPages`, then `renderPageToCanvas()`

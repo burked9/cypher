@@ -23,6 +23,19 @@ Strategy: tokenize each line, identify whether it's a normal row (anchored
 on the trailing date) or a HTLL reference row (anchored on the literal
 "REF TO HTLL STATUS" suffix). Walk backwards from the anchor to assign
 ATA/DESC/FIN/PN/SN reliably.
+
+Two sibling sub-formats confirmed via real-corpus triage (2026-08-22),
+found because production silently returned zero rows on both:
+
+  - An extra leading row-number column ("NO. ATA FIN..." instead of
+    "ATA FIN..."). Detected once per file from the header text itself
+    (see `_HAS_ROW_NUMBER_COL`) rather than guessed per-row, since row
+    numbers and real ATA chapters can collide (both are small 2-digit
+    integers).
+  - A structurally simpler 8-column layout with no AC/COMP FH-CY
+    breakdown at all — see `_parse_simple_row`. Only one confirmed
+    example so far; a second one turning up with a different shape is
+    a good signal to split this into its own variant module instead.
 """
 from __future__ import annotations
 import re
@@ -70,16 +83,33 @@ _OVERRIDES = {
 }
 RULES = merged_rules(_OVERRIDES)
 
-_DATE_RE = re.compile(r"^\d{1,2}/[A-Za-z]{3}/\d{2}$")
+# Both slash- and dash-separated dates confirmed in the corpus, both with
+# a 2-digit year ("31/Aug/19" and "20-May-05") -- kept distinct from
+# _SIMPLE_DATE_RE below by year length, since that one's 4-digit-year
+# dash format would otherwise be ambiguous with this one.
+_DATE_RE = re.compile(r"^\d{1,2}[/-][A-Za-z]{3}[/-]\d{2}$")
 _NUM_RE = re.compile(r"^\d+(?:\.\d+)?$")
 _REF_SUFFIX = "REF TO HTLL STATUS"
 
+# A sibling sub-format (confirmed on one file, "A349 OCCM 31.pdf") has an
+# extra leading row-number column pdfplumber's text extraction preserves
+# as its own token -- the column header literally reads "NO. ATA FIN..."
+# instead of "ATA FIN...". Detected once from the file's own header text
+# rather than guessed per-row: row numbers and real ATA chapters are both
+# small 2-digit integers (rows commonly run past 20), so a row like
+# "25 21 ..." is genuinely ambiguous token-by-token -- trying the
+# unshifted interpretation first would silently accept it with FIN/PN/SN
+# all off by one instead of falling through to the correct shifted read.
+_HAS_ROW_NUMBER_COL = "NO. ATA"
 
-def _parse_line(line: str, page_num: int) -> dict | None:
+
+def _parse_line(line: str, page_num: int, has_row_number: bool = False) -> dict | None:
     line = line.strip()
     if not line or not line[0].isdigit():
         return None
     tokens = line.split()
+    if has_row_number and len(tokens) > 1 and tokens[0].isdigit():
+        tokens = tokens[1:]
     if len(tokens) < 5:
         return None
 
@@ -147,16 +177,106 @@ def _parse_line(line: str, page_num: int) -> dict | None:
     return rec
 
 
+# A structurally different, simpler sibling format -- confirmed on one file
+# so far ("CC-AFY OCCM STATUS REV 0.pdf"). No AC/COMP FH-CY breakdown at
+# all: ATA FIN DESCRIPTION... PART_NUMBER SERIAL_NUMBER INSTALLED_DATE
+# ACTUAL_TSN ACTUAL_CSN -- 8 columns, not 14. Dates are D-Mon-YYYY with
+# dashes and a 4-digit year (the main branch expects D/Mon/YY with
+# slashes). Numbers use a comma decimal separator ("49490,50"). TSN/CSN
+# carry an unrecorded-value sentinel spelled three different ways in the
+# source data itself: "UNKNOWN", the typo "UNKNOW", and "TBC". Only one
+# confirmed example so far -- if more turn up with a different shape,
+# this is a good candidate to split into its own variant module instead
+# of a third branch here.
+_SIMPLE_DATE_RE = re.compile(r"^\d{1,2}-[A-Za-z]{3}-\d{4}$")
+_SIMPLE_SENTINEL_RE = re.compile(r"^([\d.,]+|UNKNOWN|UNKNOW|TBC)$", re.I)
+
+
+def _parse_simple_row(tokens: list[str], page_num: int) -> dict | None:
+    if len(tokens) < 8:
+        return None
+    if not re.match(r"^\d{2}$", tokens[0]):
+        return None
+    try:
+        ata_int = int(tokens[0])
+    except ValueError:
+        return None
+    if not (20 <= ata_int <= 83):
+        return None
+    if not (_SIMPLE_SENTINEL_RE.match(tokens[-1]) and _SIMPLE_SENTINEL_RE.match(tokens[-2])):
+        return None
+    if not _SIMPLE_DATE_RE.match(tokens[-3]):
+        return None
+    pn, sn = tokens[-5], tokens[-4]
+    desc = " ".join(tokens[2:-5])
+    if not desc:
+        return None
+
+    rec = {c: "" for c in CANONICAL_COLUMNS}
+    rec["ATA"] = tokens[0]
+    rec["FIN"] = tokens[1]
+    rec["DESCRIPTION"] = desc
+    rec["PART_NUMBER"] = pn
+    rec["SERIAL_NUMBER"] = sn
+    rec["INSTALLED_DATE"] = tokens[-3]
+    rec["TSN_FH"] = tokens[-2]
+    rec["TSN_CY"] = tokens[-1]
+    rec["_page"] = page_num
+    return rec
+
+
+# A third sibling format -- confirmed on one file ("A305_OCCM
+# Inventory_20210308.pdf"): ATA PN SN DESCRIPTION POS DATE, no TSN/CSN or
+# FH/CY breakdown at all. POS is folded into DESCRIPTION rather than
+# split out: real examples ("GALLEY G", "P8-CAPT", "P8-F/O", "0", "FO")
+# have no consistent shape to anchor on, and guessing at a split from one
+# file's worth of examples risks being confidently wrong rather than
+# usefully approximate. An analyst can still read the combined text; a
+# wrong split could silently misattribute a real field.
+def _parse_ata_pn_sn_date_row(tokens: list[str], page_num: int) -> dict | None:
+    if len(tokens) < 5:
+        return None
+    if not re.match(r"^\d{2}$", tokens[0]):
+        return None
+    try:
+        ata_int = int(tokens[0])
+    except ValueError:
+        return None
+    if not (20 <= ata_int <= 83):
+        return None
+    if not _DATE_RE.match(tokens[-1]):
+        return None
+    desc = " ".join(tokens[3:-1])
+    if not desc:
+        return None
+    rec = {c: "" for c in CANONICAL_COLUMNS}
+    rec["ATA"] = tokens[0]
+    rec["PART_NUMBER"] = tokens[1]
+    rec["SERIAL_NUMBER"] = tokens[2]
+    rec["DESCRIPTION"] = desc
+    rec["INSTALLED_DATE"] = tokens[-1]
+    rec["_page"] = page_num
+    return rec
+
+
 def extract(pdf_path: str) -> list[dict]:
     from shared.cleanup import normalize_dashes
     records: list[dict] = []
     with pdfplumber.open(pdf_path) as pdf:
-        for page_num, page in enumerate(pdf.pages, start=1):
-            text = normalize_dashes(page.extract_text() or "")
+        # extract_text() once per page, cached -- the row-number-column
+        # detection needs the whole document's text, and re-calling
+        # extract_text() a second time per page would double the cost of
+        # extraction for no benefit.
+        page_texts = [normalize_dashes(p.extract_text() or "") for p in pdf.pages]
+        has_row_number = any(_HAS_ROW_NUMBER_COL in t for t in page_texts)
+        for page_num, text in enumerate(page_texts, start=1):
             if len(text) < 100:
                 continue
             for line in text.splitlines():
-                rec = _parse_line(line, page_num)
+                rec = _parse_line(line, page_num, has_row_number=has_row_number)
+                if rec is None:
+                    toks = line.strip().split()
+                    rec = _parse_simple_row(toks, page_num) or _parse_ata_pn_sn_date_row(toks, page_num)
                 if rec is not None:
                     records.append(rec)
     return records
