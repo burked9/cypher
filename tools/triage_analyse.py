@@ -98,9 +98,15 @@ def main():
                          "= looser match = fewer, bigger clusters ('coarser').")
     args = ap.parse_args()
 
+    # Some source PDFs have unusual/corrupted font encodings that make
+    # pdfplumber extract raw control bytes instead of text (seen on the
+    # "-SHT#" engineering-document family, not a real HT/OCCM/LLP sheet
+    # to begin with) -- those NUL bytes land in first_500_chars and crash
+    # Python's csv reader outright. Strip them per-line rather than
+    # letting one garbled file take down analysis of the whole corpus.
     rows: list[dict] = []
-    with args.triage_csv.open() as f:
-        rows = list(csv.DictReader(f))
+    with args.triage_csv.open(newline="") as f:
+        rows = list(csv.DictReader(line.replace("\0", "") for line in f))
 
     print(f"\nLoaded {len(rows)} rows from {args.triage_csv.name}\n")
 
