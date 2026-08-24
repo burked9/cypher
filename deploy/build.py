@@ -76,6 +76,10 @@ SOURCES = [
     # OCCM variants added in the OCCM+HT session
     "sheet_types/occm_variants/elal_b767_msn28132.py",
     "sheet_types/occm_variants/georgian_airways_b737.py",
+    # OCCM variants added from the 2026-08-22 triage-driven build
+    "sheet_types/occm_variants/aircraft_components_list.py",
+    "sheet_types/occm_variants/stars_trax_occm.py",
+    "sheet_types/occm_variants/sriwijaya_b737_occm.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
@@ -87,6 +91,14 @@ SOURCES = [
     "sheet_types/ht_variants/oases_lifed_components.py",
     "sheet_types/ht_variants/stars_trax.py",
     "sheet_types/ht_variants/aircraft_rotables_ht.py",
+    # HT variants added from the 2026-08-22 triage-driven build
+    "sheet_types/ht_variants/georgian_airways_ht_components_status.py",
+    "sheet_types/ht_variants/mpd_hard_time_list.py",
+    "sheet_types/ht_variants/htll_status.py",
+    "sheet_types/ht_variants/hard_time_component_status_mpd_task.py",
+    "sheet_types/ht_variants/aercap_hard_time_component_status.py",
+    "sheet_types/ht_variants/aercap_oxygen_generator_status.py",
+    "sheet_types/ht_variants/emes_hard_time_component_status.py",
     # LLP variants — original + 5 added this session
     "sheet_types/llp_variants/__init__.py",
     "sheet_types/llp_variants/_base.py",
@@ -97,6 +109,27 @@ SOURCES = [
     "sheet_types/llp_variants/pro_rata_engine_llp.py",
     "sheet_types/llp_variants/subject.py",
     "sheet_types/llp_variants/vietnam_airlines.py",
+    # LLP variants added from the 2026-08-22 triage-driven build. Three
+    # sibling modules built the same night (kalstar_aviation_llp_status.py,
+    # thai_landing_gear_llp_status.py, b777_gear_llp_availability.py) do
+    # top-level `import fitz`/`import pytesseract` and are deliberately
+    # NOT listed here -- same reasoning as part_m_engine_disk_sheet.py
+    # below, they'd crash on import under Pyodide. sheet_types/llp.py's
+    # own defensive try/except already tolerates their absence here.
+    "sheet_types/llp_variants/erj190_landing_gear_llp.py",
+    "sheet_types/llp_variants/n3_engine_overhaul_llp.py",
+    "sheet_types/llp_variants/messier_dowty_landing_gear_llp.py",
+    "sheet_types/llp_variants/gear_llp_status_list.py",
+    "sheet_types/llp_variants/emes_airframe_llp_status.py",
+    "sheet_types/llp_variants/serialized_unit_hard_limits.py",
+    "sheet_types/llp_variants/cai_first_landing_gear_llp.py",
+    "sheet_types/llp_variants/mm510_llp.py",
+    "sheet_types/llp_variants/swiss_a340_ldg_llp.py",
+    "sheet_types/llp_variants/landing_gear_llp_report.py",
+    "sheet_types/llp_variants/aircraft_llp_status_report.py",
+    "sheet_types/llp_variants/sas_drawing_item_llp.py",
+    "sheet_types/llp_variants/sky_airlines_llp_summary.py",
+    "sheet_types/llp_variants/b737_gear_llp_inventory.py",
 
     # sheet-type routers — depend on their variants
     "sheet_types/occm.py",

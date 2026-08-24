@@ -4,21 +4,6 @@ Open items in priority order. Each item has a category, a brief description, and
 
 ## Priority 0 — pre-publication checklist
 
-### 24 new variant modules built tonight (2026-08-22) are LOCAL-CLI-ONLY
-- **Why**: `deploy/build.py`'s `SOURCES` list is a hardcoded file list, not
-  a directory scan — none of tonight's 24 new modules (see "Done" below)
-  are in it, so the live site at `burked9.github.io/cypher` does not yet
-  benefit from any of this new coverage. Only the local CLI pipeline does.
-- **Done when**: every new module that doesn't do top-level `import fitz`/
-  `import pytesseract` (i.e. all except `kalstar_aviation_llp_status.py`,
-  `thai_landing_gear_llp_status.py`, `b777_gear_llp_availability.py`,
-  which need the same defensive-import treatment `part_m_engine_disk_
-  sheet.py` already gets in `sheet_types/llp.py`) is added to `deploy/
-  build.py`'s `SOURCES`, `python3 deploy/build.py` is re-run, and a real
-  browser smoke test confirms at least one of the new variants (e.g.
-  `standard_occm.py`'s new sub-formats, or `stars_trax_occm.py`) extracts
-  correctly through the deployed site, not just the local CLI.
-
 ### Local end-to-end smoke test in a real browser
 - **Why**: Pyodide-only failures (top-level imports of stdlib modules
   Pyodide doesn't ship, side-effects at module load) only surface in a
@@ -133,6 +118,40 @@ Open items in priority order. Each item has a category, a brief description, and
 - **Done when**: `_cycles_sum_check` reports "OK" on a clear majority of
   rows across a handful of different source files, not just structural
   correctness on the two known ones.
+
+### Scanned Aircraft Rotables Report files unreadable by Tesseract (3 known files) — parked
+- **Why**: `OCCM_MSN_1101_older.pdf`, `OCCM_MSN_1067_older.pdf`,
+  `OCCM_MSN_1099_older.pdf` are confirmed the same format as the existing
+  `sheet_types/occm_variants/aircraft_rotables_report.py` (identical
+  header, 9-column schema, dotted dates, chapter-subchapter ATA) — proven
+  by their non-"_older" siblings (e.g. `OCCM_MSN_1067.pdf`) already
+  extracting correctly today. The only problem is these 3 specific files
+  are scanned with no text layer, unlike their siblings.
+- **Status**: real effort spent, not viable yet. Tesseract (PSM 4/6/11/12,
+  3-4x upscaling, multiple preprocessing passes, fuzzy digit/letter
+  regex tolerance) recovered 0 usable rows across all 3 files —
+  POSITION/PART_NUMBER/SERIAL_NUMBER come out essentially random and
+  inconsistent run-to-run (a real S/N "19MAM2573" OCR'd three different
+  garbled ways). A 4x-upscaled crop is perfectly legible to a human eye,
+  so this is Tesseract struggling with this specific font/table-density
+  combination, not a bad scan — ruling out "just needs more parameter
+  tuning."
+- **Explicitly parked (2026-08-22), not being built now**: this is
+  local-CLI-only either way (any fix still routes through `pytesseract`,
+  same as `part_m_engine_disk_sheet.py` above), so it can never help the
+  deployed site regardless of approach — not worth the investment for 3
+  known files. Two real approaches identified if revisited: (1) per-cell
+  OCR after detecting the table's ruled grid (same core technique
+  `part_m_engine_disk_sheet.py`'s `_detect_table_grid()` already uses,
+  extending a proven pattern rather than inventing one) to remove
+  border-line interference from character segmentation; (2) a different
+  local OCR engine better suited to clean sans-serif bordered tables
+  (e.g. macOS-only `ocrmac`/Apple Vision — local-CLI-only forever, no
+  relevance to the deploy either way).
+- **Done when**: revisit only if this scanned-bordered-table pattern
+  turns up on more files as more of the corpus downloads and gets
+  triaged — one data point either way changes whether this is worth
+  building.
 
 ### Tesseract.js for in-browser L3 — done for Aeroflot, other OCR variants still local-only
 - **Status (2026-08-21)**: ✅ confirmed end-to-end in a real browser —
@@ -314,9 +333,20 @@ Open items in priority order. Each item has a category, a brief description, and
 
 ## Done since the last revision
 
-- ✅ **24 new variant modules built from the 25 highest-value triage
-  clusters (2026-08-22)** — 3 OCCM, 7 HT, 14 LLP (one cluster split into
-  4 sub-formats, another consolidated 2 modules into 1). Built via
+- ✅ **27 new variant modules built from the 25 highest-value triage
+  clusters, plus one accidentally-skipped cluster caught during final
+  verification (2026-08-22)** — 3 OCCM, 7 HT, 17 LLP (one cluster split
+  into 4 sub-formats, another consolidated 2 draft modules into 1, a
+  third split into 3 after the skipped cluster was caught and built).
+  24 of the 27 are deploy-safe (plain Python) and are now in `deploy/
+  build.py`'s `SOURCES` and confirmed working through the real deployed
+  pipeline (local server, not just direct module calls) — dropped
+  `A344 HT-LL.pdf` in a real browser, got "Sheet type: HT · Variant:
+  HT-LL Status" with 297 rows, a variant that didn't exist before
+  tonight. The other 3 LLP ones need native `fitz`/`pytesseract` at
+  module level and are local-CLI-only forever, same as the existing
+  `part_m_engine_disk_sheet.py` — deliberately left out of `deploy/
+  build.py`. Built via
   parallel agents, one per cluster, each required to inspect real files
   directly and verify its own `extract()` against every file in its
   cluster before reporting done — not templated. Final numbers, checked
