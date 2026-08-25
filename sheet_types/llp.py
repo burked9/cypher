@@ -9,7 +9,7 @@ from sheet_types.llp_variants import (
     gear_llp_status_list, emes_airframe_llp_status, serialized_unit_hard_limits,
     cai_first_landing_gear_llp, mm510_llp, swiss_a340_ldg_llp,
     landing_gear_llp_report, aircraft_llp_status_report, sas_drawing_item_llp,
-    sky_airlines_llp_summary, b737_gear_llp_inventory,
+    sky_airlines_llp_summary, b737_gear_llp_inventory, egat_llp_on_log_list,
 )
 from shared.cleanup import clean_record
 
@@ -20,7 +20,7 @@ VARIANTS = [
     gear_llp_status_list, emes_airframe_llp_status, serialized_unit_hard_limits,
     cai_first_landing_gear_llp, mm510_llp, swiss_a340_ldg_llp,
     landing_gear_llp_report, aircraft_llp_status_report, sas_drawing_item_llp,
-    sky_airlines_llp_summary, b737_gear_llp_inventory,
+    sky_airlines_llp_summary, b737_gear_llp_inventory, egat_llp_on_log_list,
 ]
 
 # OCR-based variants depend on pytesseract (the native Tesseract binary),
