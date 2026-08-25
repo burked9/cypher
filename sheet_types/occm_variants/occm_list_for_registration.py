@@ -54,14 +54,7 @@ from __future__ import annotations
 import re
 
 from sheet_types.occm_variants._base import merged_rules
-
-try:
-    import fitz  # pymupdf
-    import pytesseract
-    from PIL import Image
-    _OCR_AVAILABLE = True
-except ImportError:  # pragma: no cover - exercised under Pyodide, not locally
-    _OCR_AVAILABLE = False
+from shared.ocr_bridge import render_page, ocr_text, page_count
 
 NAME = "OCCM List For Registration"
 
@@ -193,12 +186,7 @@ def _parse_line(line: str, page_num: int) -> dict | None:
     }
 
 
-def _render_page(doc, page_index: int, dpi: int = 300):
-    pix = doc[page_index].get_pixmap(dpi=dpi)
-    return Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-
-
-def ocr_detect(pdf_path: str) -> bool:
+async def ocr_detect(pdf_path: str) -> bool:
     """Cheap page-1 OCR check for the router's blank-text fallback (see
     sheet_types/occm.py) -- SIGNATURES can never match through the normal
     pdfplumber text-extract path since both known source files have no text
@@ -210,36 +198,27 @@ def ocr_detect(pdf_path: str) -> bool:
     registration so a future export of the same MIS template for a
     different registration still routes here.
     """
-    if not _OCR_AVAILABLE:
-        return False
     try:
-        doc = fitz.open(pdf_path)
-        img = _render_page(doc, 0, dpi=300)
-        doc.close()
+        img = await render_page(pdf_path, 0, dpi=300)
         w, h = img.size
         crop = img.crop((0, 0, w, int(h * 0.12)))
-        text = pytesseract.image_to_string(crop, config="--psm 6").upper()
+        text = (await ocr_text(crop, psm=6)).upper()
         return "OCCM LIST FOR" in text
     except Exception:
         return False
 
 
-def extract(pdf_path: str) -> list[dict]:
-    if not _OCR_AVAILABLE:
-        return []
+async def extract(pdf_path: str) -> list[dict]:
     records: list[dict] = []
-    doc = fitz.open(pdf_path)
-    try:
-        for page_index in range(len(doc)):
-            img = _render_page(doc, page_index, dpi=300)
-            text = pytesseract.image_to_string(img, config="--psm 6")
-            for raw in text.splitlines():
-                line = raw.strip()
-                if not line:
-                    continue
-                rec = _parse_line(line, page_index + 1)
-                if rec is not None:
-                    records.append(rec)
-    finally:
-        doc.close()
+    n_pages = await page_count(pdf_path)
+    for page_index in range(n_pages):
+        img = await render_page(pdf_path, page_index, dpi=300)
+        text = await ocr_text(img, psm=6)
+        for raw in text.splitlines():
+            line = raw.strip()
+            if not line:
+                continue
+            rec = _parse_line(line, page_index + 1)
+            if rec is not None:
+                records.append(rec)
     return records

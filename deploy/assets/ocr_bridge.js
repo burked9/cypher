@@ -168,12 +168,12 @@ window.cypherOcrText = async function (pngBytes, psm = 6, whitelist = "") {
  * way (confirmed: dropping this silently changed which page-segmentation
  * mode ran, changing row counts).
  */
-window.cypherOcrWords = async function (pngBytes, psm = 6) {
+window.cypherOcrWords = async function (pngBytes, psm = 6, minConf = 30) {
   const canvas = await _canvasFromPngBytes(pngBytes);
   const Tesseract = await loadTesseract();
   const result = await Tesseract.recognize(canvas, "eng", { tessedit_pageseg_mode: psm });
   return (result.data.words || [])
-    .filter(w => w.text && w.text.trim() && w.confidence > 30)
+    .filter(w => w.text && w.text.trim() && w.confidence > minConf)
     .map(w => ({
       left:   Math.round(w.bbox.x0),
       top:    Math.round(w.bbox.y0),

@@ -103,14 +103,21 @@ async def ocr_text(image, psm: int = 6, whitelist: str | None = None) -> str:
     return str(result)
 
 
-async def ocr_words(image, psm: int = 6) -> list[dict]:
+async def ocr_words(image, psm: int = 6, min_conf: float = 30) -> list[dict]:
     """OCR an image, returning word-level boxes shaped
     {left, top, width, height, conf, text} — mirrors the useful columns of
     `pytesseract.image_to_data(image, config=f"--psm {psm}")`, including its
-    conf > 30 confidence filter (levels/L3_ocr/extract.py's `_ocr_page`
-    applies that same filter itself locally, but the browser-side
-    equivalent needs it applied here since it has no separate filtering
-    step of its own)."""
+    conf > 30 confidence filter by default (levels/L3_ocr/extract.py's
+    `_ocr_page` applies that same filter itself locally, but the
+    browser-side equivalent needs it applied here since it has no separate
+    filtering step of its own).
+
+    `min_conf` is an escape hatch for unusually noisy scans whose median
+    word confidence sits near/below the default threshold — filtering
+    those at the word level drops the majority of the table rather than
+    just the genuinely unreadable ones, when downstream row-shape parsing
+    already discards garbage on its own terms. Pass `min_conf=-1` (or any
+    value below Tesseract's floor of 0) to keep every recognized word."""
     bridge = _js_bridge()
     if bridge is None:
         import pytesseract
@@ -121,7 +128,7 @@ async def ocr_words(image, psm: int = 6) -> list[dict]:
             if not data["text"][i].strip():
                 continue
             conf = float(data["conf"][i])
-            if conf <= 30:
+            if conf <= min_conf:
                 continue
             words.append({
                 "left": data["left"][i], "top": data["top"][i],
@@ -129,7 +136,7 @@ async def ocr_words(image, psm: int = 6) -> list[dict]:
                 "conf": conf, "text": data["text"][i],
             })
         return words
-    result = await bridge.cypherOcrWords(_to_png_bytes(image), psm)
+    result = await bridge.cypherOcrWords(_to_png_bytes(image), psm, min_conf)
     return [dict(w.to_py()) if hasattr(w, "to_py") else dict(w) for w in result]
 
 

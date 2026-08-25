@@ -6,7 +6,10 @@ sibling and as `sheet_types/occm_variants/aircraft_rotables_report_scanned.py`.
 from __future__ import annotations
 import re
 
+import pandas as pd
+
 from sheet_types.ht_variants._base import merged_rules
+from shared.ocr_bridge import render_page, ocr_words, page_count
 
 NAME = "Aircraft Rotables HT (Scanned)"
 
@@ -74,26 +77,43 @@ def _bucket_words(words: list[tuple[float, float, str]]) -> list[str]:
     return [_clean_bucket(" ".join(b)) for b in buckets]
 
 
-def _group_lines(df):
-    groups = {}
-    for _, row in df.iterrows():
-        text = str(row["text"]).strip()
-        if not text:
-            continue
-        key = (row["block_num"], row["par_num"], row["line_num"])
-        g = groups.setdefault(key, {"top": [], "words": []})
-        g["top"].append(row["top"])
-        g["words"].append((row["left"], row["width"], text))
-    ordered = sorted(groups.values(), key=lambda g: sum(g["top"]) / len(g["top"]))
-    return [g["words"] for g in ordered]
+def _words_to_df(words: list[dict]) -> pd.DataFrame:
+    cols = ["left", "top", "width", "height", "conf", "text"]
+    df = pd.DataFrame(words, columns=cols) if words else pd.DataFrame(columns=cols)
+    if not df.empty:
+        df = df.dropna(subset=["text"])
+        df = df[df["text"].astype(str).str.strip() != ""]
+    return df
 
 
-def _parse_page(img, page_num: int) -> list[dict]:
-    import pytesseract
+def _group_lines(df: pd.DataFrame):
+    """Cluster words into text-lines by Y coordinate (adaptive threshold on
+    median row height) -- ocr_words()'s output has no block/par/line_num
+    fields (unlike pytesseract's own DATAFRAME shape this used to consume
+    directly), so lines are recovered geometrically instead. 0.5x (not
+    0.7x) median word-height as the split threshold -- confirmed on the
+    OCCM-side sibling: this form's row-to-row pitch sits close enough to
+    its own word height that 0.7x silently merged consecutive rows."""
+    if df.empty:
+        return []
+    df = df.sort_values(["top", "left"]).reset_index(drop=True)
+    median_h = df["height"].median()
+    df["row_id"] = (df["top"].diff().fillna(0).abs() > median_h * 0.5).cumsum()
+    groups = []
+    for _, g in df.groupby("row_id"):
+        g = g.sort_values("left")
+        words = list(zip(g["left"], g["width"], g["text"].astype(str)))
+        groups.append((g["top"].mean(), words))
+    groups.sort(key=lambda t: t[0])
+    return [words for _, words in groups]
 
-    df = pytesseract.image_to_data(img, config="--psm 6",
-                                    output_type=pytesseract.Output.DATAFRAME)
-    df = df.dropna(subset=["text"])
+
+async def _parse_page(img, page_num: int) -> list[dict]:
+    # min_conf=-1: this scan cluster runs unusually noisy (median OCR
+    # confidence sits at/below the default >30 filter), and the row-shape
+    # checks below already discard garbage on their own terms -- see
+    # occm_variants/aircraft_rotables_report_scanned.py for the same call.
+    df = _words_to_df(await ocr_words(img, psm=6, min_conf=-1))
     lines = _group_lines(df)
     # First two text-lines on every known page are the title and the
     # column-header row -- skipped positionally, not by matching text.
@@ -128,30 +148,13 @@ def _parse_page(img, page_num: int) -> list[dict]:
     return records
 
 
-def _render_page(doc, page_index: int, dpi: int = 300):
-    import fitz  # pymupdf
-    from PIL import Image
-
-    pix = doc[page_index].get_pixmap(dpi=dpi)
-    return Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-
-
-def _page1_max_right(pdf_path: str):
+async def _page1_max_right(pdf_path: str):
     """Return (has_title, max_right_edge_px) for page 1, where the title
     (always the topmost text-line) is excluded from the max-right
     computation -- the title itself runs wide ("... Aircraft: <tail no.>")
     and would otherwise swamp the table-width signal this is used for."""
-    import fitz  # pymupdf
-    import pytesseract
-
-    doc = fitz.open(pdf_path)
-    try:
-        img = _render_page(doc, 0, dpi=300)
-    finally:
-        doc.close()
-    df = pytesseract.image_to_data(img, config="--psm 6",
-                                    output_type=pytesseract.Output.DATAFRAME)
-    df = df.dropna(subset=["text"])
+    img = await render_page(pdf_path, 0, dpi=300)
+    df = _words_to_df(await ocr_words(img, psm=6, min_conf=-1))
     lines = _group_lines(df)
     if not lines:
         return False, 0
@@ -170,9 +173,9 @@ def _page1_max_right(pdf_path: str):
 _MAX_RIGHT_THRESHOLD = 2900
 
 
-def ocr_detect(pdf_path: str) -> bool:
+async def ocr_detect(pdf_path: str) -> bool:
     try:
-        result = _page1_max_right(pdf_path)
+        result = await _page1_max_right(pdf_path)
     except Exception:
         return False
     if result is None:
@@ -181,17 +184,10 @@ def ocr_detect(pdf_path: str) -> bool:
     return has_title and max_right >= _MAX_RIGHT_THRESHOLD
 
 
-def extract(pdf_path: str) -> list[dict]:
-    try:
-        import fitz  # pymupdf
-    except ImportError:  # pragma: no cover - exercised under Pyodide, not locally
-        return []
+async def extract(pdf_path: str) -> list[dict]:
     records: list[dict] = []
-    doc = fitz.open(pdf_path)
-    try:
-        for page_index in range(len(doc)):
-            img = _render_page(doc, page_index, dpi=300)
-            records.extend(_parse_page(img, page_index + 1))
-    finally:
-        doc.close()
+    n_pages = await page_count(pdf_path)
+    for page_index in range(n_pages):
+        img = await render_page(pdf_path, page_index, dpi=300)
+        records.extend(await _parse_page(img, page_index + 1))
     return records
