@@ -1,12 +1,12 @@
 """e.MES Airframe LLP Status — "Life Limited Part Status" / Airframe, one file
 per landing-gear position (NOSE / RMLG seen so far; LMLG presumed same
 template). Footer reads "From e.MES" (the source MIS). Confirmed on 3 real
-files: MSN30625 and MSN33019 NOSE, and MSN30625 RMLG (the only one of the
-three that runs to 2 content pages, header block reprinted at the top of
-each).
+files: two NOSE reports (different aircraft) and one RMLG report (the only
+one of the three that runs to 2 content pages, header block reprinted at
+the top of each).
 
 Each page's header block carries aircraft + assembly identity:
-    A/C Type B737NG A/C # HL8028 MSN 30625 AC TSN 59165.53 AC CSN 47322 Date 2020-03-15
+    A/C Type B737NG A/C # <REG> MSN <MSN> AC TSN 59165.53 AC CSN 47322 Date 2020-03-15
     NOSE LANDING GEAR ASSY
 followed by a HARD TIME line for the gear assembly itself as a unit (TSO/CSO/
 TSN/CSN + "HardTime Limit"/"HT Remaining"). That block belongs to the HT sheet
@@ -15,25 +15,25 @@ type, not LLP, and is deliberately not extracted here -- only the
 
 Row format (single line, space-separated), one row per LLP piece-part:
     L/I#  DESCRIPTION...  DETAIL_P/N  [ASSY_P/N]  S/N  TSO CSO DSO TSN CSN  LIMIT_CSN LIMIT_CSO LIMIT_DSO  REMAIN_CSN REMAIN_CSO REMAIN_DSO
-e.g. (MSN30625 NOSE LLP, L/I 2):
+e.g. (a NOSE LLP report, L/I 2):
     2 Trunnion Pin - Left 162A0301-2 162A0301-1 E0217 3987.53 4761 702 61092.53 52725 75000 18000 3650 22,275 13,239 2,948
 Confirmed column meaning by arithmetic, not guessed: LIMIT_x - x == REMAIN_x
 holds for CSN/CSO/DSO on every data row across all 3 files.
 
 Anchors:
-    - S/N is always the very last token -- even on the one row (MSN33019
-      NOSE, L/I 2-02) where S/N is itself all-digits ("1476"), so it can't be
-      told apart from the numeric fields by shape, only by position.
+    - S/N is always the very last token -- even on the one row (a NOSE
+      report, L/I 2-02) where S/N is itself all-digits ("1476"), so it can't
+      be told apart from the numeric fields by shape, only by position.
     - The trailing numeric block is taken as a fixed-size slice (last 11
       tokens, or last 10, checked to be all-numeric) rather than "walk back
       while numeric" -- precisely because of that all-digit S/N. A walk-back
       would swallow it as a 12th numeric field (confirmed: it does, on that
       exact row).
     - Some rows print only 10 trailing numbers, not 11 -- confirmed on 3 rows
-      across 2 files (MSN33019 NOSE L/I 1-04 & 1-10, MSN30625 RMLG L/I 35),
-      always the same missing field: TSN. CSN follows DSO directly in that
-      case. Verified against the LIMIT-CURRENT=REMAINING identity above, not
-      assumed.
+      across 2 files (a NOSE report's L/I 1-04 & 1-10, an RMLG report's
+      L/I 35), always the same missing field: TSN. CSN follows DSO directly
+      in that case. Verified against the LIMIT-CURRENT=REMAINING identity
+      above, not assumed.
     - 1 or 2 part-number tokens sit between the description and S/N (ASSY P/N
       is omitted when the part has no separate parent-assembly P/N to cite).
       Detected by shape (alnum-hyphen-alnum), scanned back from S/N.
@@ -42,13 +42,15 @@ L/I# also prefixes non-data section headers ("1 NLG Installation Assy" /
 "2-00 Drag Strut Installation" / "1 Installation -RH") that group the rows
 beneath them but carry no P/N, S/N or numbers of their own. These update
 SUB_ASSEMBLY for subsequent rows rather than becoming rows themselves --
-confirmed necessary on MSN33019 NOSE, the only one of the 3 files with more
-than one such section (NLG Installation Assy, then Drag Strut Installation).
+confirmed necessary on one of the NOSE reports, the only one of the 3 files
+with more than one such section (NLG Installation Assy, then Drag Strut
+Installation).
 
-Known finding, not a bug: MSN30625 NOSE L/I 23 prints its detail P/N with the
-hyphen replaced by a space -- "162A2301 2" instead of "162A2301-2" -- so that
-one row's DETAIL_PART_NUMBER/description split lands one token off (confirmed
-by comparing against sibling L/I 22, an identical part correctly formed).
+Known finding, not a bug: one NOSE report's L/I 23 prints its detail P/N
+with the hyphen replaced by a space -- "162A2301 2" instead of "162A2301-2"
+-- so that one row's DETAIL_PART_NUMBER/description split lands one token
+off (confirmed by comparing against sibling L/I 22, an identical part
+correctly formed).
 Not special-cased: a fix targeted at one observed row would be guessing at
 the source PDF's intent, not parsing what's printed.
 

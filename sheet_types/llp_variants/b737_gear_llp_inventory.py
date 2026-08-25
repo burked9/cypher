@@ -1,6 +1,6 @@
 """Boeing 737 gear LLP inventory -- "<POSITION> LANDING GEAR AND LIFE LIMIT
 PART STATUS[ AS REMOVED]", form TP-023 (NLG) / TP-024 (MLG). Confirmed on
-PK-CMH (B737-86Q, installed-gear sub-layout) and PK-CMN (B737-86J,
+two aircraft (B737-86Q, installed-gear sub-layout, and B737-86J,
 as-removed sub-layout); the header block, row grammar and part-number shape
 are identical, only the trailing numeric-column count differs.
 
@@ -22,15 +22,15 @@ collides with a DESCRIPTION word, so it's found by pattern rather than by
 fixed offset -- DESCRIPTION runs from ITEM to PART_NUMBER and is free to
 contain commas/hyphens ("PIN - TRUNNION, DRAG STRUT, LEFT").
 
-Trailing-column count is a genuine per-file split, not noise: PK-CMH's two
-files (Form TP-023, TP-024 "current status") print 10 columns ending in
-REMAIN_TO_OVERHAUL_DAYS; PK-CMN's two (Form. TP-024 "AS REMOVED") print only
-9 -- a removed gear has no calendar-day-to-next-overhaul figure to show.
-Bucketed by count per row (not assumed from the file header) since that's
-the only signal available at parse time.
+Trailing-column count is a genuine per-file split, not noise: the first
+aircraft's two files (Form TP-023, TP-024 "current status") print 10 columns
+ending in REMAIN_TO_OVERHAUL_DAYS; the second aircraft's two (Form. TP-024
+"AS REMOVED") print only 9 -- a removed gear has no calendar-day-to-next-overhaul
+figure to show. Bucketed by count per row (not assumed from the file header)
+since that's the only signal available at parse time.
 
 A second, unlabelled part table ("AIRFRAME LIFE LIMIT PARTS") follows the
-gear's own table on 3 of the 4 known files, restarting ITEM at 1 -- tagged
+gear's own table on most of the known files, restarting ITEM at 1 -- tagged
 via SECTION rather than merged into the gear table's numbering, since
 collapsing the two would make two genuinely different item 1s
 indistinguishable.

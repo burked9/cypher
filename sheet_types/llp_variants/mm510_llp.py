@@ -6,23 +6,23 @@ way) — which bucket a file lands in depends on what was queried
 (Doc.Type=LLP, ATA/Comp.Type=NN, or nothing i.e. everything), never on a
 distinguishing phrase in the header. This module handles the LLP side.
 
-Two sub-layouts confirmed by direct inspection of the 7-file corpus cluster
+Two sub-layouts confirmed by direct inspection of a small corpus cluster
 this variant targets:
 
-  * **MM_510 flat layout** (A307_EC-LNH, TC-ETN, OBL, OBM): one row per
-    component under a single Tail-Number header. Position is an optional
-    1-2 word token right after ATA — frequently blank, in which case PN
-    sits directly after ATA::
+  * **MM_510 flat layout**: one row per component under a single
+    Tail-Number header. Position is an optional 1-2 word token right after
+    ATA — frequently blank, in which case PN sits directly after ATA::
 
         57 LH WING F57550028000 EEP106348 RETRACTION JACK FITTING LG-LLP 15-11-2019 126000 21000 56078:49 9953
 
-    OBL / OBM ("<tail> HT-LLP.pdf") have no text layer at all — confirmed
-    with both pdfplumber and PyMuPDF (0 chars, 0 char-objects, on every one
-    of 5 pages in each file), so this isn't a pdfplumber-specific gap. This
-    module OCRs those pages and feeds the reconstructed text through the
-    same line parser used for the born-digital files.
+    Some files in this layout ("<tail> HT-LLP.pdf") have no text layer at
+    all — confirmed with both pdfplumber and PyMuPDF (0 chars, 0
+    char-objects, on every page of each such file), so this isn't a
+    pdfplumber-specific gap. This module OCRs those pages and feeds the
+    reconstructed text through the same line parser used for the
+    born-digital files.
 
-  * **MM_531 parent/child layout** (E307 LH/RH MLG, NLG): rows sit under a
+  * **MM_531 parent/child layout**: rows sit under a
     per-page "LAND-GEAR : <parent PN> / <serial> <desc> Position : <pos>"
     header — stamped onto every row from that page rather than parsed
     per-row, since the row's own position slot is unreliable here (usually
@@ -50,10 +50,10 @@ REMAIN values print colon (h:mm) form when derived from a colon TSN and
 plain form otherwise, so REMAIN_HOURS alone has to accept both shapes.
 
 Out of scope, same as mm510.py documents for its own harder rows: a second
-task line for the same component with nothing to ATA-anchor on (OBL prints
-these as bare "OVERHAUL <date> ... " continuation lines with no leading
-ATA/PN/SN), and a description that wraps onto a second physical line. Both
-are dropped/truncated rather than reassembled.
+task line for the same component with nothing to ATA-anchor on (some files
+print these as bare "OVERHAUL <date> ... " continuation lines with no
+leading ATA/PN/SN), and a description that wraps onto a second physical
+line. Both are dropped/truncated rather than reassembled.
 """
 from __future__ import annotations
 import re

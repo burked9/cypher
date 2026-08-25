@@ -108,8 +108,9 @@ COLUMN_RULES: dict[str, dict] = {
         # Catches OCR cases like "S1C5059" → "SIC5059".
         "revert_I_in_pn_prefix": True,
         # Strip indentation-marker punctuation (`.`, `,`, `..`) that some
-        # MIS exports (TAP, Swiss A340, EL AL B767 MSN 28132) emit on
-        # sub-component rows. The dots are formatting, not real PN chars.
+        # MIS exports emit on sub-component rows (seen across several
+        # airframe/operator MIS formats in the corpus). The dots are
+        # formatting, not real PN chars.
         "_strip_leading_punct": True,
     },
     "SERIAL_NUMBER": {

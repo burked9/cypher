@@ -1,14 +1,13 @@
 """AerCap "HARD TIME COMPONENT STATUS" general component list
-(KEEL_aviation_records corpus, "msn 28132_HTC ELAL sgn_20190510.pdf",
-4X-EAM / MSN 28132, B767-3Q8ER).
+(a known B767-3Q8ER file in the corpus, AerCap lessor letterhead).
 
 Header (repeated per page)::
 
     AerCap Ireland Limited, 4450 Atlantic Avenue
     Westpark, Shannon, Co. Clare, Republic of Ireland
     A/C TYPE : B767-3Q8ER
-    A/C REG.: 4X-EAM HARD TIME COMPONENT STATUS
-    A/C serial : 28132
+    A/C REG.: <tail no.> HARD TIME COMPONENT STATUS
+    A/C serial : <MSN>
     A/C TTSN : 75,757 DATE : 10-May-19
     A/C TCSN : 12,180
     INTERVAL LAST DONE COMP.TIMELINE LAST DONE A/C TIMELINE (@INSTL) NEXT DUE REMAINED

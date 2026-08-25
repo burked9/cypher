@@ -4,14 +4,14 @@ Output of the OASES MIS (`OASES Option : TR42`). Sample header::
 
     Lifed Component Report          Report Date : 16Nov2016 15:19 Page : 1 of 24
     Aircraft Reg Model MSN Manufacture Date Airframe TSN Airframe CSN
-    UR-WRO A321-211 0781 03Mar1998 62956 21982 07Oct2016
+    <REG> A321-211 <MSN> 03Mar1998 62956 21982 07Oct2016
 
 Two header sub-formats appear:
 
-  * **TR42 / table-formatted** (UR-WRO style) — model on its own row,
-    column header on a separate line.
-  * **OK-TSV inline** (`Aircraft Reg: OK-TSV MSN 30664 ...`) — header
-    info collapsed onto one or two lines, MSN inline with the reg label.
+  * **TR42 / table-formatted** — model on its own row, column header on
+    a separate line.
+  * **inline** (`Aircraft Reg: <REG> MSN <MSN> ...`) — header info
+    collapsed onto one or two lines, MSN inline with the reg label.
 
 Both share the same per-record body layout::
 
@@ -55,8 +55,8 @@ _OVERRIDES = {
     "TASK_TYPE":   {"allow_empty": True},
     "LAST_DONE":   {"pattern": r"^\d{1,2}[A-Z][a-z]{2}\d{4}$", "allow_empty": True},
     "NEXT_DUE":    {"pattern": r"^\d{1,2}[A-Z][a-z]{2}\d{4}$", "allow_empty": True},
-    # SN often lives on a continuation line below the anchor (UR-WRO,
-    # YR-BMF, 9H-XFW sub-formats). The anchor-line PN + ATA + POSITION
+    # SN often lives on a continuation line below the anchor, across
+    # several of the sub-formats seen in the corpus. The anchor-line PN + ATA + POSITION
     # is enough for sextant's position fingerprint — leave SN blank
     # rather than guessing the wrong token.
     "SERIAL_NUMBER": {"allow_empty": True},

@@ -1,9 +1,9 @@
 """e.MES "Hard Time Component Status" report (Korean HL-registered fleet).
 
-Header (KEEL_aviation_records corpus, "2017 28068 HT Status.pdf")::
+Header (a known file in the corpus)::
 
     Hard Time Component Status
-    A/C # : HL8264 MSN : 28068 A/C TSN : 70866.50 A/C CSN : 29078 Date : 20171116
+    A/C # : <tail no.> MSN : <MSN> A/C TSN : 70866.50 A/C CSN : 29078 Date : 20171116
     T/C # Task HT P/N S/N POS Description Interval Installation Information Due Information Remaining
     Code Class
     FH FC Days SER Date INST Date A/C TSN A/C Due Date A/C TSN A/C FH CY Days

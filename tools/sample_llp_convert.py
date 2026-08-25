@@ -8,7 +8,7 @@ sys.path.insert(0, str(ROOT))
 import pandas as pd
 from sheet_types import llp as llp_router
 
-LLP_DIR = pathlib.Path("/Users/danielburke/Library/CloudStorage/OneDrive-Personal/work/KEEL_aviation_records/llp")
+LLP_DIR = pathlib.Path("research/test_pdfs/llp")
 OUT = ROOT / "research/results/llp_sample"
 OUT.mkdir(parents=True, exist_ok=True)
 

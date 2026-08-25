@@ -1,9 +1,9 @@
 """CONFIG SLOT OCCM variant — South American operator format.
 
-Seen across LV-IQW (Argentina), CC-CZU / CC-CZT (Chile), PR-MAP (Brazil), and
-MSN_3214 documents. Uses a 5-segment ATA-like `CONFIG SLOT`, an internal
-`I______`-prefixed barcode column, and European decimal formatting
-(`88.943,55` = 88943.55 in plain English).
+Seen across several airframes registered in Argentina, Chile, and Brazil.
+Uses a 5-segment ATA-like `CONFIG SLOT`, an internal `I______`-prefixed
+barcode column, and European decimal formatting (`88.943,55` = 88943.55 in
+plain English).
 
 Format header:
     CONFIG SLOT PART NUMBER SERIAL NUMBER POSITION ID BARCODE EQUIPMENT DESCRIPTION

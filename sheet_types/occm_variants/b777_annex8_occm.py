@@ -1,24 +1,24 @@
 """B777 Annex 8 OCCM — single-airframe Boeing 777 records-package inventory.
 
-Single airframe seen (9V-SQJ, MSN 30875 — Singapore Airlines). Header is::
+Single airframe seen so far. Header is::
 
     Annex 8
-    489 9V-SQJ List dd 28 Mar 18
+    489 <REG> List dd <DATE>
     No  Part No  Equipment  Description  Functional Location
 
 Each row is one line with four logical fields. The Functional Location is the
 unambiguous right-anchor — always the form ``<REG>/<ATA-subgroup>/<seq>/<pos>``
-e.g. ``9V-SQJ/2125/01/AFT``. ATA chapter and POSITION can both be derived from
+e.g. ``<REG>/2125/01/AFT``. ATA chapter and POSITION can both be derived from
 it (the 4-digit subgroup's first two digits are the ATA chapter).
 
 Example row::
 
-    1 4100945B B777 HS PBH: FAN - MIXED FLOW 7.5" DIA 9V-SQJ/2125/01/AFT
+    1 4100945B B777 HS PBH: FAN - MIXED FLOW 7.5" DIA <REG>/2125/01/AFT
 
 Parsed as:
     ITEM=1, PART_NUMBER=4100945B,
     DESCRIPTION='B777 HS PBH: FAN - MIXED FLOW 7.5" DIA',
-    FUNCTIONAL_LOCATION=9V-SQJ/2125/01/AFT, ATA=21, POSITION=AFT
+    FUNCTIONAL_LOCATION=<REG>/2125/01/AFT, ATA=21, POSITION=AFT
 
 Registered ahead of generic variants since the signature is highly specific
 and won't collide.

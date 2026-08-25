@@ -20,7 +20,7 @@ Confidence ladder (mirrors the existing aircraft_key derivation):
   +-------------------+-------------------------------------------------+
   | manual_override   | caller supplied an aircraft_key; trust it       |
   | msn_match         | both PDFs carry the same MSN in their headers   |
-  | registration_match| same registration tail (e.g. "4X-EAM")          |
+  | registration_match| same registration tail (e.g. a matching tail no.)|
   | msn_one_side_only | one side has MSN, the other doesn't — match if  |
   |                   | the other side's filename-derived key matches   |
   | msn_mismatch      | both have MSN, they DON'T match — STOP          |

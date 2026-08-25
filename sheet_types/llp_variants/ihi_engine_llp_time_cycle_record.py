@@ -2,11 +2,11 @@
 (FORM MU-006-2) -- V2500 engine LLP incoming/outgoing status, one row per
 life-limited part, INCOMING STATUS and OUTGOING STATUS side by side.
 
-Confirmed on 1 real file (MSN1356, ESN V10128) -- real embedded text
-layer (no OCR needed), but the text itself reads as already OCR-derived
-somewhere upstream of this PDF's creation, not a genuinely clean
-born-digital export: pervasive digit/letter confusion (0/O, 1/I/l -- the
-engine serial number "V10128" extracts as "VIOl28"), stray border-glyph
+Confirmed on 1 real file -- real embedded text layer (no OCR needed), but
+the text itself reads as already OCR-derived somewhere upstream of this
+PDF's creation, not a genuinely clean born-digital export: pervasive
+digit/letter confusion (0/O, 1/I/l -- e.g. the engine serial number
+extracts with a digit misread as a letter), stray border-glyph
 punctuation (!, ', ~, `) glued onto real tokens, and a handful of rows
 with a token outright missing or two tokens fused with no separating
 space. Only 1 file of this exact format found in the corpus (searched

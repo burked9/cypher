@@ -1,5 +1,5 @@
 """Kalstar Aviation single-assembly LLP status sheet -- "LLP STATUS -
-<POSITION>" / "LLP SHEET - <POSITION>" (MSN 638, PK-KSC). One file per
+<POSITION>" / "LLP SHEET - <POSITION>" (one known aircraft). One file per
 landing-gear leg or side brace, signed by the airline's own QA manager
 rather than a database export.
 

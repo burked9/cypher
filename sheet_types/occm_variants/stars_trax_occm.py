@@ -1,31 +1,31 @@
 """STARS/Trax MIS OCCM export — two page-header styles from the same source
 system that produces `ht_variants/stars_trax.py`'s Hard-Time report (that
-module even names the same aircraft, "2666", as one of its confirmed
-files). That sibling only pulls rows carrying a literal `HT` Mnt/Ctl
-marker; everything else in these documents — TSN/TSO/TSI/LL/OHI/HYS/BTS/...
-— is On Condition / Condition Monitored data with nowhere else to go, since
-neither style ever carries the HT sheet type's own top-level signature
-("PLAN OF AIRCRAFT COMPONENT REPLACEMENT" — confirmed absent from all 431
-pages of the largest file in this cluster). So there's no double-routing
-risk: these files reach OCCM or nothing.
+module names the same known airframe as one of its confirmed files). That
+sibling only pulls rows carrying a literal `HT` Mnt/Ctl marker; everything
+else in these documents — TSN/TSO/TSI/LL/OHI/HYS/BTS/... — is On Condition
+/ Condition Monitored data with nowhere else to go, since neither style
+ever carries the HT sheet type's own top-level signature ("PLAN OF
+AIRCRAFT COMPONENT REPLACEMENT" — confirmed absent from every page of the
+largest file in this cluster). So there's no double-routing risk: these
+files reach OCCM or nothing.
 
-Real-corpus triage (2026-08-22) clustered 7 files here; 5 turned out to be
-one 431-page document ("2666_A304_OCCM_inventory_20140725.pdf", XA-VOL)
-split into page-range chunks ("OCCM 1-99.pdf" .. "OCCM 300-399.pdf" cover
-its pages 1-399 verbatim) plus the master file itself -- one format, not
-five.
+Real-corpus triage clustered several files here; most turned out to be one
+large multi-hundred-page document split into page-range chunks covering
+its pages verbatim, plus the master file itself -- one format, not many.
 
-Style 1 -- "A/C Detail Items Print" header (XA-VOL/2666, A319-132). ATA has
-no spaces around its dashes and is stated only on a component's first
-line; PN and SN repeat on every line unlike ATA. Category/Position/Mnt-Ctl
-are three ragged label slots and most rows populate only the first::
+Style 1 -- "A/C Detail Items Print" header (a known airframe, A319-132).
+ATA has no spaces around its dashes and is stated only on a component's
+first line; PN and SN repeat on every line unlike ATA. Category/Position/
+Mnt-Ctl are three ragged label slots and most rows populate only the
+first::
 
     29-12-0 1554A9900-01 1554A99LI001953 TSN 2WD1 30683:23 15118 3039
     MANIFOLD HP
     1554A9900-01 1554A99LI001953 TSO 2WD1 18668:57 8606 1847
     MANIFOLD HP
 
-Style 2 -- "A/C Status Audit Print" header (F-HFUL, A7-HHJ). ATA is spaced
+Style 2 -- "A/C Status Audit Print" header (seen on two other known
+airframes). ATA is spaced
 ("21 - 00 - 00") and repeats on every line; DESCRIPTION/SERIAL_NO instead
 repeat only on a component's first category row, and POSITION/PART_NUMBER
 live on a following line and likewise appear once per component::
@@ -235,7 +235,7 @@ def _extract_status_audit(pages_text: list[str]) -> list[dict]:
             # POSITION/PART_NUMBER (when present at all) sit on the line(s)
             # right after -- one extra line normally, two when the source
             # also echoes an ATA-shaped position placeholder ("00-00-00")
-            # on its own line first (seen in A7-HHJ).
+            # on its own line first (seen on one of the known airframes).
             trailer: list[str] = []
             while i < len(lines):
                 ata_here, _ = _consume_ata_b(lines[i].split())

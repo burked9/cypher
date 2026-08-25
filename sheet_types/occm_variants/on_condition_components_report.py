@@ -1,7 +1,7 @@
 """On Condition / Condition Components Report variant.
 
-A clean 6-column tabular OCCM format seen across multiple Boeing-737 airframes
-(LN-RPZ, LN-RCU and others — Norwegian Air Shuttle fleet).
+A clean 6-column tabular OCCM format seen across multiple Boeing-737
+airframes from the same operator's fleet.
 
 Row format (one line, space-separated):
     ATA  DESCRIPTION...  PART_NUMBER  SERIAL_NUMBER  POSITION  INSTALLATION_DATE

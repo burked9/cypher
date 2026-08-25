@@ -23,8 +23,8 @@ from typing import Tuple, List
 
 # Unicode dash variants that PDF writers occasionally emit instead of the
 # plain ASCII U+002D hyphen-minus. These break regex anchors that expect
-# `-` (e.g. date patterns, part-number shapes). MSN507 OCCM uses U+2010
-# throughout; other corpus files have shown U+2011/2013/2014/2212.
+# `-` (e.g. date patterns, part-number shapes). One corpus file uses
+# U+2010 throughout; other corpus files have shown U+2011/2013/2014/2212.
 _DASH_TRANS = str.maketrans({
     "‐": "-",  # HYPHEN
     "‑": "-",  # NON-BREAKING HYPHEN
@@ -112,7 +112,7 @@ def clean_cell(value: str, rule: dict | None) -> Tuple[str, List[str]]:
     s = s.replace("|", "").strip()
 
     # 3b. Strip leading punctuation from PN / SN values. Several MIS
-    # exports (TAP HT/OCCM, Swiss A340 OCCM, EL AL B767 MSN 28132) use
+    # exports (seen across a handful of HT/OCCM formats in the corpus) use
     # leading `.`, `,` or `..` as indentation markers for sub-component
     # rows in the source PDF. The dots are formatting artefacts, not
     # real characters in the part-number — strip them so downstream

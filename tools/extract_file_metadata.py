@@ -4,7 +4,8 @@ date. Produces a metadata table the positions DB joins on `source_file`.
 
 Family is derived ONLY from the header MODEL string — never from the filename,
 because filename tokens like "A350"/"A359" are tail/fin labels, not the
-airframe family (confirmed: VN-A359's header model is `321-231`, an A321).
+airframe family (confirmed on a real file: a registration containing "A359"
+had a header model of `321-231`, an A321).
 
 Output:
     research/results/file_metadata.csv   (+ /tmp backup)
@@ -15,7 +16,7 @@ from __future__ import annotations
 import csv, io, re, os, pathlib, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-EVALSP = pathlib.Path("/Users/danielburke/Library/CloudStorage/OneDrive-Personal/work/KEEL_aviation_records/evalsp")
+EVALSP = pathlib.Path("research/test_pdfs/evalsp")
 
 import pdfplumber
 
@@ -27,7 +28,7 @@ import pdfplumber
 _AIRBUS_RE = re.compile(r"\bA?3(18|19|20|21|30|40|50|80)\b")
 # Anywhere in the header we only trust the A-prefixed form ("A330"), which is
 # a real model token; a bare "350" could be a page range or part number, and
-# "VN-A350" is a registration (masked before this runs).
+# a registration like "XX-A350" would also match (masked before this runs).
 _AIRBUS_APREFIX_RE = re.compile(r"\bA3(18|19|20|21|30|40|50|80)\b")
 _BOEING_RE = re.compile(r"\bB?7(37|47|57|67|77|87)\b")
 _EMBRAER_RE = re.compile(r"\b(ERJ\s?1[79]0|E1[79]0|EMB[- ]?1[79]\d)\b", re.I)
@@ -41,9 +42,9 @@ _FAMILY_FROM_AIRBUS = {
 # token at all but the airframe is known to the user. Applied after automated
 # extraction. Keep keys as strings, exactly as MSN appears in the header.
 _MANUAL_MSN_FAMILY = {
-    "30875": ("B777", "B777-200ER"),       # 9V-SQJ Singapore Airlines, user-confirmed
-    "4174":  ("A320 family", "A320-232"),  # HA-LPZ Wizz Air, fixes B747 false positive
-    "1541":  ("A320 family", "A319-112"),  # B-2215 China Eastern (D-AVWI delivery), user-confirmed
+    "30875": ("B777", "B777-200ER"),       # user-confirmed
+    "4174":  ("A320 family", "A320-232"),  # fixes B747 false positive
+    "1541":  ("A320 family", "A319-112"),  # user-confirmed
 }
 
 # Lines that plausibly carry the model. We look at these first to avoid
@@ -60,12 +61,12 @@ _MODEL_LINE_RE = re.compile(
 #   737-700 / 737-86N / 767-300ER / 767-3Q8ER / 747-400 / 777-300ER.
 # A valid suffix is up to 3 digits, optionally followed by 1-4 letters/digits
 # (variant code). This explicitly rules out 5+ digit codes like `747-06209`
-# (a task-card reference that previously misclassified MSN 4174 as B747).
+# (a task-card reference that previously misclassified a real file as B747).
 _BOEING_DASH_RE = re.compile(
     r"\bB?7(37|47|57|67|77|87)-[0-9]{1,3}(?![0-9])[0-9A-Z]{0,5}(?:[^A-Z0-9]|$)")
 # Bare `B777` / `B737` / `B767` etc. — reliable Boeing model token with the
-# explicit B prefix, no dash required. Catches files like the 9V-SQJ Annex 8
-# where rows say "4100945B B777 HS PBH: FAN…" (the 777 appears per-row).
+# explicit B prefix, no dash required. Catches files like a records-package
+# Annex where rows say "4100945B B777 HS PBH: FAN…" (the 777 appears per-row).
 _BOEING_BPREFIX_RE = re.compile(r"\bB7(37|47|57|67|77|87)\b")
 
 # Registration: standard ICAO-ish tail forms.
@@ -130,7 +131,7 @@ def derive_family(text: str) -> tuple[str, str, str]:
 
     PRECISION-FIRST. We only classify off an explicit MODEL/TYPE header line,
     and we mask out any registration token on that line first — otherwise a
-    tail like `VN-A350` would be misread as an A350 airframe (it isn't), and
+    tail like `XX-A350` would be misread as an A350 airframe (it isn't), and
     body text like `pages 350-389` would generate spurious matches. Files
     without a clean model line are left Unknown for human review rather than
     guessed.
@@ -174,9 +175,9 @@ def derive_family(text: str) -> tuple[str, str, str]:
 
 def extract_registration(text: str) -> str:
     """Extract a tail-number / registration from the header. Tries labelled
-    forms first (`Registration: VN-A350`, `A/C: PK-CMJ`), then falls back to
+    forms first (`Registration: XX-YYY`, `A/C: XX-YYY`), then falls back to
     an UNlabelled scan when a registration pattern appears in the first few
-    lines (covers AMOS/Aegean style `HZ-AEE (HZ-AEE EMBRAER-170)`)."""
+    lines (covers AMOS/Aegean style `XX-YYY (XX-YYY EMBRAER-170)`)."""
     norm = _collapse_spaced(text)
     lines = norm.splitlines()[:12]
     # 1. Labelled lookup
@@ -303,7 +304,7 @@ def main():
         reg = extract_registration(head)
         msn = extract_msn(head)
         # Fall back to filename MSN parsing when the header didn't carry one
-        # — many filenames embed it as `(MSN 30875)` or `MSN 30875`.
+        # — many filenames embed it as `(MSN 1234)` or `MSN 1234`.
         if not msn:
             fn_m = re.search(r"\bMSN[ _-]?(\d{3,6})\b", fn, re.I)
             if fn_m:
@@ -313,7 +314,7 @@ def main():
         if fam == "Unknown" and msn in _MANUAL_MSN_FAMILY:
             fam, model_raw = _MANUAL_MSN_FAMILY[msn]
             conf = "manual"
-        # Filename can carry explicit family ("Masterfile B757-200 MSN 26161")
+        # Filename can carry explicit family ("Masterfile B757-200 MSN <number>")
         # when header is silent — try a last-resort filename scan.
         if fam == "Unknown":
             fn_search = _BOEING_DASH_RE.search(fn) or _BOEING_BPREFIX_RE.search(fn)

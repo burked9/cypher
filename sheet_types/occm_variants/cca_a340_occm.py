@@ -1,7 +1,7 @@
 """China Cargo Airlines (CCA) A340 OCCM — `OCCM COMPONETS STATUS` format.
 
-Single-airframe sample so far (A340-313 MSN 192, 136 pages, ~3400 rows).
-Distinctive header is misspelled `COMPONETS` and the row layout is::
+Single-airframe sample so far (A340-313, a few hundred pages, thousands of
+rows). Distinctive header is misspelled `COMPONETS` and the row layout is::
 
     ITEM ATA DESCRIPTION P/N S/N [LOCATION...] INSTALL_DATE [NOTES] [CERTS]
 

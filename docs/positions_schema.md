@@ -20,7 +20,7 @@ rows that fail soft validation stay in, with their issues visible in `row_issues
 | `variant` | TEXT | which parser produced this row (see README variant catalogue) |
 | `aircraft_key` | TEXT | **join key for cross-snapshot queries** — see [`aircraft_key`](#aircraft_key-derivation) |
 | `aircraft_key_source` | TEXT | how that key was derived (see table below) |
-| `registration` | TEXT | tail/fin number from PDF header (`VN-A350`, `PK-CMJ`) — nullable |
+| `registration` | TEXT | tail/fin number from PDF header (e.g. `G-ABCD`) — nullable |
 | `msn` | TEXT | Manufacturer Serial Number from PDF header — nullable |
 | `family` | TEXT | airframe family — see [families](#families) |
 | `family_confidence` | TEXT | `high` / `medium` / `manual_review` / `manual` / `filename` / `ocr` / `none` |
@@ -48,9 +48,9 @@ Preference order (`aircraft_key_source` records which won):
 | `header_msn` | **strong** | MSN parsed from PDF header text |
 | `header_registration` | **strong** | tail/fin parsed from PDF header (labelled or unlabelled) |
 | `msn` | **strong** | explicit `MSN <NNNN>` token in filename |
-| `msn_prefix` | strong | leading numeric prefix in filename (`0469_a305_…`) |
+| `msn_prefix` | strong | leading numeric prefix in filename (e.g. `1234_a305_…`) |
 | `registration` | strong | tail/fin token in filename |
-| `registration_compressed` | strong | compressed reg like `CSTQW` → `CS-TQW` |
+| `registration_compressed` | strong | compressed reg like `GABCD` → `G-ABCD` |
 | `msn_guess` | weak | bare 4-5 digit number in filename (year-filtered) |
 | `filename` | weak | last-resort filename stem |
 
@@ -151,8 +151,8 @@ same build script (`tools/build_positions_db.py`), share the same
   (recorded as `family_confidence = 'occm_sibling'`). This is what makes
   cross-sheet queries family-aware even when the HT header itself is
   silent on model.
-* **45 airframes** in the current corpus carry rows for BOTH sheet
-  types and are joinable today.
+* A subset of airframes in a given corpus will carry rows for BOTH
+  sheet types and are joinable today.
 * **No special HT view** — the existing `distinct_positions`,
   `current_fit` and `position_history` views work over both sheets;
   filter by `sheet_type` if you need to constrain.
@@ -191,7 +191,7 @@ This is the view that drives cross-airframe position-set comparisons.
 For each `(aircraft_key, position)`, returns the most recent row by
 `report_date_iso DESC` with `id DESC` as tiebreaker.
 
-**95.1% of rows have a parseable `report_date_iso`.** Rows with an empty
+**The large majority of rows have a parseable `report_date_iso`.** Rows with an empty
 `report_date_iso` sort to the bottom — they only win when no dated alternative
 exists.
 
@@ -210,26 +210,26 @@ combined-mode work (Sextant et al.).** Picks the most recent row per
 position)`. Row-multiplication from multi-snapshot data is eliminated
 by the `current_fit`-style inner selection.
 
-Current corpus (45 cross-sheet airframes):
+`slot_coverage` values:
 
-| `slot_coverage` | rows | meaning |
-|---|---:|---|
-| `both` | 593 | slot exists in both OCCM and HT lists; PNs typically match byte-for-byte when the parser pair preserves the FIN naming |
-| `occm_only` | 46,911 | slot installed (OCCM lists it) but no HT obligation — the bulk of the OCCM corpus |
-| `ht_only` | 7,384 | slot has an HT task but the OCCM list doesn't show that position — usually a naming-convention mismatch (HT uses `10HM6`, OCCM uses `LEFT PRIMARY HX`) on the same physical location |
+| `slot_coverage` | meaning |
+|---|---|
+| `both` | slot exists in both OCCM and HT lists; PNs typically match byte-for-byte when the parser pair preserves the FIN naming |
+| `occm_only` | slot installed (OCCM lists it) but no HT obligation |
+| `ht_only` | slot has an HT task but the OCCM list doesn't show that position — usually a naming-convention mismatch (HT uses `10HM6`, OCCM uses `LEFT PRIMARY HX`) on the same physical location |
 
 ```sql
 -- Slot-by-slot OCCM ↔ HT comparison for one airframe (sextant input shape)
 SELECT position, ata, slot_coverage,
        occm_part_number, occm_serial_number, occm_report_date,
        ht_part_number,   ht_description,     ht_report_date
-FROM cross_sheet_slot WHERE aircraft_key='2333'
+FROM cross_sheet_slot WHERE aircraft_key='<key>'
 ORDER BY ata, position;
 
 -- Just the matched slots — clean PN-vs-PN comparison
 SELECT position, occm_part_number, ht_part_number
 FROM cross_sheet_slot
-WHERE aircraft_key='2333' AND slot_coverage='both';
+WHERE aircraft_key='<key>' AND slot_coverage='both';
 ```
 
 ### `position_history`
@@ -260,10 +260,9 @@ Tag forms you'll see in the comma-joined `row_issues` column:
 | `PART_NUMBER:unknown_pn` | (reserved) PN not in the master Bloom filter |
 
 **Note on `PART_NUMBER` / `SERIAL_NUMBER` cleanup**: leading punctuation
-(`.,;:•·*`) on PN/SN tokens — a PDF indentation artefact emitted by TAP,
-Swiss A340, EL AL B767 and a handful of other MIS exports — is **stripped
-before validation**. PNs like `.968A0000-03` land in the DB as
-`968A0000-03`, not flagged. Callers can use
+(`.,;:•·*`) on PN/SN tokens — a PDF indentation artefact emitted by a
+handful of MIS exports — is **stripped before validation**. PNs like
+`.968A0000-03` land in the DB as `968A0000-03`, not flagged. Callers can use
 `shared.cleanup.get_normalize_counters()` to surface a per-file count
 of stripped tokens.
 
@@ -284,10 +283,10 @@ EXCEPT
 SELECT DISTINCT position FROM positions
 WHERE family='A340' AND position_source='FIN' AND position<>'';
 
--- Current part fitted at every slot on MSN 2974
+-- Current part fitted at every slot on a given airframe
 SELECT position, part_number, serial_number, report_date_iso
 FROM current_fit
-WHERE aircraft_key='2974' ORDER BY position;
+WHERE aircraft_key='<key>' ORDER BY position;
 
 -- All snapshots of a single slot
 SELECT report_date_iso, part_number, serial_number, source_file
@@ -318,10 +317,11 @@ FROM positions WHERE kardex<>'' AND family='A330';
   means "factory original, no slot recorded."
 - **For multi-snapshot aircraft, filter by `aircraft_key_source IN ('header_msn',
   'header_registration','manual_msn','manual_template')`** to ensure clean joining.
-  The 6 aircraft on `filename`-only keys don't cross-join reliably.
-- **`B777 Annex 7 OCCM` variant rows are a parts template**, NOT operational OCCM.
-  They have `position=''` and `serial_number=''`. Filter with `WHERE position<>''`
-  to exclude template data from positions queries.
-- **Sibling-cluster expansion** for some manual overrides: the 8 F-HBXK Component
-  Fitted List files all carry `aircraft_key='17000008'`, even though their filenames
-  are different — that's by design so they cross-snapshot-join as one airframe.
+  Aircraft on `filename`-only keys don't cross-join as reliably.
+- **A parts-template variant's rows are NOT operational OCCM.** Some variants
+  (e.g. a master parts template with no per-slot data) have `position=''` and
+  `serial_number=''`. Filter with `WHERE position<>''` to exclude template data
+  from positions queries.
+- **Sibling-cluster expansion** for some manual overrides: a set of files from
+  the same source with different filenames can be manually mapped to the same
+  `aircraft_key` so they cross-snapshot-join as one airframe.

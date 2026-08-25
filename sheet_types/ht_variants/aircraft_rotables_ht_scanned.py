@@ -139,8 +139,8 @@ def _render_page(doc, page_index: int, dpi: int = 300):
 def _page1_max_right(pdf_path: str):
     """Return (has_title, max_right_edge_px) for page 1, where the title
     (always the topmost text-line) is excluded from the max-right
-    computation -- the title itself runs wide ("... Aircraft: EC-LKH") and
-    would otherwise swamp the table-width signal this is used for."""
+    computation -- the title itself runs wide ("... Aircraft: <tail no.>")
+    and would otherwise swamp the table-width signal this is used for."""
     import fitz  # pymupdf
     import pytesseract
 
@@ -164,7 +164,7 @@ def _page1_max_right(pdf_path: str):
     return has_title, max_right
 
 
-# Confirmed on all 7 known files (3 HT-side + 4 OCCM-side, see
+# Confirmed on the known files in the corpus (HT-side and OCCM-side, see
 # occm_variants/aircraft_rotables_report_scanned.py): HT-side max right
 # edge never drops below ~3451px @ 300 DPI; OCCM-side tops out at ~2434px.
 _MAX_RIGHT_THRESHOLD = 2900

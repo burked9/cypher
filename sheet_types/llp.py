@@ -59,10 +59,10 @@ SIGNATURES = [
     "LLP Status Report",                   # aircraft_llp_status_report.py
     "When Airframe CSN:",                  # sas_drawing_item_llp.py
     "06331890969",                         # cai_first_landing_gear_llp.py -- the producer's
-                                            # VAT number; only 1 of its 4 real files also
-                                            # happens to contain the pre-existing "LIFE LIMITED
-                                            # PARTS SUMMARY" phrase, so this is needed for the
-                                            # other 3 to be reachable at all
+                                            # VAT number; not every real file also happens to
+                                            # contain the pre-existing "LIFE LIMITED PARTS
+                                            # SUMMARY" phrase, so this is needed for the rest
+                                            # to be reachable at all
     "LOWER LIMITER",                       # kalstar_aviation_llp_status.py
     "LANDING GEAR LIFE LIMITED PARTS STATUS",  # thai_landing_gear_llp_status.py
     "MAINTENANCEPLANNING AND CONTROL",     # b737_gear_llp_inventory.py

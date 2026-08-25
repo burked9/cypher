@@ -1,11 +1,12 @@
 """Aegean Air ERJ170 OCCM — doubled-char header + reversed-watermark interleaving.
 
-Two files in the corpus (HZ-AEE, HZ-AEA). Distinctive header::
+Two aircraft in the corpus, both the same operator's ERJ170 fleet. Distinctive
+header::
 
     Aircraft-Equipment-List
-    HZ-AEE (HZ-AEE EMBRAER-170) S/N: 17000121
+    <REG> (<REG> EMBRAER-170) S/N: <SN>
     CCooddee -- PP//NN -- IInntteerrvvaall DDeessccrriippttiioonn SSeerriiaallnnuummbbeerr AATTAA--CChhaapptteerr AA//CC--PPoossiittiioonnTTrree
-    AEE ( 1135 rotables ) HZ-AEE EMBRAER-170
+    <REG> ( 1135 rotables ) <REG> EMBRAER-170
 
 The column-header line is rendered with every character DOUBLED (PDF font/encoding
 quirk). Data rows are NOT doubled, but a reversed-and-rotated watermark

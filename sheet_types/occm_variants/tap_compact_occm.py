@@ -1,7 +1,7 @@
 """TAP-style compact OCCM variant.
 
-Format header begins `CS-TTQ PROG. MAN: TAP` (TAP Portugal's program-manager
-export). Used for CS-TTQ MSN 629 across multiple page-range chunks.
+Format header begins `<REG> PROG. MAN: TAP` (TAP Portugal's program-manager
+export). Seen split across multiple page-range chunks for a single airframe.
 
 Per-row layout (one line, space-separated):
     PART_NUMBER SERIAL_NUMBER DESCRIPTION... ATA POSITION INSTALL_DATE

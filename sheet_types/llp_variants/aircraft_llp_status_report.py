@@ -3,17 +3,17 @@
 Source format: a fleet-management export headed by a single top-level
 component (a landing gear leg OR a whole engine — same template either way,
 only the component description differs), followed by a flat list of that
-component's life-limited sub-parts. Confirmed on both: 9H-XFW's MLG RH/LH leg
-reports and its ESN 699101/697999 engine reports share this exact header and
-row grammar, which is why they're one variant, not two, despite covering
-different ATA systems.
+component's life-limited sub-parts. Confirmed on both a landing gear's MLG
+RH/LH leg reports and that same aircraft's engine reports, which share this
+exact header and row grammar, which is why they're one variant, not two,
+despite covering different ATA systems.
 
 Header block (repeated per page):
     LLP Status Report Page : 1 of 1
     Part Number Description Serial Number Install Date TSN CSN Position
     201540002-40 MAIN LANDING GEAR LEG MDL4766 08Jun2008 42074:50 14945 RH
     Aircraft Reg Model MSN Manufactured AC TSN AC CSN Last Flight
-    9H-XFW A319-112 03689 27Oct2008 25678:45 19050 21Dec2019
+    <REG> A319-112 <MSN> 27Oct2008 25678:45 19050 21Dec2019
     Life Limit Life at Install Life Since New Life Remaining
     Component Part Serial Limit Hours Cycles Hours Cycles Hours Cycles Hours Cycles Due Date
 

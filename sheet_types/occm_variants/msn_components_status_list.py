@@ -3,16 +3,16 @@
 Distinct from `occm_status_list` (which uses `YYYY-M-D` dates and a different
 column set). Header is::
 
-    MSN 1541 OC&CM COMPONENTS STATUS LIST Flight Hour: 39991
+    MSN <msn> OC&CM COMPONENTS STATUS LIST Flight Hour: <flight_hours>
     Item MSN ATA Zone FIN Description Date of Install Part Number Serial number TSN CSN TSR CSR Status Cert.
 
 Per-row layout (single line)::
 
     Item(N#####) MSN ATA Zone FIN  Description...  INSTALL_DATE  PN  SN  TSN  CSN  [TSR]  [CSR]  [Status]  [Cert]
 
-Example::
+Example (values genericized; token shapes preserved)::
 
-    N00001 1541 21 197 11HC VALVE-PRESSURE REDUCI 17-Jul-2001 B17CA1042 797 39991.00 28485 Orig.
+    N00001 1234 21 197 11HC VALVE-PRESSURE REDUCI 17-Jul-2001 B17CA1042 797 39991.00 28485 Orig.
 
 Trailing fields are optional — TSR/CSR appear when the part has been
 through a repair/overhaul cycle; Status (`Orig.`, `INSP`, `MOD`, `REP`,

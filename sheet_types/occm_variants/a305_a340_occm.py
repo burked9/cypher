@@ -1,7 +1,7 @@
 """A305 (Virgin Atlantic) A340-600 OCCM — `Components >> OC/CM Components`.
 
-Two airframes in the corpus (G-VFIT MSN 753, G-VWIN MSN 736, both A340-600).
-Same family of PDF as the Swiss A340 — `Components >> OC/CM Components`
+Two known airframes in the corpus, both A340-600. Same family of PDF as
+the Swiss A340 — `Components >> OC/CM Components`
 header — but a fuller 16-column layout with both LOCATION (physical mount
 text) and CONFIG_ADDR (functional slot, the `1XM2`/`5PU1`-style codes).
 
@@ -78,8 +78,8 @@ _DATE_RE = re.compile(r"^\d{2}/\d{2}/\d{4}$")
 _GRN_RE = re.compile(r"^\d{8,10}$")
 _ATA_RE = re.compile(r"^\d{2,6}$")
 _POS_RE = re.compile(r"^[A-Z0-9][A-Z0-9./\-]{0,12}$")
-# Location-fragment heuristic: contains a backslash (Virgin's path notation)
-# OR is uppercase short words with no digits.
+# Location-fragment heuristic: contains a backslash (this operator's path
+# notation) OR is uppercase short words with no digits.
 _LOC_FRAG_RE = re.compile(r"\\|^[A-Z][A-Z, \-/]{1,40}$")
 
 

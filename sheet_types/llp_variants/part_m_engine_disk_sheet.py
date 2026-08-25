@@ -11,10 +11,10 @@ unconditionally from the router. See the try/except around this import in
 Row shape: a MODULE section header (e.g. "HPC ROTOR MODULE") followed by one
 row per component — DESCRIPTION, PART_NUMBER, SERIAL_NUMBER, then 4
 rating-specific cycle limiters, 4 rating-specific cycle counts + a total, then
-4 rating-specific remaining-cycles figures. Confirmed on two real source files
-(MSN29924 ESN888813 / ESN890419): the 4th rating's label varies per engine
-("-7B24/3" vs "-A"), so columns are named positionally (R1..R4) and the actual
-printed label is captured per-record in RATING_4_LABEL etc.
+4 rating-specific remaining-cycles figures. Confirmed on two real source
+files: the 4th rating's label varies per engine ("-7B24/3" vs "-A"), so
+columns are named positionally (R1..R4) and the actual printed label is
+captured per-record in RATING_4_LABEL etc.
 
 Extraction strategy: detect the ruled grid directly (this is a photographed/
 scanned table, not vector-drawn lines pdfplumber could see) by finding rows

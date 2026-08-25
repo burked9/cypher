@@ -8,23 +8,6 @@ PDFs are processed entirely client-side via [Pyodide](https://pyodide.org/) — 
 
 Aircraft maintenance teams routinely receive lengthy PDFs listing installed components, part numbers, serial numbers, dates, and flight-hour / flight-cycle figures. The structure varies between operators and MIS software. Cypher detects which variant a PDF is and applies a variant-specific parser, returning structured rows with per-cell soft validation against aviation-domain rules.
 
-## Project status
-
-**28 OCCM variants** + **7 HT variants** + **7 LLP variants** implemented. Combined
-corpus: 502 OCCM PDFs + 503 HT PDFs in `/KEEL_aviation_records/`.
-
-- **186k rows** in the unified `positions.sqlite` (159k OCCM + 27k HT)
-- **325 source PDFs parsed** (215 OCCM / 110 HT) — the rest are image-only
-  scans (OCR ceiling) or per-component certs / non-list documents
-- **177 distinct airframes**, **45 of which carry BOTH an OCCM and an HT
-  list** and are joinable on `aircraft_key` for cross-sheet queries
-- **9 confirmed families** (A320 family, A330, A340, B737, B757, B767,
-  B777, Embraer, Bombardier CRJ); A350 is not present in the corpus
-- **95% of rows carry a parseable `report_date_iso`** for the
-  `current_fit` view; manual-review override system handles the rest
-- **Zero leading-punctuation PNs/SNs** in the DB after the global
-  cleanup step strips `.,;:` indentation artefacts from MIS exports
-
 Adding a new variant is one new file under `sheet_types/<sheet>_variants/<name>.py`
 exposing `NAME`, `SIGNATURES`, `CANONICAL_COLUMNS`, `RULES`, and `extract(pdf_path)`.
 
@@ -131,69 +114,20 @@ The deploy uses Pyodide; first load installs `pdfplumber==0.9.0` (last release b
 
 ## Variant catalogue
 
-The OCCM router (`sheet_types/occm.py`) dispatches to one of these 28 modules. Order matters
+The OCCM router (`sheet_types/occm.py`) dispatches to one of a set of variant modules
+under `sheet_types/occm_variants/`, one file per source-document layout. Order matters
 for detection — more-specific signatures are listed first so they win over generic ones.
+Each variant module's own docstring documents the layout it targets and the parsing
+technique used (line-anchored, multi-line record, OCR grid, etc.) without naming the
+specific operator, registration, or MSN it was built against.
 
-| Variant | What it parses | Notes |
-|---|---|---|
-| `aeroflot.py` | Aeroflot Avionic Inventory Listing | L3 OCR for scanned PDFs |
-| `aircraft_inventory_report.py` | AMOS-style MM_504 export | A320 family, multi-operator |
-| `aircraft_rotables_report.py` | EC-LLE style A330 fleet | dotted dates `01.Feb.2013` |
-| `amos.py` | Generic AMOS Aircraft Equipment List | broadest matcher — handles most operators |
-| `cathay_occm.py` | CX A330 `B-HL*` operator format | mixed date forms |
-| `config_slot_occm.py` | LATAM Chile CONFIG SLOT | `I______`-prefix barcode anchor |
-| `iberia_listado.py` | Iberia bilingual ES/EN | two sub-layouts (5-col vs 9-col) |
-| `oases.py` | OASES exports | 3-line records (data + Hours + Landings) |
-| `occm_list_as_at.py` | Various lessor formats | date+time stamps, optional TSO/CSO/TSSV/CSSV |
-| `occm_status_list.py` | China Eastern + Air Serbia | header `OCCM COMPONENTS STATUS LIST`, supports OCR fallback |
-| `on_condition_components_report.py` | LN-RPZ style | 6-col tabular, description-wrap continuation |
-| `remaining_potentials.py` | AMASIS / 2MORO | 6-line records, KARDEX column populated |
-| `standard_occm.py` | Vietnam Airlines + others | 14-col generic OCCM |
-| `tap_compact_occm.py` | TAP Portugal compact | one-line-per-row, `DDMmmYYYY` anchor |
-| `technical_object_listing.py` | SAP/EAM exports | 5-line records, FUNCTIONAL_LOCATION column |
-| `a330_engineering_planning.py` | F-OHSD MSN 507 A330-200 | Unicode-hyphen aware |
-| `a305_a340_occm.py` | Virgin Atlantic A340-600 | multi-line wrap, 16-column layout |
-| `aegean_erj_occm.py` | HZ-AEE / HZ-AEA ERJ170 | doubled-char OCR normaliser |
-| `aircraft_spec_file_occm.py` | EI-GFF MSN 0469 A330-223 | AMOS-family variant header |
-| `avianca_occm.py` | AVA / AVIANCA letter-spaced | two sub-layouts dispatched per-line |
-| `b777_annex7_occm.py` | B777-300ER master parts template | Ref/PN/Description only — no position data |
-| `b777_annex8_occm.py` | 9V-SQJ MSN 30875 | Functional Location `<REG>/<ATA>/<seq>/<pos>` |
-| `cca_a340_occm.py` | China Cargo MSN 0192 A340-313 | clean tabular, LOCATION lexicon |
-| `msn_components_status_list.py` | B-2215 MSN 1541 A319-112 | `N-####`-prefix Item column |
-| `on_condition_monitoring_occm.py` | Citilink / Garuda B737-800 | Indonesian operator fleet |
-| `sedor_b737_occm.py` | SE-DOR / LN-RRC B737-600 | 3-line vertical layout with IPC Ref anchor |
-| `elal_b767_msn28132.py` | EL AL 4X-EAM B767-3Q8ER records-package | 27-PDF per-ATA-chapter mixed-content cluster |
-| `georgian_airways_b737.py` | Georgian Airways 4L-TGM B737-700 | clean `AIRCRAFT COMPONENT LOG` per-row layout |
+`sheet_types/ht_variants/` and `sheet_types/llp_variants/` mirror the same pattern for
+Hard-Time and Life-Limited-Parts sheets respectively.
 
-HT variants under `sheet_types/ht_variants/` mirror the OCCM pattern.
-Seven implemented, covering 110 source PDFs / 27k rows:
-
-| Variant | What it parses |
-|---|---|
-| `amos.py` | AMOS `Aircraft Equipment List Report` (HT-side) — broadest HT matcher, 64 files |
-| `mm510.py` | MM_510 `HARD TIME/LLP COMPONENTS` (Sun Express, Atlas Global, Red Wings, IKAR) |
-| `tap.py` | TAP Portugal `PROG. MAN: TAP` compact one-line layout |
-| `oases_lifed_components.py` | OASES `Lifed Component Report` (TR42) |
-| `stars_trax.py` | STARS / Trax MIS `A/C Detail Items Print`, dual position/category column order |
-| `iberia.py` | Iberia bilingual ES/EN `LISTADO DE EQUIPOS INSTALADOS` (HT subset) |
-| `aircraft_rotables_ht.py` | Single-line `Aircraft Rotables Report` HT layout (EC-LU* fleet) |
-| `vietnam_airlines.py` | Vietnam Airlines deadline-tracking HT (no per-row position) |
-
-LLP variants under `sheet_types/llp_variants/` follow the same pattern:
-`amos.py`, `vietnam_airlines.py`, `lan_engine_llp.py`, `pro_rata_engine_llp.py`,
-`cfm_overhaul_llp.py`, `cfm56_7b_llp.py`, plus `subject.py` (Engine/APU/LandingGear classifier).
-
-`part_m_engine_disk_sheet.py` is different from the rest: it's the first **scanned,
-no-text-layer** LLP variant (Part M Aviation Ireland's "Life Limited Parts (Engine
-Disk Sheets) Time/Cycle Record"). It detects the ruled grid directly and OCRs each
-row, self-checking every row against `CYCLES_R1..R4` summing to `TOTAL_CYCLES` — a
-row that fails this is flagged via `_cycles_sum_check` rather than trusted blind.
-Confirmed on two real files: expect most numeric cells to be correct but budget time
-to spot-check flagged rows against the source PDF; this is genuinely hard to OCR
-perfectly (dense grid, small print) and the self-check exists because of that, not
-despite it. Local-only — needs `pytesseract` + the native Tesseract binary, neither
-of which exist under Pyodide, so `sheet_types/llp.py` imports it defensively and it
-is never mirrored into `deploy/`.
+Some variants are OCR-only (scanned PDFs, no extractable text layer) and need
+`pytesseract` + the native Tesseract binary, neither of which exist under Pyodide;
+`sheet_types/llp.py` imports these defensively, and they are never mirrored into
+`deploy/`.
 
 ## Family classification & manual overrides
 

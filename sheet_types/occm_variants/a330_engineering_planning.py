@@ -1,11 +1,11 @@
 """A330 Engineering & Planning OCCM — French A330 operator format.
 
-Single airframe so far (F-OHSD, MSN 507), but distinct layout that needs its
-own parser. Header looks like::
+Single airframe seen so far, but distinct layout that needs its own parser.
+Header looks like::
 
     OCCM STATUS
-    A/C REG F-OHSD ENGINEERING & PLANNING
-    A/C MSN 507
+    A/C REG <REG> ENGINEERING & PLANNING
+    A/C MSN <MSN>
     A/C TYPE A330-200
     ...
     ATA ZONE FIN DESCRIPTION PART NUMBER SERIAL NUMBER ... TSN CSN

@@ -1,14 +1,13 @@
 """AerCap "OXYGEN GENERATOR STATUS" report -- single-component HT excerpt
-(KEEL_aviation_records corpus, "msn 28132_HTC O2 GEN ELAL sgn_20190510.pdf",
-4X-EAM / MSN 28132, B767-3Q8ER).
+(a known B767-3Q8ER file in the corpus, AerCap lessor letterhead).
 
 Header (repeated per page)::
 
     AerCap Ireland Limited, 4450 Atlantic Avenue
     Westpark, Shannon, Co. Clare, Republic of Ireland
     A/C TYPE : B767-3Q8ER OXYGEN GENERATOR STATUS
-    A/C REG.: 4X-EAM
-    A/C serial : 28132 DATE : 10-May-19
+    A/C REG.: <tail no.>
+    A/C serial : <MSN> DATE : 10-May-19
     A/C TTSN : 75,757
     A/C TCSN : 12,180
     INTERVAL LAST DONE NEXT DUE REMAINED

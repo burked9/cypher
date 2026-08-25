@@ -1,12 +1,12 @@
-"""Hard Time Component Status — MPD-task-number layout (KEEL_aviation_records, A321).
+"""Hard Time Component Status — MPD-task-number layout (a known A321 file in the corpus).
 
 Header::
 
     Aircraft
     AIRBUS A321-231 HOURS 49,740
     Hard Time Component Status
-    MSN 1227 CYCLES 43,630
-    REG HL7761 DATE 2019-09-30
+    MSN <MSN> CYCLES 43,630
+    REG <tail no.> DATE 2019-09-30
     DOM 02-May-00
     MPD INTERVAL AMP INTERVAL LAST DONE NEXT DUE REMAIN
     ATA MPD TASK NO PART NUMBER SERIAL NUMBER PART DESCRIPTION POS TASK TYPE
@@ -14,7 +14,7 @@ Header::
 
 Row example (single physical line — the common case)::
 
-    21 213100-08-1 9024-15704-2 0172384 SAFETY VALVE HL7761-21-31-05-SAN OVHL 6385 50000 - 6385 50000 - 12-Apr-05 15,574 - 5-Oct-22 65,574 - 976 15,834 -
+    21 213100-08-1 9024-15704-2 0172384 SAFETY VALVE ACFT-21-31-05-SAN OVHL 6385 50000 - 6385 50000 - 12-Apr-05 15,574 - 5-Oct-22 65,574 - 976 15,834 -
 
 Column x-positions are identical on every page of both text-layer files in
 the cluster, which is what this parser keys off instead of whitespace
@@ -23,7 +23,7 @@ wraps onto its own line, split symmetrically above/below the row's
 single-line numeric cells rather than growing the row evenly, e.g.::
 
     HEAT EXCHANGER, SHOP
-    21 215200-01-1 753A0000-03 01164 HL7761-21-52-01-SQS 3285 12000 - 3285 12000 - TBD TBD - TBD TBD - TBD TBD -
+    21 215200-01-1 753A0000-03 01164 ACFT-21-52-01-SQS 3285 12000 - 3285 12000 - TBD TBD - TBD TBD - TBD TBD -
     PRIMARY CLEANING
 
 is one row: DESCRIPTION "HEAT EXCHANGER, PRIMARY", TASK_TYPE "SHOP CLEANING".
@@ -56,11 +56,11 @@ that track by calendar days only and carry no MPD task; ATA is recovered
 from the task number's own leading 2-digit chapter when the ATA cell itself
 is blank too (LIFE VEST's same-task continuation rows).
 
-Corpus: 3 files clustered together. Two have a real text layer and are
-byte-identical (same report, filed under two tail numbers/MSNs) — that
-shared layout is what this parser targets. The third file
-(`HL7737(MSN 2397)...pdf`) is a ScanSnap-style scan: 0 chars on every one
-of its 8 pages under pdfplumber. It needs OCR, not this parser.
+Corpus: a small cluster of files. Two have a real text layer and are
+byte-identical (same report, filed under two different tail numbers/MSNs)
+— that shared layout is what this parser targets. The third file is a
+ScanSnap-style scan: 0 chars on every one of its 8 pages under
+pdfplumber. It needs OCR, not this parser.
 """
 from __future__ import annotations
 import re

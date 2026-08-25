@@ -1,6 +1,6 @@
-"""EL AL 4X-EAM B767-3Q8ER (MSN 28132) records-package OCCM.
+"""EL AL B767-3Q8ER records-package OCCM.
 
-Distinctive cluster of 27 PDFs covering one airframe split into per-ATA-chapter
+Distinctive cluster of PDFs covering one airframe split into per-ATA-chapter
 bundles (ARL / non-ARL / ARL_STATUS / PREV OPERAT). Pages mix three layouts:
 
   * cover / table-of-contents pages (skipped)
@@ -33,7 +33,7 @@ import pdfplumber
 
 from sheet_types.occm_variants._base import merged_rules
 
-NAME = "EL AL B767 MSN 28132"
+NAME = "EL AL B767-3Q8ER Records Package"
 SIGNATURES = [
     "4X-EAM",
     "Parts Remaining Fitted at Build",

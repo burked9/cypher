@@ -46,9 +46,9 @@ POSITION_MAP = {
     "Aircraft Spec File OCCM":             ("POS", "POS", None, None),
     "A330 Engineering Planning OCCM":      ("FIN", "FIN", "ZONE", None),
     "B777 Annex 8 OCCM":                   ("POSITION", "POSITION", None, None),
-    # EL AL MSN 28132 records-package: no per-row position column, only ATA
-    # and components. Rows land with empty position — filter by variant.
-    "EL AL B767 MSN 28132":                (None, "NONE", None, None),
+    # This records-package variant carries no per-row position column, only
+    # ATA and components. Rows land with empty position — filter by variant.
+    "EL AL B767-3Q8ER Records Package":    (None, "NONE", None, None),
     "Georgian Airways B737":               ("POSITION", "POSITION", None, None),
     # HT-side variants — same layout as their OCCM siblings, so the OCCM
     # parser is reused with an HT-flavoured NAME. Position semantics match
@@ -76,7 +76,7 @@ POSITION_MAP = {
     "OCCM List As At":                     ("POSN", "POSN", None, None),
     "OCCM Status List":                    ("FIN", "FIN", None, None),
     "MSN Components Status List":          ("FIN", "FIN", "ZONE", None),
-    "SE-DOR B737 OCCM":                    ("POS", "POS", None, None),
+    "B737-600 IPC-style OCCM (Multi-line)":                    ("POS", "POS", None, None),
     "On Condition Components Report":      ("POSITION", "POSITION", None, None),
     "Remaining Potentials":                ("AMM_FIN", "AMM_FIN", None, "KARDEX"),
     "Standard OCCM":                       ("FIN", "FIN", None, None),
@@ -93,7 +93,7 @@ ATA_CANDIDATES  = ["ATA"]
 # MSN explicitly labelled in the filename. The `(?:^|[^A-Z0-9])` lead avoids
 # matching `AMSN`/`xMSN`-style false positives, while accepting `_MSN_` and
 # `-MSN-` (the literal `\b` would fail because `_` is a word character in
-# regex, breaking on filenames like `OCCM_MSN_1119.pdf`).
+# regex, breaking on filenames like `OCCM_MSN_<number>.pdf`).
 _MSN_RE = re.compile(
     r"(?:^|[^A-Z0-9])MSN[ _\-]?(\d{3,5})(?=[^\d]|$)", re.I)
 # Bare 3-5 digit MSN at the very start of the filename, before an `_` or ` ` —
@@ -103,9 +103,10 @@ _MSN_PREFIX_RE = re.compile(r"^(\d{3,5})[_ -]")
 # Standalone 4-5 digit MSN anywhere (weaker — last resort, with year-filter).
 _MSN_FALLBACK_RE = re.compile(r"(?:^|[^A-Z0-9])(\d{4,5})(?=[^\d]|$)", re.I)
 # Tail-number / registration patterns. Same word-boundary issue as MSN —
-# `_VP-BDV_` needs to match even though `_` is a word character. Replaced
-# `\b` boundaries with explicit non-alphanumeric leads/trails. Broadened
-# prefix list to cover more national registries.
+# a registration wrapped in underscores (e.g. `_VP-XXX_`) needs to match
+# even though `_` is a word character. Replaced `\b` boundaries with
+# explicit non-alphanumeric leads/trails. Broadened prefix list to cover
+# more national registries.
 _REG_RE = re.compile(
     r"(?:^|[^A-Z0-9])("
     r"VN-A\d{3,4}|VP-[A-Z]{3}|VQ-[A-Z]{3}|"
@@ -125,18 +126,19 @@ def _looks_like_year(n: str) -> bool:
 
 
 # Compressed registration heuristic — some filenames drop the standard dash
-# (CSTQW.pdf vs CS-TQW.pdf). Restricted to known national prefixes to keep
+# (ABCXYZ.pdf vs ABC-XYZ.pdf). Restricted to known national prefixes to keep
 # the heuristic safe (we don't want to misread random 5-char filenames).
 _COMPRESSED_REG_RE = re.compile(
     r"^(CS|EI|OO|PH|OE|OY|LX|SE|LN|OH|SX|SP|OK|HA|YR|TC|9H|9A|EC)"
     r"([A-Z0-9]{3})(?=[_ .])", re.I)
 
 # Manual filename-to-aircraft-key overrides for files that resist both the
-# regex patterns and the compressed-reg heuristic. Add entries here when the
-# user identifies an airframe whose key can't be inferred from text.
-_MANUAL_FILENAME_KEY = {
-    "TQW_OCCM.PDF": ("CS-TQW", "registration"),   # sibling of CSTQW_OCCM_30OCT2019
-}
+# regex patterns and the compressed-reg heuristic. Add entries here (locally
+# — this dict is intentionally empty in the public repo since entries name
+# real filenames/registrations from a specific corpus) when you identify an
+# airframe whose key can't be inferred from text, e.g.:
+#   "SOME_FILENAME.PDF": ("REG-123", "registration"),
+_MANUAL_FILENAME_KEY = {}
 
 
 # Month name → 2-digit string for ISO normalisation.
@@ -242,7 +244,7 @@ def derive_aircraft_key(filename: str) -> tuple[str, str]:
       2. Explicit `MSN <NNN>` label  →  source="msn"
       3. Leading numeric prefix `NNNN_…` (sortable MSN convention) → "msn_prefix"
       4. Registration token (XX-YYY / Nxxxx / etc.)  →  "registration"
-      5. Compressed-form registration at filename start (CSTQW → CS-TQW)
+      5. Compressed-form registration at filename start (ABCXYZ → ABC-XYZ)
          → "registration_compressed"
       6. Bare 4-5 digit number (last resort, with year-filter) → "msn_guess"
     """

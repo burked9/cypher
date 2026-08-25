@@ -1,5 +1,5 @@
-"""SKY Airlines landing-gear leg "Life Limited Parts Summary" -- one file per
-leg (NLG / MLG LH / MLG RH), footer signed "For and behalf of SKY AIRLINES".
+"""Operator landing-gear leg "Life Limited Parts Summary" -- one file per
+leg (NLG / MLG LH / MLG RH), footer signed with the issuing operator's name.
 
 Header (P/N-S/N line's position prefix is bare "NLG" for the nose leg, "MLG
 LH"/"MLG RH" for the main legs; case of "Life/life Limited Parts Summary"
@@ -33,7 +33,7 @@ otherwise get swallowed into the trail. Whatever's left before that block is
 DESCRIPTION/PART_NUMBER/SERIAL_NUMBER, PN and SN taken as the last two
 tokens.
 
-Known gap, confirmed on 2 of 3 source files: "REAR PINTLE PIN NUT"'s own PN
+Known gap, confirmed on most source files: "REAR PINTLE PIN NUT"'s own PN
 prints on the physical line *above* it instead of on its row (a source
 layout quirk, not an OCR artifact -- reproduced identically in the
 born-digital LH file). That PN is dropped; the row's parenthetical
@@ -100,7 +100,7 @@ CANONICAL_COLUMNS = [
     "INSTALL_DATE",
 ]
 
-# 60000 LL cycle limits are the norm on this template (confirmed on all 3
+# 60000 LL cycle limits are the norm on this template (confirmed on real
 # source files) and exceed the shared 55000 bound the same way ERJ190's
 # landing-gear limits do -- a downstream review signal, not a mis-set
 # threshold.

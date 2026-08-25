@@ -1,8 +1,8 @@
 """Cathay-style OCCM variant — 13-column tabular OCCM with 6-metric time matrix.
 
-First seen on Cathay Pacific (CX) A330 documents (B-HLD, B-HLC, B-HLB).
-Named for the dominant operator pattern; rename if other carriers using the
-same format show up.
+First seen on a cluster of A330 documents from the same operator, across a
+handful of airframes. Named for the dominant operator pattern; rename if
+other carriers using the same format show up.
 
 Format header:
     ATA Description Equip ID Part Number Serial Number Location
@@ -51,7 +51,8 @@ _OVERRIDES = {
     # absent — see module docstring). Don't flag empty as failure.
     "LOCATION": {"pattern": r"^[A-Z0-9]{1,5}$", "uppercase": True, "allow_empty": True},
     # Two date forms seen in this format: `DD/MM/YYYY` and `D-Mon-YYYY`.
-    # B-HLC is 100% the hyphen-month-name form; B-HLB mixes both.
+    # One known airframe is 100% the hyphen-month-name form; another mixes
+    # both.
     "INSTALL_DATE": {"pattern": r"^(\d{1,2}/\d{2}/\d{4}|\d{1,2}-[A-Za-z]{3}-\d{2,4})$"},
     "TSN": {"pattern": r"^\d+:\d{2}$"},
     "TSO": {"pattern": r"^\d+:\d{2}$"},

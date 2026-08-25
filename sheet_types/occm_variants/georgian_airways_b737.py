@@ -1,6 +1,6 @@
-"""Georgian Airways 4L-TGM B737-76N (MSN 29904) — AIRCRAFT COMPONENT LOG.
+"""Georgian Airways B737-76N — AIRCRAFT COMPONENT LOG.
 
-Two of the five Georgian-Airways files in the corpus share this clean
+Two of the Georgian Airways files in the corpus share this clean
 single-line-per-row layout. The other three ("UNCHANGED OCCM since delivery"
 and the two "STATUS OF REPLACED" variants) have column-shredded text that
 needs L2 (word-coordinate) extraction — deferred.

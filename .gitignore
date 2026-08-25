@@ -51,3 +51,12 @@ env/
 # Marketing assets — keep the markdown, gitignore the screenshots
 # (they live in the consultancy site's repo, not this one)
 marketing/assets/*.png
+
+# Internal corpus/session journals - not for public repo (real customer fleet data)
+docs/SESSION_LOG.md
+docs/ht_corpus_survey.md
+docs/TODO.md
+docs/decisions.md
+tools/build_session_summary.py
+marketing/
+research/session_summary.html

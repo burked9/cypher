@@ -1,10 +1,8 @@
 """Aircraft Inventory Report (MM_504) — scanned, no text layer, OCR required.
 
-Confirmed on 4 real files (real-corpus triage 2026-08-25, all AtlasGlobal
-MSNs): "B007-Certified inventory of OCCM Components (fitted listing).pdf"
-(TC-AGS / MSN 1008), "N-01624_2018-10-15_...MSN 1624 OCCM Component
-Status .pdf" (TC-ATT / MSN 1624), "MSN 963 OCCM as of 31 Oct.pdf" and
-"MSN 963 OCCM-3rd Oct 2019.PDF" (both TC-AGI / MSN 963). Every page of
+Confirmed on a handful of real files from the same operator's fleet
+(real-corpus triage), covering a few different airframes and a couple of
+duplicate exports of the same aircraft on different dates. Every page of
 every file is a single flat scanned image with no text layer at all
 (confirmed via pdfplumber: 0 chars, 1 embedded image, page 1 of each), so
 this module renders each page and OCRs it directly via pytesseract, same
@@ -30,14 +28,15 @@ wrong component row.
 OCR quality on this form is good relative to `sriwijaya_b737_occm.py`'s
 (clean vector-drawn table, not a noisy fax-quality grid), but the header
 band still costs more image height to resolve than that sibling's does:
-0.12 was confirmed too tight on the B007 file (crops the header before
-"ATLASGLOBAL" resolves even though "AIRCRAFT INVENTORY REPORT" above it
-already has); 0.15 recovered both anchors on all 4 known files.
+0.12 was confirmed too tight on one of the known files (crops the header
+before the operator name resolves even though "AIRCRAFT INVENTORY REPORT"
+above it already has); 0.15 recovered both anchors on all known files.
 """
 from __future__ import annotations
 import re
 
 from sheet_types.occm_variants._base import merged_rules
+from shared.ocr_bridge import render_page, ocr_text, page_count
 
 NAME = "Aircraft Inventory Report (MM_504, Scanned)"
 
@@ -82,7 +81,7 @@ RULES = merged_rules(_OVERRIDES)
 _DATE_RE = re.compile(r"^(?:\d{2}-[A-Za-z]{3}-\d{2}|\d{2}-\d{2}-\d{4})$")
 _ATA_LIKE_RE = re.compile(r"^[A-Z0-9]{2,12}$")
 # A lone leftover border/placeholder glyph where a real POSITION would be
-# printed (confirmed on B007 p4/p15 -- an em-dash stands in for "no
+# printed (confirmed on a real file -- an em-dash stands in for "no
 # position" the same way a blank cell would in the born-digital original).
 _PLACEHOLDER_RE = re.compile(r"^[-_—–]+$")
 
@@ -147,15 +146,7 @@ def _parse_line(line: str, page_num: int) -> dict | None:
     }
 
 
-def _render_page(doc, page_index: int, dpi: int = 300):
-    import fitz  # pymupdf
-    from PIL import Image
-
-    pix = doc[page_index].get_pixmap(dpi=dpi)
-    return Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-
-
-def ocr_detect(pdf_path: str) -> bool:
+async def ocr_detect(pdf_path: str) -> bool:
     """Cheap page-1 OCR check for the router's blank-text fallback (see
     sheet_types/occm.py) -- this variant's SIGNATURES can never match
     through the normal pdfplumber text-extract path since every known
@@ -166,41 +157,26 @@ def ocr_detect(pdf_path: str) -> bool:
     from a different operator falls through rather than being claimed here.
     """
     try:
-        import fitz  # pymupdf
-        import pytesseract
-    except ImportError:  # pragma: no cover - exercised under Pyodide, not locally
-        return False
-    try:
-        doc = fitz.open(pdf_path)
-        img = _render_page(doc, 0, dpi=300)
-        doc.close()
+        img = await render_page(pdf_path, 0, dpi=300)
         w, h = img.size
         crop = img.crop((0, 0, w, int(h * 0.15)))
-        text = pytesseract.image_to_string(crop, config="--psm 6").upper()
+        text = (await ocr_text(crop, psm=6)).upper()
         return "AIRCRAFT INVENTORY REPORT" in text and "ATLASGLOBAL" in text
     except Exception:
         return False
 
 
-def extract(pdf_path: str) -> list[dict]:
-    try:
-        import fitz  # pymupdf
-        import pytesseract
-    except ImportError:  # pragma: no cover - exercised under Pyodide, not locally
-        return []
+async def extract(pdf_path: str) -> list[dict]:
     records: list[dict] = []
-    doc = fitz.open(pdf_path)
-    try:
-        for page_index in range(len(doc)):
-            img = _render_page(doc, page_index, dpi=300)
-            text = pytesseract.image_to_string(img, config="--psm 6")
-            for raw in text.splitlines():
-                line = raw.strip()
-                if not line:
-                    continue
-                rec = _parse_line(line, page_index + 1)
-                if rec is not None:
-                    records.append(rec)
-    finally:
-        doc.close()
+    n_pages = await page_count(pdf_path)
+    for page_index in range(n_pages):
+        img = await render_page(pdf_path, page_index, dpi=300)
+        text = await ocr_text(img, psm=6)
+        for raw in text.splitlines():
+            line = raw.strip()
+            if not line:
+                continue
+            rec = _parse_line(line, page_index + 1)
+            if rec is not None:
+                records.append(rec)
     return records

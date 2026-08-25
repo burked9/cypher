@@ -7,7 +7,7 @@ the aircraft it's fitted to:
     Assemblies >> Gear LLPs >> B73
     Part No.: 10-113104-002 Install Date: 25-01-2016 Status at: 08/01/2018
     Serial No.: B73 TSN: 54645:48 CSN: 6023
-    A/C Pos: G-VWIN #CTMLG
+    A/C Pos: <REG> #CTMLG
     Description Serial No. Part No. FH Interval FH Used FH Remaining FC Interval FC Used FC Remaining
 
 Row format (single line, space-separated) when the description is short

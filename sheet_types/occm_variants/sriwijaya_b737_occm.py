@@ -1,23 +1,23 @@
 """Sriwijaya Air B737-85P OCCM — scanned, no text layer, OCR required.
 
-Confirmed on 4 real files (real-corpus triage 2026-08-22): OCCM1.pdf,
-OCCM3.pdf, OCCM4.pdf (each a "Form TP-015" page-range export — pages 1-6,
-13, 19 respectively — of the same MSN 28381 / PK-CMJ report) and
-"MSN_28381_OCCM Component Status (25Feb2018).pdf" (the full 23-page
-original those three are slices of). All 4 are a single flat scanned image
-per page with **no text layer at all** (confirmed via pdfplumber: 0 chars,
-1 embedded image, on every page of every file), so this module renders
-each page and OCRs it directly via pytesseract — like Part M / N3 Engine
-Overhaul LLP elsewhere in this project, it cannot run under Pyodide and
-must never be imported unconditionally from the router. See the try/except
-around this import in `sheet_types/occm.py`.
+Confirmed on a small cluster of real files in the corpus (real-corpus
+triage): several page-range "Form TP-015" exports of the same underlying
+report, plus the full multi-page original those slices were taken from.
+All known files are a single flat scanned image per page with **no text
+layer at all** (confirmed via pdfplumber: 0 chars, 1 embedded image, on
+every page of every file), so this module renders each page and OCRs it
+directly via pytesseract — like Part M / N3 Engine Overhaul LLP elsewhere
+in this project, it cannot run under Pyodide and must never be imported
+unconditionally from the router. See the try/except around this import in
+`sheet_types/occm.py`.
 
-Header, every page (OCR'd cleanly despite the noisy grid below it)::
+Header, every page (OCR'd cleanly despite the noisy grid below it, values
+genericized below but the layout/shape is real)::
 
     ON CONDITION AND CONDITION MONITORING AIRCRAFT COMPONENTS STATUS
-    Sriwijaya Air   AIRCRAFT TYPE/MODEL : B737-85P   CURRENT DATE : 25-Feb-2018
-                    ACRF REG. : PK-CMJ               ACRF TSN : 56,837
-    MAINTENANCE PLANNING AND CONTROL   SN: 28381; LN: 250; VN: YC761   ACRF CSN : 31,427
+    Sriwijaya Air   AIRCRAFT TYPE/MODEL : B737-85P   CURRENT DATE : <date>
+                    ACRF REG. : <registration>       ACRF TSN : <tsn>
+    MAINTENANCE PLANNING AND CONTROL   SN: <msn>; LN: <line_no>; VN: <vn>   ACRF CSN : <csn>
 
 Same 14-column template as the existing `on_condition_monitoring_occm`
 sibling (ATA QTY INDEX TYPE DESCRIPTION PART_NUMBER SERIAL_NUMBER POSITION
@@ -31,7 +31,7 @@ between sparse columns regularly gets misread as runs of letters
 ("Ss——«", "CCCC") rather than symbols a simple border-character strip
 could catch, and the decimal point in the trailing numeric block is
 unreliably dropped ("31413") or split into its own token ("6 875" for
-"6.875"). Real example row (OCCM1.pdf p1, OCR'd, whitespace as printed)::
+"6.875"). Real example row (OCR'd, whitespace as printed)::
 
     21 2 1 OM AirConditionerCheck Valve 3z02N4e-t 1363 LH Otay 18 4 56.819 31413 6 875
 
@@ -119,9 +119,9 @@ _BORDER_RE = re.compile(r"[|\[\]<>=~()`*\"'«»‘’“”–—]+")
 _SEP_RUN_RE = re.compile(r"[_]{2,}|\.{3,}|-{3,}")
 
 # Optional single leading letter absorbs a leader/border glyph OCR misread
-# as a letter instead of a symbol ("L21" for "21") -- confirmed against
-# MSN_28381's noisier scan, where a plain border-character strip wouldn't
-# help since the artifact IS a letter, not a stray symbol.
+# as a letter instead of a symbol ("L21" for "21") -- confirmed against the
+# noisiest known scan, where a plain border-character strip wouldn't help
+# since the artifact IS a letter, not a stray symbol.
 _ATA_TOK_RE = re.compile(r"^[A-Za-z]?(\d{2})$")
 # A lone unrecovered digit in this position OCRs as "+" often enough (seen
 # in QTY/INDEX on multiple files) to accept and pass through as-is rather
@@ -236,10 +236,10 @@ async def ocr_detect(pdf_path: str) -> bool:
         img = await render_page(pdf_path, 0, dpi=300)
         w, h = img.size
         # "85P" sits on the header's 2nd line, not the title itself -- 0.15
-        # confirmed too tight on MSN_28381 (crops before that line resolves
-        # at this DPI even though the title above it is already legible);
-        # 0.25 recovered it on all 4 known files without pulling in the
-        # data grid.
+        # confirmed too tight on the noisiest known scan (crops before that
+        # line resolves at this DPI even though the title above it is
+        # already legible); 0.25 recovered it on all known files without
+        # pulling in the data grid.
         crop = img.crop((0, 0, w, int(h * 0.25)))
         text = (await ocr_text(crop, psm=6)).upper()
         return "CONDITION MONITORING" in text and "85P" in text

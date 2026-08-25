@@ -1,6 +1,6 @@
 """Landing Gear LLP Report — "LANDING GEAR LIFE LIMIT PARTS REPORT" (task-code
-tracked, database-generated). Confirmed on CC-CZU (B767) and PR-MAP (A320);
-header field layout and number formatting (`.` vs `,` decimals, 1 vs 2
+tracked, database-generated). Confirmed on real files from a B767 and an
+A320; header field layout and number formatting (`.` vs `,` decimals, 1 vs 2
 trailing task-code columns) differ slightly between the two but the row
 grammar is identical.
 
@@ -23,11 +23,12 @@ than folded into a single row per part -- collapsing them would mean
 silently dropping whichever requirement lost the merge.
 
 Component-row anchor: a leading integer LEVEL, then a run of fixed-position
-identity fields, then a `DD/MM/YYYY` INSTALL DATE. PR-MAP's schema inserts a
-COMP_TSN/COMP_CSN pair between POSITION and INSTALL DATE that CC-CZU's
-doesn't; detected by checking whether the two tokens immediately before the
-date are numeric. Cells the source prints as "NO DATA" are collapsed to a
-single token before splitting so they can't be mistaken for two columns.
+identity fields, then a `DD/MM/YYYY` INSTALL DATE. One of the two known
+schema variants inserts a COMP_TSN/COMP_CSN pair between POSITION and
+INSTALL DATE that the other doesn't; detected by checking whether the two
+tokens immediately before the date are numeric. Cells the source prints as
+"NO DATA" are collapsed to a single token before splitting so they can't be
+mistaken for two columns.
 
 Requirement-row anchor works from the right, not the left, because
 SERVICE_DESCRIPTION's own shape varies too much to anchor on (space-separated
@@ -39,8 +40,8 @@ codes (DISCARD rows only ever carry one -- there's no "next" task once a
 part is discarded), and immediately before the dates, 3 numbers
 (limit/time-run/remaining). Whatever sits between those numbers and
 SERVICE_DESCRIPTION is LIFE_LIMIT_INTERVAL -- printed as a literal "-" on
-434 of 435 known rows, but real files do carry a populated value there at
-least once (confirmed on CC-CZU p.20, "...ASSY-OVERHAUL 16000 16000 445
+nearly all known rows, but real files do carry a populated value there at
+least once (confirmed on a real file, "...ASSY-OVERHAUL 16000 16000 445
 15555..."), so it's captured as data rather than assumed to always be "-".
 """
 from __future__ import annotations

@@ -1,7 +1,7 @@
-"""SE-DOR-style B737 OCCM — `Component Inventory List` multi-line format.
+"""A B737 OCCM variant — `Component Inventory List` multi-line format.
 
-5 files in this corpus covering 2 airframes (SE-DOR MSN 28305 + LN-RRC MSN
-28300, both B737-600). Each logical row is split across THREE physical lines
+A handful of files in this corpus covering a couple of airframes (both
+B737-600). Each logical row is split across THREE physical lines
 because the source PDF has an IPC-style two-row table per record::
 
     IPC Ref  Description  Pos  Level  Part  Installed Date  NH Part
@@ -23,7 +23,7 @@ import pdfplumber
 
 from sheet_types.occm_variants._base import merged_rules
 
-NAME = "SE-DOR B737 OCCM"
+NAME = "B737-600 IPC-style OCCM (Multi-line)"
 SIGNATURES = [
     "B737-600 Part: B737-600 Tail No:",
     # Title-page cover of the all-areas variant

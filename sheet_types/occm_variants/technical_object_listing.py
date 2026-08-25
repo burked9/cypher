@@ -1,6 +1,6 @@
 """Technical Object Listing variant — SAP/EAM-style OCCM export.
 
-Detected on ZK-OJB documents (Air New Zealand). Multi-line records: each
+Detected on a single-operator document set. Multi-line records: each
 component spans 6-9 lines with a time matrix block covering Install /
 Inspect / Repair / Overhaul / Total.
 

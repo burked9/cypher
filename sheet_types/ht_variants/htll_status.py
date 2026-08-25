@@ -3,8 +3,8 @@
 Header (page 1 only for the STATUS sub-format; repeated per page for the
 REMAINING-LIFE sub-format)::
 
-    AIRCRAFT REGISTRATION: VN-A344
-    HT-LL STATUS AIRCRAFT SERIAL NUMBER 2255
+    AIRCRAFT REGISTRATION: <tail no.>
+    HT-LL STATUS AIRCRAFT SERIAL NUMBER <MSN>
     CURRENT AIRCRAFT FH: 37524.7 AIRCRAFT MODEL & TYPE: 1 ACT
     CURRENT AIRCRAFT CY: 24511 REPORT DATE: 10/07/19
     NO. ATA DESCRIPTION FIN PART NUMBER SERIAL NUMBER ...
@@ -16,7 +16,8 @@ word x-positions (a generic ATA-anchored line check quietly mis-shifted or
 dropped most rows of both, since neither has a plain "ATA-starts-the-line"
 shape once the row number is accounted for).
 
-STATUS sub-format ("HT-LL STATUS" -- A344/A348/A349 in the corpus). Fixed
+STATUS sub-format ("HT-LL STATUS" -- seen on several known aircraft in
+the corpus). Fixed
 8 numeric-or-"UNK" fields then a date, e.g.::
 
     1 21 VALVE-SAFETY 6HL 9024-15704-03 0932254 28011.4 18382 17539.25 8989 9513.3 6129 27052.55 15118 13-Apr-16
@@ -30,7 +31,8 @@ Parsed by tokenizing the line and anchoring on the trailing date + 8
 numeric/UNK fields, then walking backwards -- same strategy as
 occm_variants/standard_occm.py, adapted for the UNK sentinel.
 
-REMAINING-LIFE sub-format ("HT&LLP STATUS" -- A345 in the corpus). This is
+REMAINING-LIFE sub-format ("HT&LLP STATUS" -- seen on another known
+aircraft in the corpus). This is
 the genuine hard-time data the STATUS sub-format lacks: up to 4 independent
 (LIMIT, REMAINING) pairs -- one each for FH / CY / DY (days) / CAL -- of
 which a given row populates only the limit types that actually apply to

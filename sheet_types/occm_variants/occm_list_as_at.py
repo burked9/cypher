@@ -1,8 +1,8 @@
 """'OCCM LIST AS AT' variant — 12-column tabular OCCM with date+time stamps.
 
 Format header: `ATA DESCRIPTION MPN MSN POSN INSTALL DATE TSN CSN TSO CSO TSSV CSSV`
-First seen on 9Y-TAB (Caribbean Airlines) and A305-prefixed files (likely a
-shared MIS used across multiple Caribbean operators).
+First seen on a Caribbean-region operator's files and a related A305-prefixed
+set (likely a shared MIS used across multiple Caribbean operators).
 
 Per-row layout (single line, space-separated):
     ATA  DESCRIPTION...  MPN  MSN  POSN... INSTALL_DATE  TIME  TSN  CSN

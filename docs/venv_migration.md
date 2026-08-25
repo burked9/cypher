@@ -57,7 +57,7 @@ You should get a single `OK 0.9.0 1.X.X 2.X.X`-style line within a second or two
 ```bash
 cd "/Users/danielburke/Library/CloudStorage/OneDrive-Personal/work/cypher"
 ~/.venvs/cypher/bin/python tools/triage.py \
-    --input "/Users/danielburke/Library/CloudStorage/OneDrive-Personal/work/KEEL_aviation_records/evalsp" \
+    --input "/path/to/your/pdf/corpus" \
     --hint-sheet-type OCCM \
     --out research/results/triage_occm.csv
 ```
@@ -65,7 +65,7 @@ cd "/Users/danielburke/Library/CloudStorage/OneDrive-Personal/work/cypher"
 Expected: completes in a few minutes, no `TIMEOUT/ERR` messages (or very few — under 5). If you still see lots of timeouts, the PDFs themselves are cloud-only and need their own hydration pass. Run:
 
 ```bash
-find "/Users/danielburke/Library/CloudStorage/OneDrive-Personal/work/KEEL_aviation_records/evalsp" \
+find "/path/to/your/pdf/corpus" \
     -name "*.pdf" -exec dd if={} of=/dev/null bs=1m status=none \; 2>&1 | tail -20
 ```
 

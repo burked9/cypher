@@ -3,14 +3,14 @@
 
 Local-only, like Part M Engine Disk Sheet elsewhere in this project: every
 known source file is a single flat scanned image with **no text layer**
-(confirmed on all 9 known files: 0 chars via pdfplumber, 1 embedded image
-per page), so this module renders page 1 and OCRs it directly via
+(confirmed on real files in the corpus: 0 chars via pdfplumber, 1 embedded
+image per page), so this module renders page 1 and OCRs it directly via
 `pytesseract` — it cannot run under Pyodide and must never be imported
 unconditionally from the router. See the try/except around this import in
 `sheet_types/llp.py`.
 
 Header carries ENGINE TYPE ("RB211 Trent 556-61"), ENGINE NO. (the file's
-own ESN, e.g. 71058), ENGINE TSN/CSN, and a DATE. The body is grouped into
+own ESN), ENGINE TSN/CSN, and a DATE. The body is grouped into
 fixed module sections ("M 01 L.P. COMPRESSOR FAN", "M 02 I.P. COMPRESSOR",
 "M 03 INTERMEDIATE", "M 04 H.P. SYSTEM", "M 05 I.P. TURBINE", "M 08 L.P.
 TURBINE" on every known file), each followed by one row per component:
@@ -19,17 +19,16 @@ TURBINE" on every known file), each followed by one row per component:
     └desc────┘ └─PN───┘ └──SN───┘ └TSN─┘ └CSN┘ └LIM──┘ └REM┘ └── ATA ref ──┘
 
 The trailing ATA reference pair (chapter + task/item code) only survives
-OCR on the newer-looking scans; the older-looking ones (e.g. 71058, 71053,
-71060) end after REMAIN. Both are accepted — see the 4-vs-6 trailing-count
-branch in `_parse_row`.
+OCR on the newer-looking scans; the older-looking ones end after REMAIN.
+Both are accepted — see the 4-vs-6 trailing-count branch in `_parse_row`.
 
 TSN/CSN of 0 (a part fitted new) OCRs unreliably as a bare letter — "O",
 "o", "Oo" — because the digit sits alone in its cell with nothing to anchor
 Tesseract's digit-vs-letter guess. Confirmed against every 0-value cell in
-all 9 known files: none contain any letter other than O/o, so treating any
-all-O/o/0 token as "0" is safe here specifically (would NOT be safe as a
-general PN/SN rule, which is why it's applied only to the TSN/CSN slots,
-not via the shared OCR_CHAR_MAP).
+the known files in the corpus: none contain any letter other than O/o, so
+treating any all-O/o/0 token as "0" is safe here specifically (would NOT be
+safe as a general PN/SN rule, which is why it's applied only to the
+TSN/CSN slots, not via the shared OCR_CHAR_MAP).
 
 Not attempted: deriving a missing CSN from LIMIT-REMAIN when a row's
 trailing run comes back short. It would work arithmetically, but nothing
@@ -210,9 +209,10 @@ def _parse_row(line: str) -> dict | None:
 def ocr_detect(pdf_path: str) -> bool:
     """Cheap header-only OCR check the router falls back to when a PDF has no
     usable text layer. "RB211" + "TRENT" is the anchor, not the "Module Life
-    Limited Parts Summary" title -- confirmed against all 9 known files that
-    the title band OCRs inconsistently (drops "Summary" or the whole line on
-    3 of the 9), while the RB211/Trent engine-type line reads clean on all 9."""
+    Limited Parts Summary" title -- confirmed against known files in the
+    corpus that the title band OCRs inconsistently (drops "Summary" or the
+    whole line on some of them), while the RB211/Trent engine-type line
+    reads clean on all of them."""
     if not _OCR_AVAILABLE:
         return False
     try:

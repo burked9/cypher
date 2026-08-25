@@ -9,8 +9,8 @@ cluster::
     ATA  QTY  INDEX  TYPE  DESCRIPTION  PART NUMBER  SERIAL NUMBER  POSITION
     DATE  TSN  CSN  HOURS  CYCLES  DAYS
 
-Some files drop QTY+INDEX (e.g. MSN 30636) — the parser handles both shapes
-via per-row token-count detection.
+Some files drop QTY+INDEX (seen on at least one known airframe in the
+corpus) — the parser handles both shapes via per-row token-count detection.
 
 Per-row anchor::
 

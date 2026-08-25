@@ -1,8 +1,8 @@
 """Swiss International Airlines A340 landing-gear LLP — "LDG LLP COMPLIANCE
-STATUS" format. Sibling of occm_variants/swiss_a340_occm.py (same airframes,
-HB-JMN MSN175 / HB-JMO MSN179, same source system, same character-level
-corruption habits), but a distinct per-gear-assembly document: one file per
-MLG RH / MLG LH / CTR Gear, each listing that assembly's LLP components.
+STATUS" format. Sibling of occm_variants/swiss_a340_occm.py (same known
+airframes, same source system, same character-level corruption habits), but
+a distinct per-gear-assembly document: one file per MLG RH / MLG LH / CTR
+Gear, each listing that assembly's LLP components.
 
 Row format (single line, space-separated, one LIFE LIMIT requirement per
 line — a component with both an hours and a cycles limit prints two rows):

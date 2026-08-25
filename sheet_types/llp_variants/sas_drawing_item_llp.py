@@ -7,7 +7,7 @@ splits the two-line "*Drawing Item No. ... Cycles Remaining" header
 differently depending on how many words happen to share a text row):
 
     Life Limited Parts
-    RH Main Landing Gear Current Position: LN-RPE
+    RH Main Landing Gear Current Position: LN-XXX
     As of: 01-Jun-18
     When Airframe CSN: 44,438
     Cycle Cycles

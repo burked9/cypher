@@ -1,5 +1,5 @@
-"""MM_510 — HARD TIME/LLP COMPONENTS report (Sun Express / Atlas Global / IKAR /
-Red Wings / various TC- and VP- operators).
+"""MM_510 — HARD TIME/LLP COMPONENTS report (seen across several operators
+in the corpus, various TC- and VP- registered fleets).
 
 Header signature::
 
@@ -8,14 +8,16 @@ Header signature::
 
 Two row sub-formats observed across the 18-file cluster:
 
-  * **Inline-task layout** (MSN 963 / TC-ETN style): the install date and task
-    name are emitted on the same line, with the task name glued to the date::
+  * **Inline-task layout** (a known TC-registered file's style): the install
+    date and task name are emitted on the same line, with the task name
+    glued to the date::
 
         21 LH 754C0000-01 81212-50402 MAIN HEAT EXCHANGER 28-02-2014CLEANING 215200-...
 
-  * **Wrap-task layout** (A306 VP-BOZ / VP-BWW style): the row wraps over 2-3
-    lines and the task name lives on a continuation line. We currently parse
-    only the first line of these — the position fingerprint is on it.
+  * **Wrap-task layout** (a known A306 VP-registered file's style): the row
+    wraps over 2-3 lines and the task name lives on a continuation line. We
+    currently parse only the first line of these — the position fingerprint
+    is on it.
 
 Anchor: a `DD-MM-YYYY` install date (sometimes followed by a glued letter
 sequence — the task name). We split that token apart for parsing.
@@ -45,8 +47,8 @@ CANONICAL_COLUMNS = [
 ]
 _OVERRIDES = {
     "ATA":         {"pattern": r"^\d{2}(?:00)?$"},
-    # MM_510 reports use two date forms — `DD-MM-YYYY` (Atlas Global / Red Wings)
-    # and `DD-MMM-YY` (Sun Express). Accept both.
+    # MM_510 reports use two date forms — `DD-MM-YYYY` and `DD-MMM-YY`,
+    # depending on the operator. Accept both.
     "INST_DATE":   {"pattern": r"^(\d{2}-\d{2}-\d{4}|\d{2}-[A-Z]{3}-\d{2})$",
                     "allow_empty": True},
     "PART_NUMBER": {"allow_empty": True},
@@ -61,7 +63,7 @@ RULES = merged_rules(_OVERRIDES)
 
 _DATE_RE = re.compile(r"\b(\d{2}-\d{2}-\d{4}|\d{2}-[A-Z]{3}-\d{2})\b")
 # A "fused" date+task token like `28-02-2014CLEANING`, `04-03-2020`, or
-# `04-OCT-13` (Sun Express style). We pull the date out and treat any
+# `04-OCT-13` (one operator's style). We pull the date out and treat any
 # trailing alpha (with no separating space) as the start of the task name.
 _DATE_GLUED_RE = re.compile(
     r"\b(\d{2}-\d{2}-\d{4}|\d{2}-[A-Z]{3}-\d{2})([A-Z][A-Z]*)?\b")

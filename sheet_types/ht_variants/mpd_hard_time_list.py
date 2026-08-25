@@ -1,9 +1,9 @@
 """KEEL-style Hard Time list — "HARD TIME LIST AS AT <date>" header, MPD-coded tasks.
 
-Header (KEEL_aviation_records corpus, A300-600 fleet)::
+Header (a known A300-600 file in the corpus)::
 
     Hours since 02-JUL-2021:0 DELIVERY DATE:07-Jul-21
-    9Y-BGI 28232 HARD TIME LIST AS AT 5-Jul-2021 TAT:65,463:32 TAC:27,189 ...
+    <tail no.> <MSN> HARD TIME LIST AS AT 5-Jul-2021 TAT:65,463:32 TAC:27,189 ...
     ATA MPN DESCRIPTION MPN MSN POSN INST DTE MPD TASK MPD DESCRIP COMPL DTE HRS CYS DYS HRS CYS DYS HRS CYS DYS DUE DTE
 
 Two row shapes share the page, keyed off the MPD TASK column

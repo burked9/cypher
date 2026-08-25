@@ -1,9 +1,9 @@
 """Swiss International Airlines A340 OCCM — \"OCCM COMPLIANCE STATUS\" format.
 
-Two airframes in the corpus (HB-JMO MSN 179, H3-JMN MSN 175 — both
-A340-313X). The PDF column layout linearises poorly via pdfplumber: the
-Description column flows to the LEFT of the data, so each description's
-words appear on the lines BEFORE and AFTER the data row, like this::
+Two airframes in the corpus (both A340-313X). The PDF column layout
+linearises poorly via pdfplumber: the Description column flows to the
+LEFT of the data, so each description's words appear on the lines
+BEFORE and AFTER the data row, like this::
 
     SENSOR-
     21 773A0000-01 3819 656HK 11476423/9109228 29.04.1997 UNKNOWN UNKNOWN
@@ -16,12 +16,14 @@ alpha-only lines.
 
 Data row anchor: trailing ``TSN CSN`` pair (both either ``HHHH:MM``/integer
 or the literal ``UNKNOWN``), preceded by ``INST_DATE`` (``DD.MM.YYYY`` on
-0179 or ``DD/Mon/YYYY`` on 0175), then a ``RELEASE_LABEL`` with a slash,
-then a ``POS`` token (``313HL``, ``5319HL``, ``641HK``), then ``SN``, then
-``PN`` (always dash-containing), with ATA as the first token of the row.
+one airframe or ``DD/Mon/YYYY`` on the other), then a ``RELEASE_LABEL``
+with a slash, then a ``POS`` token (``313HL``, ``5319HL``, ``641HK``), then
+``SN``, then ``PN`` (always dash-containing), with ATA as the first token
+of the row.
 
-0175 has heavy OCR damage (`Q` for `0`, `l` for `1`, dashes dropped to
-spaces) — we capture what's parseable and let the rest stay flagged.
+One of the two airframes has heavy OCR damage (`Q` for `0`, `l` for `1`,
+dashes dropped to spaces) — we capture what's parseable and let the rest
+stay flagged.
 """
 from __future__ import annotations
 import re

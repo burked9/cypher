@@ -2,7 +2,7 @@
 
 **Purpose.** Reference for an LLM agent extracting component-list rows from
 aircraft-maintenance PDFs (OCCM, HT, LLP). Read this **before** processing
-any document. The rules below come from a hand-tuned corpus of 1000+
+any document. The rules below come from a hand-tuned corpus of real-world
 aviation-maintenance PDFs and capture every parsing failure pattern we've
 seen — apply them and the output will line up with the Cypher pipeline's
 existing schema and validation.
@@ -264,7 +264,9 @@ After extracting rows, derive a single **family** for the airframe:
    - `Model: A321-231` → `A320 family`
    - `Type/Series: 737-NG` → `B737`
 2. **Airbus prefix anywhere in header**, registration tokens masked first:
-   - `A330`, `A340`, `A380` direct match. Mask `VN-A350` (registration) before scanning.
+   - `A330`, `A340`, `A380` direct match. Mask registration tokens like
+     `XX-A350` before scanning (a tail number containing a model-shaped
+     substring would otherwise false-match).
 3. **Boeing dash-suffix form** (must end with ≤3 digits + ≤5 letters,
    to reject task-card refs like `747-06209`):
    - `737-700`, `767-300ER`, `777-300ER` → `B737` / `B767` / `B777`.
@@ -272,12 +274,13 @@ After extracting rows, derive a single **family** for the airframe:
 4. **Boeing B-prefix**:
    - `B777`, `B737-86N` → corresponding family.
 5. **Filename fallback**:
-   - `MSN 30875` + manual override map → `B777`.
+   - `MSN <NNNN>` token + manual override map → resolved family.
 6. **Default**: `Unknown`. Flag for review, never guess.
 
-**Important:** A350 family does not exist in the corpus. Any string
-matching `A35[0-9]` in a registration (e.g. `VN-A350`) is a TAIL, not
-a model. Mask registrations before family detection.
+**Important:** any string matching `A35[0-9]` in a registration (e.g.
+`XX-A350`) is a TAIL, not a model — a family that isn't present in a
+given corpus should never be inferred from a registration substring.
+Mask registrations before family detection.
 
 **A320 family** rolls up: A318, A319, A320, A321.
 
@@ -364,7 +367,6 @@ NEVER:
 ---
 
 **Last updated**: 2026-06-10. Generated from the Cypher project's
-hand-tuned corpus of 1000+ aviation maintenance PDFs spanning 28 OCCM
-variants, 7 HT variants, and 7 LLP variants. Aligned with the
-validation rules in `shared/aviation_rules.py` and the cleanup pipeline
-in `shared/cleanup.py`.
+hand-tuned corpus of real-world aviation maintenance PDFs spanning its
+OCCM, HT, and LLP variants. Aligned with the validation rules in
+`shared/aviation_rules.py` and the cleanup pipeline in `shared/cleanup.py`.

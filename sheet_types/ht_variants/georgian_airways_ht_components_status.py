@@ -1,11 +1,11 @@
-"""Georgian Airways "HARD TIME COMPONENTS STATUS" report (4L-TGM, B737-700).
+"""Georgian Airways "HARD TIME COMPONENTS STATUS" report (B737-700).
 
 Header::
 
     GEORGIAN AIRWAYS
-    HARD TIME COMPONENTS STATUS FOR A/C-REGISTRATION: 4L-TGM
+    HARD TIME COMPONENTS STATUS FOR A/C-REGISTRATION: <tail no.>
     Total FH: 52703 Total FC: 34326 As of Date: 03.08.2016
-    A/C Type: B737-700 MSN: 29904
+    A/C Type: B737-700 MSN: <MSN>
     LAST ACN AT INSTALLATION SPEC LIMIT NEXT DUE REMAINING
     COMPONENT PART NUMBER SERIAL NUMBER POSITION TASK
     MAINT. HOURS CYCLES DATE HOURS CYCLES DAYS HOURS CYCLES DATE HOURS CYCLES DAYS
@@ -41,11 +41,12 @@ parsers (mm510, STARS Trax) draw the same line at not chasing every wrap
 sub-layout — so those rows extract with DESCRIPTION empty but PART_NUMBER/
 SERIAL_NUMBER/POSITION/TASK/STATUS_TRAIL unaffected.
 
-Corpus note: 5 files were triaged into this cluster by filename. Only 2
-have a real text layer (this parser); the other 2 "HT Components
-Status-*" files are ScanSnap scans (image-only pages, no text) and need
-OCR, not this parser. `HT Print.pdf` is a different operator entirely
-(VH-VUC "A/C Status Audit Print") and was dropped from the cluster.
+Corpus note: a handful of files were triaged into this cluster by
+filename. Only a couple have a real text layer (this parser); the rest
+of the "HT Components Status-*" files are ScanSnap scans (image-only
+pages, no text) and need OCR, not this parser. A file matching one such
+name turned out to be a different operator entirely ("A/C Status Audit
+Print") and was dropped from the cluster.
 """
 from __future__ import annotations
 import re

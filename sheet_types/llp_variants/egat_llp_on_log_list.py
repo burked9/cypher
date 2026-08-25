@@ -1,13 +1,13 @@
 """EGAT (Evergreen Aviation Technologies, Taiwan) "LLP ON LOG LIST" -- IAE
-V2500 engine LLP report, EGAT FORM 7054-01. Confirmed on 2 real files (MSN
-1356, ESN V10834 and V10128) -- single page, no text layer (0 chars via
-pdfplumber on the V10834 file; a scanned raster in both cases despite one
-of the two carrying an unrelated garbled OCR text layer, see below).
+V2500 engine LLP report, EGAT FORM 7054-01. Confirmed on real files from the
+same engine family (different engine serial numbers) -- single page, no
+text layer (0 chars via pdfplumber; a scanned raster in every known case,
+despite one file carrying an unrelated garbled OCR text layer, see below).
 
-IMPORTANT: only V10834 is actually this format. V10128's file of the same
-name pattern ("..._Engine LLP Status @ last SV.pdf", same MSN/engine
-family, same folder) is a completely different document -- an IHI
-Corporation "ENGINE/MODULE LIFE LIMITED PART TIME/CYCLE RECORD" (FORM
+IMPORTANT: only one of the two is actually this format. The other file, of
+the same name pattern ("..._Engine LLP Status @ last SV.pdf", same
+MSN/engine family, same folder) is a completely different document -- an
+IHI Corporation "ENGINE/MODULE LIFE LIMITED PART TIME/CYCLE RECORD" (FORM
 MU-006-2), a different table shape (INCOMING/OUTGOING STATUS side by side)
 from a different producer. Confirmed by rendering and reading both pages
 directly, not by signature text alone. This module's SIGNATURES/ocr_detect
@@ -58,8 +58,9 @@ bug. psm 8 recovers them every time but mangles multi-word text cells by
 dropping inter-word spaces, so `_ocr_numeric_cell` tries psm 7 first and
 falls back to psm 8 only on that empty result, only for numeric columns.
 
-Verified against both real files (25/25 LLP part rows recovered on
-V10834, matching a direct visual read of the source page). Two residual,
+Verified against both real files (25/25 LLP part rows recovered on the
+one this variant covers, matching a direct visual read of the source
+page). Two residual,
 left uncorrected rather than guessed at: (1) a left-margin handwritten
 annotation mark (a small circle) bleeds a stray leading glyph into
 MODULE_SN on 2 of 25 rows ("-- BCRROS", "a LT4DSK") -- caught by this
@@ -125,7 +126,7 @@ _OVERRIDES = {
     # alphanumeric token (FANDSK, 3T8RDS, HPT2AS, ...). This exists mainly
     # to flag -- never drop, per the soft-validation principle -- the
     # stray extra glyph a left-margin handwritten annotation mark
-    # sometimes bleeds into this column's crop (confirmed on 2 of 25 real
+    # sometimes bleeds into this column's crop (confirmed on a couple of
     # rows: "-- BCRROS", "a LT4DSK"), rather than silently keeping it.
     "MODULE_SN":         {"pattern": r"^[A-Z0-9]{4,8}$", "uppercase": True},
 }

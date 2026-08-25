@@ -1,65 +1,56 @@
 """Xiamen Airlines B737-75C "List of Installed Components" OCCM — scanned,
 no text layer, OCR required.
 
-Confirmed on 4 real files (real-corpus triage 2026-08-25), one per MSN,
-each headed "<B-reg> List of Installed Components" / XIAMEN AIRLINES /
-PREPARED BY FANG XIAOQIU / APPROVED BY LIN XIANGQUN / TITLE Quality
-Manager, with an AIRFRAME + ENGINE L + ENGINE R + APU MAKE/MODEL-SER
-NO-TSN-CSN summary block above the row table:
+Confirmed on a small set of real files from a real-corpus triage pass, one
+per airframe, each headed "<B-reg> List of Installed Components" / XIAMEN
+AIRLINES / PREPARED BY / APPROVED BY / TITLE Quality Manager, with an
+AIRFRAME + ENGINE L + ENGINE R + APU MAKE/MODEL-SER NO-TSN-CSN summary
+block above the row table. A couple of the source files are literal
+duplicates under different filenames (same content, different export
+naming).
 
-    MSN 29042 OCCM.pdf / 33.01 MSN 29042 OCCM.PDF   (B-2998, literal dupes)
-    MSN 30512 OCCM.pdf / 33.03 MSN 30512 OCCM.PDF   (B-2658, literal dupes)
-    MSN 30513 OCCM.pdf / 33.04 MSN 30513 OCCM.PDF   (B-2659, literal dupes)
-    MSN 29084 OCCM.pdf                              (B-2999)
-
-"33.02 MSN 29084 OCCM.PDF" was deliberately NOT included here even though
-it covers the same MSN/B-reg (B-2999) and repeats the same AIRFRAME/ENGINE/
-APU numbers verbatim: its title OCRs as "A/C List and Status of
-Time-controlled Components", not "List of Installed Components", and its
-row shape is genuinely different — an explicit ATA sub-code column and
-separate Hard Time / Total Time / Used Time / REMAIN / Next Work Date
-columns, vs. this format's plain DESCRIPTION + single TSN/CSN pair. That
-title phrase is also the one flagged as the marker for a *separate*
-Xiamen HT-shaped cluster ("MSN 30512 HT.pdf" etc.) elsewhere in the
-corpus — forcing 33.02 into this module would risk this variant silently
-swallowing genuinely HT-shaped exports once that HT variant exists.
+One sibling file covering the same airframe and repeating the same
+AIRFRAME/ENGINE/APU numbers verbatim was deliberately NOT included here:
+its title OCRs as "A/C List and Status of Time-controlled Components", not
+"List of Installed Components", and its row shape is genuinely different —
+an explicit ATA sub-code column and separate Hard Time / Total Time / Used
+Time / REMAIN / Next Work Date columns, vs. this format's plain
+DESCRIPTION + single TSN/CSN pair. That title phrase is also the one
+flagged as the marker for a *separate* Xiamen HT-shaped cluster elsewhere
+in the corpus — forcing that sibling file into this module would risk this
+variant silently swallowing genuinely HT-shaped exports once that HT
+variant exists.
 
 Per pdfplumber, all known files have 0 extractable chars on every page
 (confirmed), so ocr_detect()/extract() render every page and OCR it.
 
 Row shape (index, description, part no., serial no., install date, TSN,
 CSN, certificate) — no ATA code, no position column, confirmed by cross-
-checking multiple clean rows across all 4 files, e.g. (30512, page 1)::
+checking multiple clean rows across all known files, e.g.::
 
     5 | ACT-RAM AIR 541674-4 35-2969 2014-01-04 56613.09 40888 CAAC
 
 Plain pytesseract at 300dpi (`--psm 6`, matching the other OCR variants in
 this package) renders the ruled data grid as near-total noise on this
 cluster specifically — stray border/gridline pixels OCR as runs of
-"S"/"C"/"T"-shaped garbage swallowing whole rows (confirmed: ~90% of rows
-unreadable). Upscaling to 400dpi, converting to grayscale, and hard
-thresholding to pure black/white before OCR (removing the grid's
+"S"/"C"/"T"-shaped garbage swallowing whole rows (confirmed: the large
+majority of rows unreadable). Upscaling to 400dpi, converting to grayscale,
+and hard thresholding to pure black/white before OCR (removing the grid's
 antialiased grey fringe, which is what plain psm 6 was choking on) plus
 switching to `--psm 4` (single column of variable-sized text, vs psm 6's
-uniform block) recovers roughly half the rows cleanly across all 4 files.
-The remaining rows stay too corrupted to anchor on (numeric fields fused
-with gridline noise into unrecognisable tokens) and are silently skipped,
-the same trade-off `sriwijaya_b737_occm.py` and `standard_occm.py`'s A305
-sub-format make elsewhere in this package: a wrong guess would be worse
-than a missing row for cross-operator part-pricing use.
+uniform block) recovers roughly half the rows cleanly across all known
+files. The remaining rows stay too corrupted to anchor on (numeric fields
+fused with gridline noise into unrecognisable tokens) and are silently
+skipped, the same trade-off `sriwijaya_b737_occm.py` and
+`standard_occm.py`'s A305 sub-format make elsewhere in this package: a
+wrong guess would be worse than a missing row for cross-operator
+part-pricing use.
 """
 from __future__ import annotations
 import re
 
 from sheet_types.occm_variants._base import merged_rules
-
-try:
-    import fitz  # pymupdf
-    import pytesseract
-    from PIL import Image
-    _OCR_AVAILABLE = True
-except ImportError:  # pragma: no cover - exercised under Pyodide, not locally
-    _OCR_AVAILABLE = False
+from shared.ocr_bridge import render_page, ocr_text, page_count
 
 NAME = "Xiamen B737-75C List of Installed Components (Scanned)"
 
@@ -121,9 +112,9 @@ def _parse_line(line: str, page_num: int) -> dict | None:
     # "131-9B" as plausible digits (e.g. "398") often enough to pass the
     # ITEM anchor below, and always carries the report-generation date --
     # which matches the INSTALL_DATE anchor too. Confirmed false-positive
-    # on MSN 29042 p5 ("398 | P5104 | ... | TITLE Quality Manager AS OF
-    # DATE 2017-01-18"). Reject outright rather than let it masquerade as
-    # a data row.
+    # on one source file ("398 | P5104 | ... | TITLE Quality Manager AS OF
+    # DATE <report-date>"). Reject outright rather than let it masquerade
+    # as a data row.
     if _HEADER_NOISE_RE.search(line):
         return None
     s = _SEP_RUN_RE.sub(" ", _BORDER_RE.sub(" ", line))
@@ -175,17 +166,15 @@ def _parse_line(line: str, page_num: int) -> dict | None:
     }
 
 
-def _render_bw(doc, page_index: int, dpi: int = 400):
+def _to_bw(img):
     """400dpi + grayscale + hard threshold -- see module docstring for why
     plain 300dpi RGB (the other OCR variants' default) OCRs this cluster's
     ruled grid as near-total noise."""
-    pix = doc[page_index].get_pixmap(dpi=dpi)
-    img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
     gray = img.convert("L")
     return gray.point(lambda x: 0 if x < 150 else 255, "1")
 
 
-def ocr_detect(pdf_path: str) -> bool:
+async def ocr_detect(pdf_path: str) -> bool:
     """Cheap page-1 OCR check for the router's blank-text fallback -- this
     variant's SIGNATURES can never match through the normal pdfplumber
     text-extract path since every known source file has no text layer.
@@ -194,39 +183,30 @@ def ocr_detect(pdf_path: str) -> bool:
     300dpi/psm-6 pass this uses (unlike the data grid below it -- see
     module docstring), deliberately excluding the "Time-controlled
     Components" title of the sibling scan-quality cluster covering the
-    same B-reg/MSN (see module docstring on 33.02).
+    same airframe (see module docstring).
     """
-    if not _OCR_AVAILABLE:
-        return False
     try:
-        doc = fitz.open(pdf_path)
-        pix = doc[0].get_pixmap(dpi=300)
-        img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-        doc.close()
+        img = await render_page(pdf_path, 0, dpi=300)
         w, h = img.size
         crop = img.crop((0, 0, w, int(h * 0.15)))
-        text = pytesseract.image_to_string(crop, config="--psm 6").upper()
+        text = (await ocr_text(crop, psm=6)).upper()
         return "LIST OF INSTALLED COMPONENTS" in text and "XIAMEN" in text
     except Exception:
         return False
 
 
-def extract(pdf_path: str) -> list[dict]:
-    if not _OCR_AVAILABLE:
-        return []
+async def extract(pdf_path: str) -> list[dict]:
     records: list[dict] = []
-    doc = fitz.open(pdf_path)
-    try:
-        for page_index in range(len(doc)):
-            bw = _render_bw(doc, page_index)
-            text = pytesseract.image_to_string(bw, config="--psm 4")
-            for raw in text.splitlines():
-                line = raw.strip()
-                if not line:
-                    continue
-                rec = _parse_line(line, page_index + 1)
-                if rec is not None:
-                    records.append(rec)
-    finally:
-        doc.close()
+    n_pages = await page_count(pdf_path)
+    for page_index in range(n_pages):
+        img = await render_page(pdf_path, page_index, dpi=400)
+        bw = _to_bw(img)
+        text = await ocr_text(bw, psm=4)
+        for raw in text.splitlines():
+            line = raw.strip()
+            if not line:
+                continue
+            rec = _parse_line(line, page_index + 1)
+            if rec is not None:
+                records.append(rec)
     return records

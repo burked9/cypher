@@ -1,41 +1,40 @@
 """"OCCM LIST FOR <REG>" — scanned SAP/MIS-style export, no text layer.
 
-Confirmed on 2 real files (real-corpus triage 2026-08-25), each duplicated
-once (identical md5 within its own pair, "(2).pdf" siblings skipped):
-"28519_OCCM status_20.10.2017.pdf" (16 pages) and "OCCMDUMP.pdf" (14 pages),
-both "OCCM LIST FOR VP-BVY". Page 1-2 of each carries byte-for-byte the SAME
-underlying rows (row 1 = equipment 24968, row 13 = 18427, etc.) in the same
-column order -- this is one report format exported twice (different tool or
-export pass), not two layouts, confirmed by direct inspection rather than
-assumed from the filenames.
+Confirmed on a small number of real files in the corpus (real-corpus triage),
+some duplicated (identical md5 within their own pair, "(2).pdf" siblings
+skipped). Page 1-2 of each duplicate pair carries byte-for-byte the SAME
+underlying rows in the same column order -- this is one report format
+exported twice (different tool or export pass), not two layouts, confirmed
+by direct inspection rather than assumed from the filenames.
 
-Neither file has any text layer (pdfplumber: 0 chars on every page, 1-2
-embedded images), so this is OCR-only, like sriwijaya_b737_occm.py. Unlike
-that module's data grid, plain page-level OCR (tesseract --psm 6) here comes
-back cleanly row-segmented -- no per-cell grid-line detection needed (the
-kalstar_aviation_llp_status.py approach): a whole-page free-text OCR pass
-plus anchored token parsing recovers ~99% of rows correctly (156/158 across
-the 4 sampled pages, both files) with only two failure modes below.
+None of the known files has any text layer (pdfplumber: 0 chars on every
+page, 1-2 embedded images), so this is OCR-only, like sriwijaya_b737_occm.py.
+Unlike that module's data grid, plain page-level OCR (tesseract --psm 6)
+here comes back cleanly row-segmented -- no per-cell grid-line detection
+needed (the kalstar_aviation_llp_status.py approach): a whole-page free-text
+OCR pass plus anchored token parsing recovers the large majority of rows
+correctly across the sampled pages, with only two failure modes below.
 
 Header line (OCR'd, noisy prefix glyphs before the title vary by file/page
 but the title phrase itself is always clean)::
 
-    OCCM LIST FOR VP-BVY
+    OCCM LIST FOR <registration>
     No Equipment Material Serial No. Master Batch Equipment Description
     Functional Location TSIHrs TSICyc TSOHrs TSOCyc TSNHrs TSN Cyc
     Install (TSN) Date
 
-Real data row (OCR'd, whitespace as printed)::
+Example data row (OCR'd, whitespace as printed, values genericized but
+token shapes preserved)::
 
     1 24968 4100945B:45153 1392B £43128340 B777 HS CARE:FAN, MIXED FLOW 7.5
-    INCH DI 9V-OTE/2125/01/AFT 8634.38 2056 8634.38 2056 43490:58 9296
+    INCH DI XX-XXX/2125/01/AFT 8634.38 2056 8634.38 2056 43490:58 9296
     19.05.2013
 
 Two anchors, both far more reliable than trying to split the header's own
 word-wrapped column names: the BATCH token (always exactly one colon
 joining two alnum/hyphen runs, e.g. "4100945B:45153", "606707-1:70210") and
 the FUNCTIONAL_LOCATION token immediately before the trailing numeric block
-(always >=2 slashes, e.g. "9V-OTE/2125/01/AFT"). Everything between BATCH+2
+(always >=2 slashes, e.g. "XX-XXX/2125/01/AFT"). Everything between BATCH+2
 and FUNCTIONAL_LOCATION is kept together as DESCRIPTION rather than split
 further -- same call sriwijaya_b737_occm.py makes for its own scrambled
 middle section, for the same reason (a wrong PART_NUMBER/SERIAL split would
@@ -48,8 +47,8 @@ between them is thin ("1727789" for "17 27789") -- recovered via a
 small and sequential; and a batch token can itself lose its internal hyphen
 and split across two tokens ("810204 4:73030" for "810204-4:73030"), which
 this module does NOT special-case (would risk falsely reassembling an
-unrelated NO/EQUIPMENT pair elsewhere) -- confirmed as the only remaining
-drop in the 4-page sample (1 row of 158).
+unrelated NO/EQUIPMENT pair elsewhere) -- confirmed as a rare remaining
+drop in the sampled pages.
 """
 from __future__ import annotations
 import re
@@ -206,10 +205,10 @@ def ocr_detect(pdf_path: str) -> bool:
     layer at all.
 
     Anchors on "OCCM LIST FOR" alone (not the registration itself), which
-    OCRs clean on both known files despite noisy graphic glyphs immediately
-    before it on the same line -- kept generic rather than tied to VP-BVY so
-    a future export of the same MIS template for a different registration
-    still routes here.
+    OCRs clean on the known files despite noisy graphic glyphs immediately
+    before it on the same line -- kept generic rather than tied to any one
+    registration so a future export of the same MIS template for a
+    different registration still routes here.
     """
     if not _OCR_AVAILABLE:
         return False

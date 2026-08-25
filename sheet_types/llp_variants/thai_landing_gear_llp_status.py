@@ -1,12 +1,12 @@
 """Thai landing-gear LLP status -- "<n> THAI LANDING GEAR LIFE LIMITED PARTS
-STATUS" (confirmed on HS-TEJ, MSN 209, prepared by Pornsak N./BKKU). Despite
-its filename following the same "<MSN>_E307_LLP_Inventory_<position>_<date>"
-convention as the Boeing-737 TP-023/TP-024 files this cluster also contains,
-the header, row grammar and even the airline are unrelated -- b737_gear_
-llp_inventory.py's own docstring notes exactly this kind of filename-vs-
-content mismatch for a different pair of files, and it recurs here.
+STATUS" (confirmed on a real source file). Despite its filename following
+the same "<MSN>_E307_LLP_Inventory_<position>_<date>" convention as the
+Boeing-737 TP-023/TP-024 files this cluster also contains, the header, row
+grammar and even the airline are unrelated -- b737_gear_llp_inventory.py's
+own docstring notes exactly this kind of filename-vs-content mismatch for a
+different pair of files, and it recurs here.
 
-No text layer (confirmed with pdfplumber: 0 chars on all 6 pages) but reads
+No text layer (confirmed with pdfplumber: 0 chars on every page) but reads
 cleanly via plain OCR at the OCR helper's usual 300dpi/psm 6 -- unlike
 kalstar_aviation_llp_status.py's scan, cell gaps survive intact at that
 setting on every row checked, so there was no need to chase a higher DPI

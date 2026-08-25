@@ -1,7 +1,7 @@
 """Standard OCCM variant — the canonical multi-operator OCCM layout.
 
-Empirically the most common OCCM format in our corpus (~50 files spanning
-many operators: GOL, VNA, A-prefix airframes, and others). The format is
+Empirically the most common OCCM format in our corpus (a large number of
+files spanning many operators). The format is
 generic enough that several MIS vendors emit it — we name it for the
 *format*, not the operator. If a per-operator override is ever needed, an
 operator-specific variant can be added with stricter SIGNATURES and the
@@ -36,6 +36,10 @@ found because production silently returned zero rows on both:
     breakdown at all — see `_parse_simple_row`. Only one confirmed
     example so far; a second one turning up with a different shape is
     a good signal to split this into its own variant module instead.
+
+(Confirmed example filenames are omitted here deliberately — they carry
+real registrations/MSNs; see `_HAS_ROW_NUMBER_COL` and `_parse_simple_row` /
+`_parse_ata_pn_sn_date_row` below for the structural detail that mattered.)
 """
 from __future__ import annotations
 import re
@@ -91,7 +95,7 @@ _DATE_RE = re.compile(r"^\d{1,2}[/-][A-Za-z]{3}[/-]\d{2}$")
 _NUM_RE = re.compile(r"^\d+(?:\.\d+)?$")
 _REF_SUFFIX = "REF TO HTLL STATUS"
 
-# A sibling sub-format (confirmed on one file, "A349 OCCM 31.pdf") has an
+# A sibling sub-format (confirmed on one known file) has an
 # extra leading row-number column pdfplumber's text extraction preserves
 # as its own token -- the column header literally reads "NO. ATA FIN..."
 # instead of "ATA FIN...". Detected once from the file's own header text
@@ -177,8 +181,8 @@ def _parse_line(line: str, page_num: int, has_row_number: bool = False) -> dict 
     return rec
 
 
-# A structurally different, simpler sibling format -- confirmed on one file
-# so far ("CC-AFY OCCM STATUS REV 0.pdf"). No AC/COMP FH-CY breakdown at
+# A structurally different, simpler sibling format -- confirmed on one
+# known file so far. No AC/COMP FH-CY breakdown at
 # all: ATA FIN DESCRIPTION... PART_NUMBER SERIAL_NUMBER INSTALLED_DATE
 # ACTUAL_TSN ACTUAL_CSN -- 8 columns, not 14. Dates are D-Mon-YYYY with
 # dashes and a 4-digit year (the main branch expects D/Mon/YY with
@@ -225,8 +229,8 @@ def _parse_simple_row(tokens: list[str], page_num: int) -> dict | None:
     return rec
 
 
-# A third sibling format -- confirmed on one file ("A305_OCCM
-# Inventory_20210308.pdf"): ATA PN SN DESCRIPTION POS DATE, no TSN/CSN or
+# A third sibling format -- confirmed on one known file: ATA PN SN
+# DESCRIPTION POS DATE, no TSN/CSN or
 # FH/CY breakdown at all. POS is folded into DESCRIPTION rather than
 # split out: real examples ("GALLEY G", "P8-CAPT", "P8-F/O", "0", "FO")
 # have no consistent shape to anchor on, and guessing at a split from one

@@ -75,7 +75,7 @@ SOURCES = [
     "sheet_types/occm_variants/sedor_b737_occm.py",
     "sheet_types/occm_variants/swiss_a340_occm.py",
     # OCCM variants added in the OCCM+HT session
-    "sheet_types/occm_variants/elal_b767_msn28132.py",
+    "sheet_types/occm_variants/elal_b767_records_package.py",
     "sheet_types/occm_variants/georgian_airways_b737.py",
     # OCCM variants added from the 2026-08-22 triage-driven build
     "sheet_types/occm_variants/aircraft_components_list.py",

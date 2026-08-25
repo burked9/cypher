@@ -2,13 +2,13 @@
 
 Distinctive header (always present):
 
-    A I C R A F T: N591EL
-    S E R I A L #: 2333
+    A I C R A F T: <REG>
+    S E R I A L #: <SN>
     M O D E L: A318-111
 
 Two row shapes share this same header:
 
-  1) ITEM format (the majority — 16 files in this corpus). Per-row layout::
+  1) ITEM format (the majority of files in this corpus). Per-row layout::
 
        ITEM ATA POSITION DESCRIPTION...  PN  SN  INST_DATE  TSN  CSN
 
@@ -17,7 +17,7 @@ Two row shapes share this same header:
      ``1002TW1`` (longer alphanumeric). TSN/CSN may be the literal sentinel
      ``UNKNOWN``. Dates are ``D-Mon-YY``.
 
-  2) ATA-prefix format (the minority — 1 file: MSN 1612). Per-row layout::
+  2) ATA-prefix format (the minority — a single known file). Per-row layout::
 
        ATA<chapter> PN SN DESCRIPTION... INST_DATE
 

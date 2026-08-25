@@ -3,7 +3,7 @@
 Header::
 
     AIRCRAFT SPECIFICATION FILE
-    Airbus A330-223 EI-GFF MSN 0469 OCCM List
+    Airbus A330-223 <REG> MSN <MSN> OCCM List
     ...
     ATA  ATA-Description  Part No  Serial No  Description  Pos.  Inst-Date  TSN  CSN
 

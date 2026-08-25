@@ -15,7 +15,7 @@ from sheet_types.occm_variants import (
     a330_engineering_planning, aegean_erj_occm, avianca_occm,
     b777_annex7_occm, b777_annex8_occm,
     cca_a340_occm, swiss_a340_occm, a305_a340_occm, on_condition_monitoring_occm,
-    msn_components_status_list, sedor_b737_occm, elal_b767_msn28132,
+    msn_components_status_list, sedor_b737_occm, elal_b767_records_package,
     georgian_airways_b737,
     aeroflot, aircraft_inventory_report, aircraft_rotables_report,
     aircraft_spec_file_occm, amos,
@@ -44,7 +44,7 @@ VARIANTS = [
     on_condition_monitoring_occm,
     msn_components_status_list,
     sedor_b737_occm,
-    elal_b767_msn28132,
+    elal_b767_records_package,
     georgian_airways_b737,
     aeroflot, aircraft_inventory_report, aircraft_rotables_report, amos,
     cathay_occm, config_slot_occm, iberia_listado, oases,
@@ -70,8 +70,8 @@ SIGNATURES = [
     # working per-variant parsers for each.
     "PROG. MAN:",                         # TAP Compact OCCM (CS-T**)
     "AIRCRAFT-EQUIPMENT-LIST",            # hyphenated AMOS variant
-    "AIRCRAFT COMPONENT LOG",             # Georgian Airways 4L-TGM
-    "Parts Remaining Fitted at Build",    # EL AL B767 MSN 28132 records-package
+    "AIRCRAFT COMPONENT LOG",             # Georgian Airways variant
+    "Parts Remaining Fitted at Build",    # EL AL B767 records-package
     "Parts Remaining fitted at Build",    # same, case variation
     "I-BIX",                              # Alitalia I-BIX* registrations
     "AIRCRAFT COMPONENTS LIST",           # aircraft_components_list.py

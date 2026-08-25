@@ -1,8 +1,8 @@
 """Aircraft Inventory Report (MM_504) variant.
 
-Format produced by an MRO maintenance system used by multiple operators
-(Atlasjet, Atlasglobal, Red Wings, and others). The internal form code is
-`MM_504` and an `MCM-RW-1.3-5` form ID often appears in the header.
+Format produced by an MRO maintenance system used by multiple operators.
+The internal form code is `MM_504` and an `MCM-RW-1.3-5` form ID often
+appears in the header.
 
 Layout (one row per line, space-separated):
     ATA  PART_NUMBER  SERIAL_NUMBER  DESCRIPTION...  POSITION  INSTALL_DATE
@@ -15,7 +15,7 @@ Two date formats observed across operators:
     `DD-MMM-YY`   e.g. `15-OCT-15`
     `DD-MM-YYYY`  e.g. `27-04-2018`
 
-The Red Wings sub-format (two date columns + continuation rows) is not
+One operator's sub-format (two date columns + continuation rows) is not
 handled by this variant yet — those rows will simply not match the regex
 and be skipped. A future refinement can add a second variant for it once
 the format is understood.
