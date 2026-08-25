@@ -23,6 +23,8 @@ from sheet_types.occm_variants import (
     occm_list_as_at, occm_status_list, on_condition_components_report,
     remaining_potentials, standard_occm, tap_compact_occm, technical_object_listing,
     aircraft_components_list, stars_trax_occm, sriwijaya_b737_occm,
+    aircraft_inventory_report_scanned, xiamen_b737_installed_components,
+    aircraft_rotables_report_scanned,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 
@@ -48,6 +50,8 @@ VARIANTS = [
     occm_list_as_at, occm_status_list, on_condition_components_report,
     remaining_potentials, standard_occm, tap_compact_occm, technical_object_listing,
     aircraft_components_list, stars_trax_occm, sriwijaya_b737_occm,
+    aircraft_inventory_report_scanned, xiamen_b737_installed_components,
+    aircraft_rotables_report_scanned,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)

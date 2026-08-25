@@ -13,6 +13,7 @@ from sheet_types.ht_variants import (
     hard_time_component_status_mpd_task,
     aercap_hard_time_component_status, aercap_oxygen_generator_status,
     emes_hard_time_component_status,
+    xiamen_time_controlled_components, aircraft_rotables_ht_scanned,
 )
 from shared.cleanup import clean_record
 
@@ -23,7 +24,8 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             georgian_airways_ht_components_status, mpd_hard_time_list, htll_status,
             hard_time_component_status_mpd_task,
             aercap_hard_time_component_status, aercap_oxygen_generator_status,
-            emes_hard_time_component_status]
+            emes_hard_time_component_status,
+            xiamen_time_controlled_components, aircraft_rotables_ht_scanned]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -41,6 +43,7 @@ SIGNATURES = [
     # pattern as MM_510/STARS Trax elsewhere in this file. This phrase is
     # unique to the HT-side format instead.
     "T/C # TASK HT",                                     # emes_hard_time_component_status.py
+    "Time-controlled Components",                        # xiamen_time_controlled_components.py
 ]
 
 
@@ -60,6 +63,19 @@ def detect_variant(pdf_path: str) -> str:
     for v in VARIANTS:
         for sig in v.SIGNATURES:
             if sig.upper() in head:
+                return v.NAME
+    if len(head.strip()) < 50:
+        # No usable text layer -- likely a scanned PDF. Ask any OCR-capable
+        # variant to confirm its own template via a cheap header OCR pass
+        # rather than guessing (mirrors occm.py/llp.py). Without this block,
+        # router.py's own OCR-fallback loop can still correctly resolve
+        # sheet_type="HT" for a blank-text file (it checks every sheet
+        # type's variants directly), but then this function -- called next,
+        # to pick the specific variant -- would return "Unknown" regardless,
+        # since it only checked plain-text SIGNATURES above.
+        for v in VARIANTS:
+            ocr_check = getattr(v, "ocr_detect", None)
+            if ocr_check and ocr_check(pdf_path):
                 return v.NAME
     return "Unknown"
 
