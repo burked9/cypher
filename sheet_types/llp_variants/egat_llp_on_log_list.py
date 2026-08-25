@@ -242,16 +242,22 @@ async def ocr_detect(pdf_path: str) -> bool:
     """Cheap page-1 OCR check for the router's blank-text fallback -- "LLP
     ON LOG LIST" OCRs cleanly in the title block on the one known real
     file even though the data grid below doesn't (see module docstring).
-    The EGAT globe logo next to it, unlike the plain-text title, does not:
-    it OCRs as "EG AT" (a stray space split by the logo graphic) on the
-    known file, so both spacings are accepted rather than trusting "EGAT"
-    alone to always come back as one token.
+
+    The EGAT globe logo next to the title does NOT OCR reliably, and does
+    so differently per OCR engine -- pytesseract (local) reads it as
+    "EG AT" (confirmed), Tesseract.js (in-browser) reads the exact same
+    logo as "CYELGAT" (confirmed via a real user's browser). Neither is a
+    stable anchor, so this doesn't require the logo text at all -- the
+    full "LLP ON LOG LIST" phrase alone already OCRs cleanly on both
+    engines and was already checked for collisions across every other
+    variant's SIGNATURES in this package (see SIGNATURES above), so it's
+    a safe, sufficient anchor by itself.
     """
     try:
         img = await render_page(pdf_path, 0, dpi=_DPI)
         crop = img.crop((0, 0, img.width, int(img.height * 0.15)))
         text = (await ocr_text(crop, psm=6)).upper()
-        return "LOG LIST" in text and ("EGAT" in text or "EG AT" in text)
+        return "LLP ON LOG LIST" in text
     except Exception:
         return False
 
