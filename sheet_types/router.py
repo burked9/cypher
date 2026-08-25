@@ -19,6 +19,7 @@ import pdfplumber
 
 from sheet_types import occm, ht, llp
 from shared.cleanup import clean_record
+from shared.ocr_bridge import maybe_await
 
 
 SHEET_TYPES = {
@@ -41,9 +42,17 @@ def _read_head_text(pdf_path: str, n_pages: int = 3) -> str:
     return "\n".join(parts)
 
 
-def detect_sheet_type(pdf_path: str) -> str:
-    """Return 'OCCM' / 'HT' / 'LLP' / 'Unknown' based on first-pages text."""
-    head = _read_head_text(pdf_path).upper()
+async def detect_sheet_type(pdf_path: str, has_text_layer: bool | None = None) -> str:
+    """Return 'OCCM' / 'HT' / 'LLP' / 'Unknown' based on first-pages text.
+
+    `has_text_layer=False` skips the pdfplumber-based head-text read below
+    entirely — that read is the confirmed-slow operation on a genuinely
+    scanned PDF under Pyodide (minutes, root cause unidentified), and a
+    caller that already knows the answer (deploy/main.py, via app.js's own
+    fast pdf.js-based check) shouldn't pay that cost redundantly just to
+    re-derive "no text layer" a second time before falling through to the
+    exact same OCR loop below anyway."""
+    head = "" if has_text_layer is False else _read_head_text(pdf_path).upper()
     if head.strip():
         for st in DETECTION_ORDER:
             mod = SHEET_TYPES[st]
@@ -62,12 +71,12 @@ def detect_sheet_type(pdf_path: str) -> str:
         mod = SHEET_TYPES[st]
         for variant in getattr(mod, "VARIANTS", []):
             ocr_check = getattr(variant, "ocr_detect", None)
-            if ocr_check and ocr_check(pdf_path):
+            if ocr_check and await maybe_await(ocr_check(pdf_path)):
                 return st
     return "Unknown"
 
 
-def extract(pdf_path: str) -> dict:
+async def extract(pdf_path: str) -> dict:
     """Detect sheet type + variant, run the right parser, return validated rows.
 
     Return shape:
@@ -79,15 +88,15 @@ def extract(pdf_path: str) -> dict:
           "records":    [{...}, ...],   # cleaned + validated
         }
     """
-    sheet_type = detect_sheet_type(pdf_path)
+    sheet_type = await detect_sheet_type(pdf_path)
     if sheet_type == "Unknown":
         return {"ok": False, "sheet_type": "Unknown", "variant": "Unknown",
                 "columns": [], "records": [],
                 "error": "Sheet type not recognized — extend signatures in sheet_types/"}
 
     mod = SHEET_TYPES[sheet_type]
-    variant = mod.detect_variant(pdf_path)
-    raw = mod.extract(pdf_path, variant_name=variant)
+    variant = await mod.detect_variant(pdf_path)
+    raw = await mod.extract(pdf_path, variant_name=variant)
     cleaned = mod.normalize_and_validate(raw["records"], variant_name=variant)
     return {
         "ok": True,

@@ -24,8 +24,8 @@ import pandas as pd
 # that actually use them (_ocr_page, extract_records), not at module level.
 # Neither has a Pyodide-compatible wheel -- a top-level import here would
 # crash the moment this module loads in the browser, even though
-# extract_records_from_words() (the in-browser OCR entry point; see
-# deploy/main.py's run_with_ocr()) never touches either.
+# extract_records_async() (the one both local and in-browser callers use
+# now, via shared/ocr_bridge.py's primitives) never touches either.
 
 
 DEFAULT_COLUMNS = ["ATA", "ZONE", "FIN", "DESCRIPTION", "VENDOR_CODE", "PART_NUMBER", "SERIAL_NUMBER"]
@@ -240,6 +240,26 @@ def extract_records(pdf_path: str, columns: list[str] = DEFAULT_COLUMNS) -> list
     import fitz
     doc = fitz.open(pdf_path)
     page_dfs = [(_ocr_page(page), i + 1) for i, page in enumerate(doc)]
+    return _records_from_page_dfs(page_dfs, columns)
+
+
+async def extract_records_async(pdf_path: str, columns: list[str] = DEFAULT_COLUMNS) -> list[dict]:
+    """Same end-to-end extraction as `extract_records`, via the shared
+    render_page()/ocr_words() primitives (shared/ocr_bridge.py) instead of
+    calling fitz/pytesseract directly -- works locally (those primitives
+    fall back to fitz/pytesseract themselves) AND under Pyodide (they
+    delegate to pdf.js/Tesseract.js instead). Supersedes the old
+    local-only/browser-only split between this function and
+    `extract_records_from_words` below; that one is kept only for whatever
+    external callers already depend on its exact signature."""
+    from shared.ocr_bridge import render_page, ocr_words, page_count
+    n_pages = await page_count(pdf_path)
+    page_dfs = []
+    for i in range(n_pages):
+        img = await render_page(pdf_path, i, dpi=300)
+        words = await ocr_words(img)
+        df = pd.DataFrame(words, columns=_WORD_COLS) if words else pd.DataFrame(columns=_WORD_COLS)
+        page_dfs.append((df, i + 1))
     return _records_from_page_dfs(page_dfs, columns)
 
 

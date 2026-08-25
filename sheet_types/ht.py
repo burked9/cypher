@@ -16,6 +16,7 @@ from sheet_types.ht_variants import (
     xiamen_time_controlled_components, aircraft_rotables_ht_scanned,
 )
 from shared.cleanup import clean_record
+from shared.ocr_bridge import maybe_await
 
 # Order matters: more-specific signatures must precede generic ones.
 # Variants with distinctive headers sit before the AMOS catch-all.
@@ -58,7 +59,7 @@ def _read_head_text(pdf_path: str, n_pages: int = 3) -> str:
     return "\n".join(parts)
 
 
-def detect_variant(pdf_path: str) -> str:
+async def detect_variant(pdf_path: str) -> str:
     head = _read_head_text(pdf_path).upper()
     for v in VARIANTS:
         for sig in v.SIGNATURES:
@@ -75,18 +76,18 @@ def detect_variant(pdf_path: str) -> str:
         # since it only checked plain-text SIGNATURES above.
         for v in VARIANTS:
             ocr_check = getattr(v, "ocr_detect", None)
-            if ocr_check and ocr_check(pdf_path):
+            if ocr_check and await maybe_await(ocr_check(pdf_path)):
                 return v.NAME
     return "Unknown"
 
 
-def extract(pdf_path: str, variant_name: str | None = None) -> dict:
+async def extract(pdf_path: str, variant_name: str | None = None) -> dict:
     if variant_name is None:
-        variant_name = detect_variant(pdf_path)
+        variant_name = await detect_variant(pdf_path)
     v = _BY_NAME.get(variant_name)
     if v is None:
         return {"variant": "Unknown", "columns": [], "records": []}
-    records = v.extract(pdf_path)
+    records = await maybe_await(v.extract(pdf_path))
     return {"variant": v.NAME, "columns": v.CANONICAL_COLUMNS, "records": records}
 
 

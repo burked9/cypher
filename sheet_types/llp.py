@@ -12,6 +12,7 @@ from sheet_types.llp_variants import (
     sky_airlines_llp_summary, b737_gear_llp_inventory, egat_llp_on_log_list,
 )
 from shared.cleanup import clean_record
+from shared.ocr_bridge import maybe_await
 
 VARIANTS = [
     vietnam_airlines, amos, lan_engine_llp, pro_rata_engine_llp,
@@ -95,7 +96,7 @@ def _read_head_text(pdf_path: str, n_pages: int = 3) -> str:
     return "\n".join(parts)
 
 
-def detect_variant(pdf_path: str) -> str:
+async def detect_variant(pdf_path: str) -> str:
     head = _read_head_text(pdf_path).upper()
     for v in VARIANTS:
         for sig in v.SIGNATURES:
@@ -110,18 +111,18 @@ def detect_variant(pdf_path: str) -> str:
         # that sent a real LLP document through as "OCCM . Aeroflot").
         for v in VARIANTS:
             ocr_check = getattr(v, "ocr_detect", None)
-            if ocr_check and ocr_check(pdf_path):
+            if ocr_check and await maybe_await(ocr_check(pdf_path)):
                 return v.NAME
     return "Unknown"
 
 
-def extract(pdf_path: str, variant_name: str | None = None) -> dict:
+async def extract(pdf_path: str, variant_name: str | None = None) -> dict:
     if variant_name is None:
-        variant_name = detect_variant(pdf_path)
+        variant_name = await detect_variant(pdf_path)
     v = _BY_NAME.get(variant_name)
     if v is None:
         return {"variant": "Unknown", "columns": [], "records": []}
-    records = v.extract(pdf_path)
+    records = await maybe_await(v.extract(pdf_path))
     return {"variant": v.NAME, "columns": v.CANONICAL_COLUMNS, "records": records}
 
 

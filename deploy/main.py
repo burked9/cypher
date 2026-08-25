@@ -5,18 +5,19 @@ Called from app.js with raw PDF bytes. Auto-detects sheet type (OCCM/HT/LLP)
 JSON-serializable dict containing variant, columns, rows, summary stats,
 and any warning.
 
-A blank-text PDF is routed to app.js's in-browser OCR attempt (Tesseract.js
-+ pdf.js, see ocr_bridge.js) before ever reaching this file's `run()`. Only
-Aeroflot is wired up on the OCR side so far (see `run_with_ocr()` below) --
-every other blank-text PDF still gets one general "looks scanned" warning
-from `run()` rather than a sheet-type/variant guess, since this file itself
-uses pdfplumber only and has no way to tell WHICH variant a blank-text PDF
-is (the OCR-capable local variants need `fitz` + `pytesseract`, neither
-available under Pyodide). Guessing one specific answer here is exactly what
-mislabeled a scanned LLP sheet as "OCCM . Aeroflot" for a real user this
-session — the fix was to say "can't tell, no text layer" honestly instead
-of picking an answer; `run_with_ocr()` is a deliberate, narrow exception to
-that for the one variant that actually has somewhere to route to.
+`run()` is async: sheet_types/router.py's detect_sheet_type()/extract() are
+both async now, since OCR-capable variants need to await
+shared/ocr_bridge.py's render_page()/ocr_text()/ocr_words() primitives
+(backed by pdf.js/Tesseract.js under Pyodide, since neither fitz nor
+pytesseract can run there). Non-OCR variants are untouched, plain sync
+functions underneath — router.py awaits either kind transparently.
+
+`has_text_layer`, when app.js has already run its own fast pdf.js-based
+check (see ocr_bridge.js's hasTextLayer()), lets this skip redoing that
+check via pdfplumber — which is the one confirmed-slow operation on a
+genuinely scanned PDF (2.5+ minutes observed on files as small as 89KB,
+root cause not identified). Pass None (the default) to have this run its
+own check, for callers that haven't already done it.
 
 L4 (PaddleOCR) is intentionally not in the deploy — too heavy. The user
 runs `research/colab_L4_paddleocr.ipynb` on demand for fringe cases.
@@ -65,13 +66,21 @@ def _has_no_text_layer(pdf_path: str, n_pages: int = 3, threshold: int = 50) -> 
     return n_chars < threshold
 
 
-def run(pdf_bytes: bytes, level: str = "auto"):
+async def run(pdf_bytes: bytes, level: str = "auto", has_text_layer: bool | None = None):
     try:
         path = _save_temp(bytes(pdf_bytes))
     except Exception as e:
         return {"ok": False, "error": f"Could not buffer PDF: {e}"}
 
-    if _has_no_text_layer(path):
+    try:
+        sheet_type = await router.detect_sheet_type(path, has_text_layer=has_text_layer)
+    except Exception as e:
+        return {"ok": False, "error": f"Sheet-type detection failed: {e}"}
+
+    if has_text_layer is None:
+        has_text_layer = not _has_no_text_layer(path)
+
+    if sheet_type == "Unknown" and not has_text_layer:
         return {
             "ok": True,
             "sheet_type": "Unknown",
@@ -79,21 +88,15 @@ def run(pdf_bytes: bytes, level: str = "auto"):
             "columns": [],
             "rows": [],
             "warning": ("This PDF has no extractable text layer, which usually "
-                        "means it's a scanned or image-only document. This build "
-                        "has no in-browser OCR yet (Tesseract.js isn't wired in), "
-                        "so it can't tell what kind of sheet this is or process "
-                        "it here. If you have local Python access to this "
-                        "project, the local pipeline already handles some "
-                        "scanned formats."),
+                        "means it's a scanned or image-only document, and "
+                        "this build's in-browser OCR doesn't recognize it as "
+                        "a supported variant. If you have local Python "
+                        "access to this project, the local pipeline handles "
+                        "more scanned formats than the browser does today."),
         }
 
     try:
-        sheet_type = router.detect_sheet_type(path)
-    except Exception as e:
-        return {"ok": False, "error": f"Sheet-type detection failed: {e}"}
-
-    try:
-        result = router.extract(path)
+        result = await router.extract(path)
     except Exception as e:
         return {"ok": False, "error": f"Extraction failed: {e}", "sheet_type": sheet_type}
 
@@ -138,59 +141,11 @@ def run(pdf_bytes: bytes, level: str = "auto"):
     }
 
 
-# ---------------------------------------------------------------------------
-# In-browser OCR (Tesseract.js). Pyodide has no `tesseract` binary for
-# pytesseract to shell out to, so app.js OCRs each page client-side (see
-# ocr_bridge.js's ocrCanvas(), which shapes Tesseract.js output to match
-# pytesseract.image_to_data's columns) and hands the word boxes here --
-# this is the one path into levels/L3_ocr/extract.py's column-projection
-# logic that never touches fitz or pytesseract.
-#
-# Only Aeroflot (the OCCM variant levels/L3_ocr was built for) is wired up
-# below. Every other OCR-capable local variant (e.g. Part M's engine LLP
-# sheet) has extraction logic built around a completely different layout
-# strategy (grid detection, not ATA/ZONE row anchors) and would need its
-# own adapter here, not a copy of this one.
-# ---------------------------------------------------------------------------
-
-def run_with_ocr(pages_words: list, sheet_type: str, variant: str):
-    if sheet_type == "OCCM" and variant == "Aeroflot":
-        from sheet_types.occm_variants import aeroflot
-        from levels.L3_ocr.extract import extract_records_from_words
-        from shared.cleanup import clean_record
-
-        try:
-            raw_records = extract_records_from_words(pages_words, columns=aeroflot.CANONICAL_COLUMNS)
-        except Exception as e:
-            return {"ok": False, "error": f"OCR word-box extraction failed: {e}"}
-
-        cleaned = [clean_record(dict(r), aeroflot.RULES) for r in raw_records]
-
-        if not cleaned:
-            return {
-                "ok": True, "sheet_type": sheet_type, "variant": variant,
-                "columns": [], "rows": [],
-                "warning": ("OCR ran but found no recognizable rows. The scan "
-                            "quality or layout may not fit this variant as "
-                            "cleanly as the samples this was tuned on."),
-            }
-
-        columns = list(aeroflot.CANONICAL_COLUMNS) + ["_issues", "_page"]
-        rows = [{c: ("" if r.get(c) is None else str(r.get(c, ""))) for c in columns}
-                for r in cleaned]
-        n = len(rows)
-        flagged = sum(1 for r in rows if r.get("_issues"))
-        return {
-            "ok": True,
-            "sheet_type": sheet_type,
-            "variant": variant,
-            "columns": columns,
-            "rows": rows,
-            "summary": {"total": n, "clean": n - flagged, "flagged": flagged, "imputed_ata": 0},
-        }
-
-    return {"ok": False,
-            "error": f"In-browser OCR isn't wired up yet for {sheet_type} / {variant}."}
+# run_with_ocr() (a one-off Aeroflot-only entry point) is gone -- OCR is
+# generic now (shared/ocr_bridge.py + deploy/assets/ocr_bridge.js), so
+# every OCR-capable variant, Aeroflot included, goes through the same
+# router.detect_sheet_type()/router.extract() path as every other variant.
+# app.js calls run() for every PDF, text layer or not.
 
 
 # ---------------------------------------------------------------------------
@@ -198,32 +153,35 @@ def run_with_ocr(pages_words: list, sheet_type: str, variant: str):
 # a slot-joined view alongside the long-form per-sheet rows.
 # ---------------------------------------------------------------------------
 
-def _extract_one(pdf_bytes: bytes, expected_sheet: str, filename: str | None = None) -> dict:
+async def _extract_one(pdf_bytes: bytes, expected_sheet: str, filename: str | None = None,
+                        has_text_layer: bool | None = None) -> dict:
     """Extract one PDF for the combined flow. The user has already told us
     which sheet this is via the drop-zone choice, so we go directly through
     the relevant sheet-type router (occm / ht) — the top-level router's
     coarse signatures don't always recognize HT-style headers."""
     path = _save_temp(bytes(pdf_bytes), filename)
-    if _has_no_text_layer(path):
-        return {"ok": False, "path": path,
-                "error": ("This PDF has no extractable text layer (looks scanned "
-                          "or image-only). This build has no in-browser OCR yet, "
-                          "so it can't be processed here regardless of which "
-                          "drop zone it's in.")}
     try:
         from sheet_types import occm, ht
         mod = occm if expected_sheet == "OCCM" else ht
-        variant = mod.detect_variant(path)
+        variant = await mod.detect_variant(path)
     except Exception as e:
         return {"ok": False, "error": f"Variant detection failed: {e}",
                 "path": path}
     if variant in ("Unknown", "Timeout"):
+        if has_text_layer is None:
+            has_text_layer = not _has_no_text_layer(path)
+        if not has_text_layer:
+            return {"ok": False, "path": path,
+                    "error": ("This PDF has no extractable text layer (looks "
+                              "scanned or image-only), and this build's "
+                              "in-browser OCR doesn't recognize it as a "
+                              f"known {expected_sheet} variant.")}
         return {"ok": False, "path": path,
                 "error": (f"This PDF doesn't match any known {expected_sheet} "
                           f"variant. If you put the files in the wrong drop "
                           f"zones, switch them.")}
     try:
-        raw = mod.extract(path, variant_name=variant)
+        raw = await mod.extract(path, variant_name=variant)
         cleaned = mod.normalize_and_validate(raw["records"], variant_name=variant)
     except Exception as e:
         return {"ok": False, "error": f"Extraction failed: {e}", "path": path}
@@ -298,17 +256,19 @@ def _build_combined_slots(occm_rows: list[dict], ht_rows: list[dict],
     return out
 
 
-def run_combined(occm_bytes: bytes, ht_bytes: bytes,
-                 manual_aircraft_key: str = "",
-                 occm_filename: str = "", ht_filename: str = ""):
+async def run_combined(occm_bytes: bytes, ht_bytes: bytes,
+                       manual_aircraft_key: str = "",
+                       occm_filename: str = "", ht_filename: str = "",
+                       occm_has_text_layer: bool | None = None,
+                       ht_has_text_layer: bool | None = None):
     """In-browser combined OCCM+HT extraction.
 
     Saves both PDFs, extracts each via the existing routers, pairs them
     via `shared.pairing.link_pair`, and returns the long-form rows from
     each sheet plus the slot-joined combined view.
     """
-    occm = _extract_one(occm_bytes, "OCCM", occm_filename or None)
-    ht   = _extract_one(ht_bytes,   "HT",   ht_filename or None)
+    occm = await _extract_one(occm_bytes, "OCCM", occm_filename or None, occm_has_text_layer)
+    ht   = await _extract_one(ht_bytes,   "HT",   ht_filename or None, ht_has_text_layer)
     if not occm["ok"]:
         return {"ok": False, "stage": "occm", **occm}
     if not ht["ok"]:

@@ -76,16 +76,10 @@ list exists here to check against.
 from __future__ import annotations
 import re
 
-from sheet_types.llp_variants._base import merged_rules
+import numpy as np
 
-try:
-    import fitz  # pymupdf
-    import numpy as np
-    import pytesseract
-    from PIL import Image
-    _OCR_AVAILABLE = True
-except ImportError:  # pragma: no cover - exercised under Pyodide, not locally
-    _OCR_AVAILABLE = False
+from sheet_types.llp_variants._base import merged_rules
+from shared.ocr_bridge import render_page, ocr_text, page_count
 
 NAME = "EGAT LLP ON LOG LIST"
 
@@ -170,11 +164,6 @@ def _clean_int(raw: str) -> str:
     return m.group(1) if m else ""
 
 
-def _page_image(doc, page_index: int, dpi: int = _DPI):
-    pix = doc[page_index].get_pixmap(dpi=dpi)
-    return Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-
-
 def _line_groups(frac, thresh: float) -> list[int]:
     idx = np.where(frac > thresh)[0]
     if not len(idx):
@@ -213,16 +202,14 @@ def _table_grid(img):
     return row_lines, best_xs
 
 
-def _ocr_cell(img, box, psm: int = 7, whitelist: str | None = None, pad: int = 3) -> str:
+async def _ocr_cell(img, box, psm: int = 7, whitelist: str | None = None, pad: int = 3) -> str:
     x0, y0, x1, y1 = box
     crop = img.crop((x0 + pad, y0 + pad, x1 - pad, y1 - pad))
-    cfg = f"--psm {psm}"
-    if whitelist:
-        cfg += f" -c tessedit_char_whitelist={whitelist}"
-    return pytesseract.image_to_string(crop, config=cfg).strip()
+    text = await ocr_text(crop, psm=psm, whitelist=whitelist)
+    return text.strip()
 
 
-def _ocr_numeric_cell(img, box, whitelist: str, pad: int = 3) -> str:
+async def _ocr_numeric_cell(img, box, whitelist: str, pad: int = 3) -> str:
     """psm 7 (single text line) is what every other cell on this form
     uses, but on a handful of purely-numeric cells with no letters at all
     it comes back empty despite a clean, unambiguous crop -- confirmed by
@@ -231,10 +218,10 @@ def _ocr_numeric_cell(img, box, whitelist: str, pad: int = 3) -> str:
     cells by dropping the spaces between words, so it's only tried here,
     as a fallback, on cells already known to be numeric-only.
     """
-    text = _ocr_cell(img, box, psm=7, whitelist=whitelist, pad=pad)
+    text = await _ocr_cell(img, box, psm=7, whitelist=whitelist, pad=pad)
     if text:
         return text
-    return _ocr_cell(img, box, psm=8, whitelist=whitelist, pad=pad)
+    return await _ocr_cell(img, box, psm=8, whitelist=whitelist, pad=pad)
 
 
 def _parse_header(text: str) -> dict:
@@ -251,7 +238,7 @@ def _parse_header(text: str) -> dict:
     return meta
 
 
-def ocr_detect(pdf_path: str) -> bool:
+async def ocr_detect(pdf_path: str) -> bool:
     """Cheap page-1 OCR check for the router's blank-text fallback -- "LLP
     ON LOG LIST" OCRs cleanly in the title block on the one known real
     file even though the data grid below doesn't (see module docstring).
@@ -260,29 +247,25 @@ def ocr_detect(pdf_path: str) -> bool:
     known file, so both spacings are accepted rather than trusting "EGAT"
     alone to always come back as one token.
     """
-    if not _OCR_AVAILABLE:
-        return False
     try:
-        doc = fitz.open(pdf_path)
-        img = _page_image(doc, 0)
-        doc.close()
+        img = await render_page(pdf_path, 0, dpi=_DPI)
         crop = img.crop((0, 0, img.width, int(img.height * 0.15)))
-        text = pytesseract.image_to_string(crop, config="--psm 6").upper()
+        text = (await ocr_text(crop, psm=6)).upper()
         return "LOG LIST" in text and ("EGAT" in text or "EG AT" in text)
     except Exception:
         return False
 
 
-def _extract_page(img, page_num: int, meta: dict) -> list[dict]:
+async def _extract_page(img, page_num: int, meta: dict) -> list[dict]:
     row_lines, xs = _table_grid(img)
     if len(xs) < 6 or len(row_lines) < 2:
         return []
 
-    def cell(i: int, j: int, **kw) -> str:
-        return _ocr_cell(img, (xs[j], row_lines[i], xs[j + 1], row_lines[i + 1]), **kw)
+    async def cell(i: int, j: int, **kw) -> str:
+        return await _ocr_cell(img, (xs[j], row_lines[i], xs[j + 1], row_lines[i + 1]), **kw)
 
-    def numeric_cell(i: int, j: int, whitelist: str) -> str:
-        return _ocr_numeric_cell(img, (xs[j], row_lines[i], xs[j + 1], row_lines[i + 1]), whitelist)
+    async def numeric_cell(i: int, j: int, whitelist: str) -> str:
+        return await _ocr_numeric_cell(img, (xs[j], row_lines[i], xs[j + 1], row_lines[i + 1]), whitelist)
 
     n_cols = len(xs) - 1
     records: list[dict] = []
@@ -290,37 +273,37 @@ def _extract_page(img, page_num: int, meta: dict) -> list[dict]:
     for i in range(len(row_lines) - 1):
         if row_lines[i + 1] - row_lines[i] < _MIN_ROW_HEIGHT:
             continue
-        module_sn = _clean_cell(cell(i, 0))
+        module_sn = _clean_cell(await cell(i, 0))
         if not module_sn:
             continue
-        part_no = _clean_cell(cell(i, 2)) if n_cols > 2 else ""
+        part_no = _clean_cell(await cell(i, 2)) if n_cols > 2 else ""
 
         if module_sn.upper() in _MODULE_GROUP_CODES or not _HAS_DIGIT_RE.search(part_no):
             # Module-group header row -- no PART_NUMBER/SERIAL_NUMBER of its
             # own (see module docstring). Capture context, emit no record.
             group_code = module_sn.upper()
-            group_desc = _clean_cell(cell(i, 1)) if n_cols > 1 else ""
-            m = _MODULE_INDEX_RE.search(cell(i, 6)) if n_cols > 6 else None
+            group_desc = _clean_cell(await cell(i, 1)) if n_cols > 1 else ""
+            m = _MODULE_INDEX_RE.search(await cell(i, 6)) if n_cols > 6 else None
             group_index = f"{m.group(1)}X" if m else ""
             continue
 
         rec = {c: "" for c in CANONICAL_COLUMNS}
         rec["MODULE_SN"] = module_sn
-        rec["NOMENCLATURE"] = _clean_cell(cell(i, 1)) if n_cols > 1 else ""
+        rec["NOMENCLATURE"] = _clean_cell(await cell(i, 1)) if n_cols > 1 else ""
         rec["PART_NUMBER"] = part_no
-        rec["SERIAL_NUMBER"] = _clean_cell(cell(i, 3)) if n_cols > 3 else ""
+        rec["SERIAL_NUMBER"] = _clean_cell(await cell(i, 3)) if n_cols > 3 else ""
         if n_cols > 4:
-            tsn_raw = numeric_cell(i, 4, "0123456789:")
+            tsn_raw = await numeric_cell(i, 4, "0123456789:")
             m = _TSN_RE.search(tsn_raw)
             rec["TSN"] = m.group(1) if m else ""
         if n_cols > 5:
-            rec["CSN"] = _clean_int(numeric_cell(i, 5, "0123456789"))
+            rec["CSN"] = _clean_int(await numeric_cell(i, 5, "0123456789"))
         if n_cols > 6:
-            rec["REMAIN"] = _clean_int(numeric_cell(i, 6, "0123456789"))
+            rec["REMAIN"] = _clean_int(await numeric_cell(i, 6, "0123456789"))
         if n_cols > 7:
-            rec["LIFE_LIMIT"] = _clean_int(numeric_cell(i, 7, "0123456789"))
+            rec["LIFE_LIMIT"] = _clean_int(await numeric_cell(i, 7, "0123456789"))
         if n_cols > 8:
-            rec["REMARK"] = _clean_cell(cell(i, 8))
+            rec["REMARK"] = _clean_cell(await cell(i, 8))
         rec["MODULE_GROUP_CODE"] = group_code
         rec["MODULE_GROUP"] = group_desc
         rec["MODULE_LIFE_INDEX"] = group_index
@@ -331,18 +314,13 @@ def _extract_page(img, page_num: int, meta: dict) -> list[dict]:
     return records
 
 
-def extract(pdf_path: str) -> list[dict]:
-    if not _OCR_AVAILABLE:
-        return []
+async def extract(pdf_path: str) -> list[dict]:
     records: list[dict] = []
-    doc = fitz.open(pdf_path)
-    try:
-        for page_index in range(len(doc)):
-            img = _page_image(doc, page_index)
-            header_crop = img.crop((0, 0, img.width, int(img.height * 0.12)))
-            header_text = pytesseract.image_to_string(header_crop, config="--psm 6")
-            meta = _parse_header(header_text)
-            records.extend(_extract_page(img, page_index + 1, meta))
-    finally:
-        doc.close()
+    n_pages = await page_count(pdf_path)
+    for page_index in range(n_pages):
+        img = await render_page(pdf_path, page_index, dpi=_DPI)
+        header_crop = img.crop((0, 0, img.width, int(img.height * 0.12)))
+        header_text = await ocr_text(header_crop, psm=6)
+        meta = _parse_header(header_text)
+        records.extend(await _extract_page(img, page_index + 1, meta))
     return records

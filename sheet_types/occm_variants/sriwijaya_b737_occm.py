@@ -53,14 +53,7 @@ from __future__ import annotations
 import re
 
 from sheet_types.occm_variants._base import merged_rules
-
-try:
-    import fitz  # pymupdf
-    import pytesseract
-    from PIL import Image
-    _OCR_AVAILABLE = True
-except ImportError:  # pragma: no cover - exercised under Pyodide, not locally
-    _OCR_AVAILABLE = False
+from shared.ocr_bridge import render_page, ocr_text, page_count
 
 NAME = "Sriwijaya B737-85P OCCM (Scanned)"
 
@@ -227,12 +220,7 @@ def _parse_line(line: str, page_num: int) -> dict | None:
     }
 
 
-def _render_page(doc, page_index: int, dpi: int = 300):
-    pix = doc[page_index].get_pixmap(dpi=dpi)
-    return Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-
-
-def ocr_detect(pdf_path: str) -> bool:
+async def ocr_detect(pdf_path: str) -> bool:
     """Cheap page-1 OCR check for the router's blank-text fallback (see
     sheet_types/occm.py) -- this variant's SIGNATURES can never match
     through the normal pdfplumber text-extract path since every known
@@ -244,12 +232,8 @@ def ocr_detect(pdf_path: str) -> bool:
     born-digital B737-800 file that should route to the plain-text
     `on_condition_monitoring_occm` sibling instead.
     """
-    if not _OCR_AVAILABLE:
-        return False
     try:
-        doc = fitz.open(pdf_path)
-        img = _render_page(doc, 0, dpi=300)
-        doc.close()
+        img = await render_page(pdf_path, 0, dpi=300)
         w, h = img.size
         # "85P" sits on the header's 2nd line, not the title itself -- 0.15
         # confirmed too tight on MSN_28381 (crops before that line resolves
@@ -257,28 +241,23 @@ def ocr_detect(pdf_path: str) -> bool:
         # 0.25 recovered it on all 4 known files without pulling in the
         # data grid.
         crop = img.crop((0, 0, w, int(h * 0.25)))
-        text = pytesseract.image_to_string(crop, config="--psm 6").upper()
+        text = (await ocr_text(crop, psm=6)).upper()
         return "CONDITION MONITORING" in text and "85P" in text
     except Exception:
         return False
 
 
-def extract(pdf_path: str) -> list[dict]:
-    if not _OCR_AVAILABLE:
-        return []
+async def extract(pdf_path: str) -> list[dict]:
     records: list[dict] = []
-    doc = fitz.open(pdf_path)
-    try:
-        for page_index in range(len(doc)):
-            img = _render_page(doc, page_index, dpi=300)
-            text = pytesseract.image_to_string(img, config="--psm 6")
-            for raw in text.splitlines():
-                line = raw.strip()
-                if not line:
-                    continue
-                rec = _parse_line(line, page_index + 1)
-                if rec is not None:
-                    records.append(rec)
-    finally:
-        doc.close()
+    n_pages = await page_count(pdf_path)
+    for page_index in range(n_pages):
+        img = await render_page(pdf_path, page_index, dpi=300)
+        text = await ocr_text(img, psm=6)
+        for raw in text.splitlines():
+            line = raw.strip()
+            if not line:
+                continue
+            rec = _parse_line(line, page_index + 1)
+            if rec is not None:
+                records.append(rec)
     return records

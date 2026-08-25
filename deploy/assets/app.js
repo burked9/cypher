@@ -4,18 +4,7 @@
 // modules into the Pyodide virtual filesystem, then routes PDF bytes through
 // main.run() which auto-detects the OCCM variant and dispatches.
 
-import { hasTextLayer, detectAeroflot, runOcrPipeline } from "./ocr_bridge.js?__CACHE_BUST__";
-
-// Shown only when the blank-text PDF didn't match any OCR-capable variant
-// this build knows how to route (currently just Aeroflot) -- not "no OCR
-// exists at all" anymore, since some now does.
-const NO_TEXT_LAYER_WARNING = (
-  "This PDF has no extractable text layer, which usually means it's a " +
-  "scanned or image-only document, and this build's in-browser OCR " +
-  "doesn't recognize it as a supported variant. If you have local Python " +
-  "access to this project, the local pipeline handles more scanned " +
-  "formats than the browser does today."
-);
+import { hasTextLayer } from "./ocr_bridge.js?__CACHE_BUST__";
 
 const $ = (id) => document.getElementById(id);
 const status = $("status");
@@ -54,7 +43,9 @@ async function boot() {
   status.textContent = "Installing pdfplumber (one-time, ~10 s)…";
   // numpy/pandas are Pyodide-bundled (precompiled WASM wheels, not a PyPI
   // install) -- needed by levels/L3_ocr/extract.py's column-projection
-  // logic, which main.run_with_ocr() (in-browser OCR) now reaches.
+  // logic and by every grid-detection OCR variant's own math, both of
+  // which main.run() now reaches for any OCR-capable variant, not just
+  // one hard-coded special case.
   await pyodide.loadPackage(["micropip", "numpy", "pandas"]);
   await pyodide.runPythonAsync(`
 import micropip
@@ -178,56 +169,40 @@ $("run").addEventListener("click", async () => {
   hide("empty-state");
 
   try {
-    // Fast pre-check in pdf.js, BEFORE ever touching Pyodide. (Originally
-    // built to dodge a "2.5+ minute pdfminer hang" on blank-text PDFs --
-    // turned out that hang was never real, just a misread stale status
-    // line elsewhere in this file; see docs/TODO.md's correction. Keeping
-    // this check anyway: it's fast, harmless, and it's what tells us
-    // whether to even attempt the OCR path below.)
+    // Fast pre-check in pdf.js, BEFORE ever touching Pyodide -- avoids a
+    // confirmed multi-minute pdfplumber-under-Pyodide hang on a genuinely
+    // scanned PDF (root cause unidentified). main.run() takes the answer
+    // as `has_text_layer` so it never has to redundantly re-derive it via
+    // the slow path itself.
     let hasText = true;
     try {
       const checkBuf = await f.arrayBuffer();
       hasText = await hasTextLayer(new Uint8Array(checkBuf));
     } catch (checkErr) {
       console.warn("Text-layer pre-check failed, proceeding without it:", checkErr);
+      hasText = null;   // let Python decide for itself
     }
-    if (!hasText) {
-      // No text layer -- see if this is a variant the in-browser OCR path
-      // (Aeroflot only, so far) actually knows how to handle before
-      // falling back to the honest "can't process this" warning.
-      const detectBuf = await f.arrayBuffer();
-      let isAeroflot = false;
-      try {
-        isAeroflot = await detectAeroflot(new Uint8Array(detectBuf));
-      } catch (detectErr) {
-        console.warn("Aeroflot OCR-detection failed, falling back to the no-OCR warning:", detectErr);
-      }
-      if (isAeroflot) {
-        try {
-          const ocrBuf = await f.arrayBuffer();
-          const data = await runOcrPipeline(new Uint8Array(ocrBuf), pyodide, status, "OCCM", "Aeroflot");
-          lastResult = data;
-          render(data, f.name);
-          return;
-        } catch (ocrErr) {
-          console.warn("In-browser OCR pipeline failed, falling back to the no-OCR warning:", ocrErr);
-        }
-      }
-      const data = { ok: true, sheet_type: "Unknown", variant: "Unknown",
-                      columns: [], rows: [], warning: NO_TEXT_LAYER_WARNING };
-      lastResult = data;
-      render(data, f.name);
-      return;
+    if (hasText === false) {
+      status.textContent = "No text layer detected — running in-browser OCR (this can take a while)…";
     }
 
     const buf = await f.arrayBuffer();   // fresh read -- pdf.js may have detached the check buffer
     pyodide.FS.writeFile("/tmp/_input.pdf", new Uint8Array(buf));
-    const jsonStr = await pyodide.runPythonAsync(`
+    pyodide.globals.set("_has_text_layer", hasText);
+    const runPromise = pyodide.runPythonAsync(`
 import json
 with open("/tmp/_input.pdf", "rb") as fh:
     _bytes = fh.read()
-json.dumps(main.run(_bytes))
+json.dumps(await main.run(_bytes, has_text_layer=_has_text_layer))
 `);
+    // OCR-capable variants render each page via pdf.js's worker
+    // (see ocr_bridge.js) — a genuinely new code path, run through here
+    // for the first time end-to-end. A stuck worker would otherwise hang
+    // this forever with no feedback; give the OCR case a generous but
+    // finite budget rather than leave the user watching a dead spinner.
+    const jsonStr = hasText === false
+      ? await withTimeout(runPromise, 120000, "In-browser OCR timed out after 2 minutes.")
+      : await runPromise;
     const data = JSON.parse(jsonStr);
     lastResult = data;
     render(data, f.name);
@@ -350,23 +325,24 @@ if (runCombinedBtn) runCombinedBtn.addEventListener("click", async () => {
   try {
     // Same fast pre-check as the single-PDF path (see its comment for why):
     // catch a scanned PDF here in under a second rather than let Pyodide
-    // hang on it for minutes. Checked independently per file so the error
-    // names the actual problem drop zone.
-    for (const [file, stage, label] of [[occmFile, "occm", "OCCM"], [htFile, "ht", "HT"]]) {
-      let hasText = true;
-      try {
-        hasText = await hasTextLayer(new Uint8Array(await file.arrayBuffer()));
-      } catch (checkErr) {
-        console.warn("Text-layer pre-check failed, proceeding without it:", checkErr);
-      }
-      if (!hasText) {
-        const data = { ok: false, stage,
-          error: `The ${label} PDF ("${file.name}") has no extractable text layer ` +
-                 `(looks scanned or image-only). This build has no in-browser OCR yet.` };
-        lastResult = data;
-        renderCombined(data);
-        return;
-      }
+    // hang on it for minutes, and pass the answer through as a hint --
+    // main.run_combined() still tries in-browser OCR on each file, this
+    // just saves it from re-deriving what JS already knows.
+    let occmHasText = true, htHasText = true;
+    try {
+      occmHasText = await hasTextLayer(new Uint8Array(await occmFile.arrayBuffer()));
+    } catch (checkErr) {
+      console.warn("OCCM text-layer pre-check failed, proceeding without it:", checkErr);
+      occmHasText = null;
+    }
+    try {
+      htHasText = await hasTextLayer(new Uint8Array(await htFile.arrayBuffer()));
+    } catch (checkErr) {
+      console.warn("HT text-layer pre-check failed, proceeding without it:", checkErr);
+      htHasText = null;
+    }
+    if (occmHasText === false || htHasText === false) {
+      status.textContent = "No text layer detected on at least one file — running in-browser OCR (this can take a while)…";
     }
 
     const occmBuf = await occmFile.arrayBuffer();   // fresh reads -- pdf.js may have detached the check buffers
@@ -379,12 +355,18 @@ if (runCombinedBtn) runCombinedBtn.addEventListener("click", async () => {
     // has something real to read instead of a temp path it never sees.
     pyodide.globals.set("_occm_filename", occmFile.name);
     pyodide.globals.set("_ht_filename", htFile.name);
-    const jsonStr = await pyodide.runPythonAsync(`
+    pyodide.globals.set("_occm_has_text_layer", occmHasText);
+    pyodide.globals.set("_ht_has_text_layer", htHasText);
+    const runPromise = pyodide.runPythonAsync(`
 import json
 with open("/tmp/_occm.pdf", "rb") as fh: _occm = fh.read()
 with open("/tmp/_ht.pdf", "rb") as fh:   _ht   = fh.read()
-json.dumps(main.run_combined(_occm, _ht, _manual_key, _occm_filename, _ht_filename))
+json.dumps(await main.run_combined(_occm, _ht, _manual_key, _occm_filename, _ht_filename,
+                                    _occm_has_text_layer, _ht_has_text_layer))
 `);
+    const jsonStr = (occmHasText === false || htHasText === false)
+      ? await withTimeout(runPromise, 120000, "In-browser OCR timed out after 2 minutes.")
+      : await runPromise;
     const data = JSON.parse(jsonStr);
     lastResult = data;
     renderCombined(data);
@@ -482,6 +464,16 @@ function _buildResultsTable(cols, rows, id) {
   }
   html += "</tbody></table></div>";
   return html;
+}
+
+function withTimeout(promise, ms, message) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (v) => { clearTimeout(t); resolve(v); },
+      (e) => { clearTimeout(t); reject(e); },
+    );
+  });
 }
 
 function hide(id) { const e = $(id); if (e) e.hidden = true; }
