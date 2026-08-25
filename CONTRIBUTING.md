@@ -33,6 +33,8 @@ def extract(pdf_path: str) -> list[dict]:
 5. Run `research/workbook.ipynb` to verify.
 6. Run `python deploy/build.py` to mirror your new variant into the static deploy.
 
+When verifying a new or changed `extract()` against a real file, check at most the first 2-3 pages, not the whole document — a multi-page report's row-parsing pattern is established well before page 3, and OCR-based variants especially can turn a "does this work" check into a multi-minute full-document render if you let it run unbounded. Save the full-document run for the one-time end-to-end confirmation before committing, not for iterating on the parser.
+
 ## Soft validation principle
 
 Cypher never drops rows. Cells that fail rules are kept and tagged via the `_issues` column. New variants should follow this principle — your parser produces rows; `shared/cleanup.py` flags problems; the analyst eyeballs the `_issues` column.

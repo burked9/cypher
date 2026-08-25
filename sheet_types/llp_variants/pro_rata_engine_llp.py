@@ -50,6 +50,13 @@ CANONICAL_COLUMNS = [
     "CYCLES_AT_FIT",
     "PART_REMAIN",
     "ENGINE_REMAIN",
+    # Some parts carry extra pro-rata-generation values ahead of the
+    # standard 5 above (an engine re-rated to a different thrust rating
+    # partway through its life keeps the prior generation's figures too).
+    # Kept verbatim rather than guessed into a specific named slot — see
+    # _parse_row.
+    "OTHER_THRUST_RATING_VALUES",
+    "REMARKS",
     # Engine metadata — same on every row
     "ESN",
     "ENGINE_MODEL",
@@ -64,7 +71,7 @@ CANONICAL_COLUMNS = [
 
 # Hours can run to ~80k on long-haul engines; cycles cap is the user-set
 # engine-LLP rule of 0..45000. Anything outside that range is flagged.
-_HOUR_RULE  = {"pattern": r"^[\d,]+$", "int_range": (0, 80000)}
+_HOUR_RULE  = {"pattern": r"^[\d,]+(\.\d+)?$", "int_range": (0, 80000)}
 _CYCLE_RULE = {"pattern": r"^[\d,]+$", "int_range": (0, 55000),
                "int_range_review": (0, 30000)}
 _OVERRIDES = {
@@ -81,10 +88,19 @@ _OVERRIDES = {
     "ENGINE_CSLSV":    _CYCLE_RULE,
     "ESN":             {"pattern": r"^\d{4,8}$"},
     "STATUS_DATE":     {"pattern": r"^\d{1,2}-[A-Za-z]{3}-\d{4}$"},
+    "OTHER_THRUST_RATING_VALUES": {"allow_empty": True},
+    "REMARKS": {"allow_empty": True},
 }
 RULES = merged_rules(_OVERRIDES)
 
-_NUM_RE = re.compile(r"^[\d,]+$")
+_NUM_RE = re.compile(r"^[\d,]+(\.\d+)?$")
+# A "-" (occasionally glued to a stray footnote/OCR mark like "-·") is this
+# producer's placeholder for "engine has never operated at this thrust
+# rating" -- not a parse failure. Real data rows end in a mix of numbers
+# and these dashes; treating only pure numbers as valid trailing tokens
+# was dropping the vast majority of real rows (confirmed: 1 of ~17 rows
+# survived per file before this fix).
+_DASH_RE = re.compile(r"^[-–—][^\d]*$")
 _PN_RE = re.compile(r"^[A-Z0-9][A-Z0-9\-./]*$")
 _DATE_RE = re.compile(r"^\d{1,2}-[A-Za-z]{3}-\d{4}$")
 
@@ -106,6 +122,10 @@ _SKIP_FRAGMENTS = (
 
 def _is_num(tok: str) -> bool:
     return bool(_NUM_RE.match(tok))
+
+
+def _is_num_or_dash(tok: str) -> bool:
+    return bool(_NUM_RE.match(tok)) or bool(_DASH_RE.match(tok))
 
 
 def _is_skip_line(line: str) -> bool:
@@ -176,10 +196,26 @@ def _parse_row(line: str) -> dict | None:
     if toks[0].lower() == "engine" and len(toks) >= 2 and toks[1].lower() == "limiter":
         return None
 
-    # Walk back collecting numeric trailing tokens
+    # A row can end in a free-text REMARKS note (an SB compliance reference
+    # like "SB72-0652 C/W") instead of a numeric/dash value -- strip that
+    # suffix first, or the trailing walk below never even starts (its very
+    # first check, on the last token, would fail outright).
+    remarks_end = len(toks)
+    j = len(toks) - 1
+    while j >= 0 and not _is_num_or_dash(toks[j]):
+        j -= 1
+    remarks = " ".join(toks[j + 1:remarks_end])
+    toks = toks[:j + 1]
+    if len(toks) < 5:
+        return None
+
+    # Walk back collecting trailing numeric-or-dash tokens. A trailing run
+    # can be as short as 7 (TTSN, TCSN, then the 5 standard fields, no
+    # dashes at all) or well past a dozen (extra pro-rata-generation
+    # columns, several thrust ratings each rendering their own dash).
     trail = []
     i = len(toks) - 1
-    while i >= 0 and _is_num(toks[i]):
+    while i >= 0 and _is_num_or_dash(toks[i]):
         trail.insert(0, toks[i])
         i -= 1
     if len(trail) < 5:
@@ -189,6 +225,24 @@ def _parse_row(line: str) -> dict | None:
     sn = toks[i]
     pn = toks[i - 1]
     desc = " ".join(toks[: i - 1])
+    # A purely-numeric serial number (this producer uses both alphanumeric
+    # and plain-digit serials) reads as just another trailing data value,
+    # walking the boundary one token too far left -- landing on the real
+    # PN (which reliably contains a "-", e.g. "338-001-504-Q") and mistaking
+    # the word before it for PN. Reclaim it: the real PN is toks[i], the
+    # real SN is trail's first element (which was actually the serial).
+    if "-" in toks[i] and "-" not in pn and not any(c.isdigit() for c in pn) and trail:
+        pn, sn = toks[i], trail.pop(0)
+        desc = " ".join(toks[: i])
+    # A part that's never been removed since install prints literal "NEW
+    # NEW" in place of TTSN/TCSN, right after the real PN/SN -- neither
+    # word is numeric/dash, so the walk stops on the second "NEW",
+    # swallowing the real identifiers into DESCRIPTION. Detect the pair
+    # and step back over both to recover them.
+    if pn.upper() == "NEW" and sn.upper() == "NEW" and i >= 4:
+        trail[0:0] = [pn, sn]
+        sn, pn = toks[i - 2], toks[i - 3]
+        desc = " ".join(toks[: i - 3])
     if not _PN_RE.match(pn) or not _PN_RE.match(sn):
         return None
 
@@ -196,11 +250,23 @@ def _parse_row(line: str) -> dict | None:
     rec["DESCRIPTION"] = desc
     rec["PART_NUMBER"] = pn
     rec["SERIAL_NUMBER"] = sn
-    # Map the trailing numerics. Standard layout has 7 trailing values.
-    keys = ["TTSN", "TCSN", "PRO_RATA_1_USED", "PRO_RATA_1_LIMIT",
+    rec["REMARKS"] = remarks
+    # TTSN/TCSN are reliably the first two trailing values on every real
+    # row inspected. The standard 5 fields (PRO_RATA_1_USED through
+    # ENGINE_REMAIN) are reliably the LAST 5 -- whatever sits between the
+    # two (present only on parts that have lived through a thrust-rating
+    # change) is extra history the schema has no named slot for; keep it
+    # verbatim rather than mis-assign it into one of the 5 named fields.
+    if len(trail) >= 2:
+        rec["TTSN"], rec["TCSN"] = trail[0], trail[1]
+    middle = trail[2:-5] if len(trail) > 7 else []
+    tail5 = trail[-5:] if len(trail) >= 7 else trail[2:]
+    keys = ["PRO_RATA_1_USED", "PRO_RATA_1_LIMIT",
             "CYCLES_AT_FIT", "PART_REMAIN", "ENGINE_REMAIN"]
-    for k, v in zip(keys, trail[-7:] if len(trail) >= 7 else trail):
+    for k, v in zip(keys, tail5):
         rec[k] = v
+    if middle:
+        rec["OTHER_THRUST_RATING_VALUES"] = " ".join(middle)
     return rec
 
 

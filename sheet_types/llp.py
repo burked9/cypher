@@ -64,6 +64,12 @@ SIGNATURES = [
     "LANDING GEAR LIFE LIMITED PARTS STATUS",  # thai_landing_gear_llp_status.py
     "MAINTENANCEPLANNING AND CONTROL",     # b737_gear_llp_inventory.py
     "Available hours/cycles for Component life limited parts",  # b777_gear_llp_availability.py
+    "LIFE LIMITED PARTS FOR A",            # pro_rata_engine_llp.py -- IAI CFM56-5B "LIFE
+                                            # LIMITED PARTS FOR A <engine model> ENGINE" title;
+                                            # the variant's own SIGNATURES ("TSLSV"/"CSLSV")
+                                            # already matched once inside LLP, but the sheet-type
+                                            # gate itself had no phrase for this document family
+                                            # at all, so it never got that far
     # mm510_llp.py deliberately has NO entry here: the same "MM_510" header
     # is emitted verbatim by the same MIS tool for both HT-relevant and
     # LLP-relevant queries (confirmed: no discriminating phrase exists in
