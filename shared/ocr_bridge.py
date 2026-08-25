@@ -83,15 +83,6 @@ async def render_page(pdf_path: str, page_index: int, dpi: int = 300):
     result = await bridge.cypherRenderPage(pdf_bytes, page_index, dpi)
     width, height = int(result.width), int(result.height)
     pixels = bytes(result.pixels.to_py())
-    try:  # TEMPORARY debug logging -- diagnosing a real-browser image
-        # corruption bug. Remove once diagnosed.
-        from js import console
-        expected = width * height * 4
-        console.log(f"render_page: w={width} h={height} "
-                    f"pixels_len={len(pixels)} expected={expected} "
-                    f"match={len(pixels) == expected}")
-    except Exception:
-        pass
     return Image.frombytes("RGBA", (width, height), pixels).convert("RGB")
 
 
@@ -108,14 +99,7 @@ async def ocr_text(image, psm: int = 6, whitelist: str | None = None) -> str:
         if whitelist:
             cfg += f" -c tessedit_char_whitelist={whitelist}"
         return pytesseract.image_to_string(image, config=cfg)
-    png = _to_png_bytes(image)
-    try:  # TEMPORARY debug logging -- see above. Remove once diagnosed.
-        from js import console
-        console.log(f"ocr_text: image.size={image.size} image.mode={image.mode} "
-                    f"png_len={len(png)} png_sig={png[:8].hex()}")
-    except Exception:
-        pass
-    result = await bridge.cypherOcrText(png, psm, whitelist or "")
+    result = await bridge.cypherOcrText(_to_png_bytes(image), psm, whitelist or "")
     return str(result)
 
 
