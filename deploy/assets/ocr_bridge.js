@@ -98,7 +98,7 @@ async function renderPageToCanvas(pdf, pageNum, dpi = 300) {
  */
 window.cypherPageCount = async function (pdfBytes) {
   const lib = await loadPdfJs();
-  const pdf = await lib.getDocument({ data: pdfBytes }).promise;
+  const pdf = await lib.getDocument({ data: new Uint8Array(pdfBytes) }).promise;
   return pdf.numPages;
 };
 
@@ -112,7 +112,7 @@ window.cypherPageCount = async function (pdfBytes) {
  */
 window.cypherRenderPage = async function (pdfBytes, pageIndex, dpi = 300) {
   const lib = await loadPdfJs();
-  const pdf = await lib.getDocument({ data: pdfBytes }).promise;
+  const pdf = await lib.getDocument({ data: new Uint8Array(pdfBytes) }).promise;
   const canvas = await renderPageToCanvas(pdf, pageIndex + 1, dpi);
   const ctx = canvas.getContext("2d");
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -124,7 +124,17 @@ window.cypherRenderPage = async function (pdfBytes, pageIndex, dpi = 300) {
 };
 
 async function _canvasFromPngBytes(pngBytes) {
-  const blob = new Blob([pngBytes], { type: "image/png" });
+  // Force an explicit, fully-materialized copy before constructing the
+  // Blob. Pyodide hands JS a view into its own WASM heap for a Python
+  // `bytes` argument rather than a plain copied Uint8Array -- confirmed:
+  // Python's own byte length and PNG magic-number signature were both
+  // correct right before the call, yet createImageBitmap() on the
+  // resulting Blob threw "source image could not be decoded" on the
+  // first real-browser attempt. `new Uint8Array(pngBytes)` copies
+  // element-by-element into a fresh, ordinary buffer Blob can read
+  // safely, regardless of what kind of view/proxy Pyodide handed over.
+  const bytes = new Uint8Array(pngBytes);
+  const blob = new Blob([bytes], { type: "image/png" });
   const bitmap = await createImageBitmap(blob);
   const canvas = document.createElement("canvas");
   canvas.width = bitmap.width;
