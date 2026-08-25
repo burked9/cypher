@@ -80,6 +80,11 @@ SOURCES = [
     "sheet_types/occm_variants/aircraft_components_list.py",
     "sheet_types/occm_variants/stars_trax_occm.py",
     "sheet_types/occm_variants/sriwijaya_b737_occm.py",
+    # OCCM variants added during the post-marathon corpus re-triage
+    "sheet_types/occm_variants/aircraft_inventory_report_scanned.py",
+    "sheet_types/occm_variants/xiamen_b737_installed_components.py",
+    "sheet_types/occm_variants/aircraft_rotables_report_scanned.py",
+    "sheet_types/occm_variants/occm_list_for_registration.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
@@ -99,6 +104,9 @@ SOURCES = [
     "sheet_types/ht_variants/aercap_hard_time_component_status.py",
     "sheet_types/ht_variants/aercap_oxygen_generator_status.py",
     "sheet_types/ht_variants/emes_hard_time_component_status.py",
+    # HT variants added during the post-marathon corpus re-triage
+    "sheet_types/ht_variants/xiamen_time_controlled_components.py",
+    "sheet_types/ht_variants/aircraft_rotables_ht_scanned.py",
     # LLP variants — original + 5 added this session
     "sheet_types/llp_variants/__init__.py",
     "sheet_types/llp_variants/_base.py",
@@ -130,6 +138,8 @@ SOURCES = [
     "sheet_types/llp_variants/sas_drawing_item_llp.py",
     "sheet_types/llp_variants/sky_airlines_llp_summary.py",
     "sheet_types/llp_variants/b737_gear_llp_inventory.py",
+    # LLP variant added during the post-marathon corpus re-triage
+    "sheet_types/llp_variants/egat_llp_on_log_list.py",
 
     # sheet-type routers — depend on their variants
     "sheet_types/occm.py",
