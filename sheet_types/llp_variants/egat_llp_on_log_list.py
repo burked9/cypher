@@ -257,8 +257,20 @@ async def ocr_detect(pdf_path: str) -> bool:
         img = await render_page(pdf_path, 0, dpi=_DPI)
         crop = img.crop((0, 0, img.width, int(img.height * 0.15)))
         text = (await ocr_text(crop, psm=6)).upper()
+        try:  # TEMPORARY debug logging -- see if the Python-side round trip
+            # (render_page -> PIL reconstruct -> re-encode -> ocr_text)
+            # produces different text than calling the JS bridge directly.
+            from js import console
+            console.log("EGAT ocr_detect() saw:", repr(text))
+        except Exception:
+            pass
         return "LLP ON LOG LIST" in text
-    except Exception:
+    except Exception as e:
+        try:
+            from js import console
+            console.log("EGAT ocr_detect() raised:", repr(e))
+        except Exception:
+            pass
         return False
 
 
