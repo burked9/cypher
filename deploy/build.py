@@ -141,6 +141,7 @@ SOURCES = [
     "sheet_types/llp_variants/b737_gear_llp_inventory.py",
     # LLP variant added during the post-marathon corpus re-triage
     "sheet_types/llp_variants/egat_llp_on_log_list.py",
+    "sheet_types/llp_variants/ihi_engine_llp_time_cycle_record.py",
 
     # sheet-type routers — depend on their variants
     "sheet_types/occm.py",
