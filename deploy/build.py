@@ -87,6 +87,8 @@ SOURCES = [
     "sheet_types/occm_variants/aircraft_rotables_report_scanned.py",
     "sheet_types/occm_variants/occm_list_for_registration.py",
     "sheet_types/occm_variants/fl_compound_code_occm.py",
+    # OCCM variant added 2026-08-26 — "TAH@INS/TAC@INS at-install" OCCM list
+    "sheet_types/occm_variants/occm_tah_tac_at_install.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
