@@ -112,6 +112,9 @@ SOURCES = [
     "sheet_types/ht_variants/aircraft_inspection_report_scanned.py",
     "sheet_types/ht_variants/georgian_airways_ht_components_status_scanned.py",
     "sheet_types/ht_variants/hard_time_report_config_slot.py",
+    "sheet_types/ht_variants/al_development_controlled_items_list.py",
+    "sheet_types/ht_variants/time_controlled_components_status.py",
+    "sheet_types/ht_variants/air_france_ccinv_aircraft_inventory.py",
     # LLP variants — original + 5 added this session
     "sheet_types/llp_variants/__init__.py",
     "sheet_types/llp_variants/_base.py",

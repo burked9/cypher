@@ -17,6 +17,9 @@ from sheet_types.ht_variants import (
     amos_scanned, aircraft_inspection_report_scanned,
     georgian_airways_ht_components_status_scanned,
     hard_time_report_config_slot,
+    al_development_controlled_items_list,
+    time_controlled_components_status,
+    air_france_ccinv_aircraft_inventory,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -32,7 +35,10 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             xiamen_time_controlled_components, aircraft_rotables_ht_scanned,
             amos_scanned, aircraft_inspection_report_scanned,
             georgian_airways_ht_components_status_scanned,
-            hard_time_report_config_slot]
+            hard_time_report_config_slot,
+            al_development_controlled_items_list,
+            time_controlled_components_status,
+            air_france_ccinv_aircraft_inventory]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -58,6 +64,18 @@ SIGNATURES = [
                                                           # this title phrase is unique to the
                                                           # HT-side export, no collision checked
                                                           # against llp.py/occm.py's own lists.
+    "MPD TASK Work Type ZONE",                           # al_development_controlled_items_list.py --
+                                                          # checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every ht_variants
+                                                          # module; no collision found.
+    "TIME CONTROLLED COMPONENTS STATUS",                 # time_controlled_components_status.py --
+                                                          # checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every ht_variants
+                                                          # module; no collision found.
+    "AIRCRAFT REGLEMENTARY INVENTORY",                   # air_france_ccinv_aircraft_inventory.py --
+                                                          # checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every ht_variants
+                                                          # module; no collision found.
 ]
 
 
