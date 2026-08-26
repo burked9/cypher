@@ -86,6 +86,7 @@ SOURCES = [
     "sheet_types/occm_variants/xiamen_b737_installed_components.py",
     "sheet_types/occm_variants/aircraft_rotables_report_scanned.py",
     "sheet_types/occm_variants/occm_list_for_registration.py",
+    "sheet_types/occm_variants/fl_compound_code_occm.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
