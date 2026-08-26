@@ -14,6 +14,9 @@ from sheet_types.ht_variants import (
     aercap_hard_time_component_status, aercap_oxygen_generator_status,
     emes_hard_time_component_status,
     xiamen_time_controlled_components, aircraft_rotables_ht_scanned,
+    amos_scanned, aircraft_inspection_report_scanned,
+    georgian_airways_ht_components_status_scanned,
+    hard_time_report_config_slot,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -26,7 +29,10 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             hard_time_component_status_mpd_task,
             aercap_hard_time_component_status, aercap_oxygen_generator_status,
             emes_hard_time_component_status,
-            xiamen_time_controlled_components, aircraft_rotables_ht_scanned]
+            xiamen_time_controlled_components, aircraft_rotables_ht_scanned,
+            amos_scanned, aircraft_inspection_report_scanned,
+            georgian_airways_ht_components_status_scanned,
+            hard_time_report_config_slot]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -45,6 +51,13 @@ SIGNATURES = [
     # unique to the HT-side format instead.
     "T/C # TASK HT",                                     # emes_hard_time_component_status.py
     "Time-controlled Components",                        # xiamen_time_controlled_components.py
+    "HARD TIME REPORT",                                  # hard_time_report_config_slot.py --
+                                                          # same South American MIS family as
+                                                          # config_slot_occm.py (OCCM) and
+                                                          # landing_gear_llp_report.py (LLP);
+                                                          # this title phrase is unique to the
+                                                          # HT-side export, no collision checked
+                                                          # against llp.py/occm.py's own lists.
 ]
 
 

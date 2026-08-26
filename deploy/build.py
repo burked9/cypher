@@ -108,6 +108,10 @@ SOURCES = [
     # HT variants added during the post-marathon corpus re-triage
     "sheet_types/ht_variants/xiamen_time_controlled_components.py",
     "sheet_types/ht_variants/aircraft_rotables_ht_scanned.py",
+    "sheet_types/ht_variants/amos_scanned.py",
+    "sheet_types/ht_variants/aircraft_inspection_report_scanned.py",
+    "sheet_types/ht_variants/georgian_airways_ht_components_status_scanned.py",
+    "sheet_types/ht_variants/hard_time_report_config_slot.py",
     # LLP variants — original + 5 added this session
     "sheet_types/llp_variants/__init__.py",
     "sheet_types/llp_variants/_base.py",
