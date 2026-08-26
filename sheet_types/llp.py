@@ -11,6 +11,7 @@ from sheet_types.llp_variants import (
     landing_gear_llp_report, aircraft_llp_status_report, sas_drawing_item_llp,
     sky_airlines_llp_summary, b737_gear_llp_inventory, egat_llp_on_log_list,
     ihi_engine_llp_time_cycle_record, elal_internal_parts_list,
+    iai_dual_rating_engine_llp,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -24,6 +25,7 @@ VARIANTS = [
     landing_gear_llp_report, aircraft_llp_status_report, sas_drawing_item_llp,
     sky_airlines_llp_summary, b737_gear_llp_inventory, egat_llp_on_log_list,
     ihi_engine_llp_time_cycle_record, elal_internal_parts_list,
+    iai_dual_rating_engine_llp,
 ]
 
 # OCR-based variants depend on pytesseract (the native Tesseract binary),
@@ -75,6 +77,9 @@ SIGNATURES = [
                                             # at all, so it never got that far
     "IHI Corporation",                     # ihi_engine_llp_time_cycle_record.py
     "LIST OF INTERNAL PARTS",              # elal_internal_parts_list.py
+    "Life Limited Parts for:",             # iai_dual_rating_engine_llp.py -- the colon after
+                                            # "for" distinguishes it from this list's own earlier
+                                            # "LIFE LIMITED PARTS FOR A" entry (pro_rata_engine_llp.py)
     # mm510_llp.py deliberately has NO entry here: the same "MM_510" header
     # is emitted verbatim by the same MIS tool for both HT-relevant and
     # LLP-relevant queries (confirmed: no discriminating phrase exists in
