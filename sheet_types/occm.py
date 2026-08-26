@@ -25,7 +25,7 @@ from sheet_types.occm_variants import (
     aircraft_components_list, stars_trax_occm, sriwijaya_b737_occm,
     aircraft_inventory_report_scanned, xiamen_b737_installed_components,
     aircraft_rotables_report_scanned, occm_list_for_registration,
-    fl_compound_code_occm, occm_tah_tac_at_install,
+    fl_compound_code_occm, occm_tah_tac_at_install, occm_report_scanned,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -56,6 +56,7 @@ VARIANTS = [
     aircraft_components_list, stars_trax_occm, sriwijaya_b737_occm,
     aircraft_inventory_report_scanned, xiamen_b737_installed_components,
     aircraft_rotables_report_scanned, occm_list_for_registration,
+    occm_report_scanned,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
@@ -99,6 +100,8 @@ SIGNATURES = [
     # sriwijaya_b737_occm.py needs no entry here: its files have no text
     # layer at all (confirmed near-zero chars), so they're only ever
     # reached via the ocr_detect fallback loop below, not this list.
+    # occm_report_scanned.py: same reason -- no text layer on its known
+    # source file either.
 ]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
