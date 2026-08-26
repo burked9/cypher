@@ -21,6 +21,7 @@ from sheet_types.ht_variants import (
     time_controlled_components_status,
     air_france_ccinv_aircraft_inventory,
     activity_life_expiry_report,
+    time_controlled_items_status,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -40,7 +41,8 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             al_development_controlled_items_list,
             time_controlled_components_status,
             air_france_ccinv_aircraft_inventory,
-            activity_life_expiry_report]
+            activity_life_expiry_report,
+            time_controlled_items_status]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -82,6 +84,13 @@ SIGNATURES = [
                                                           # checked against every SIGNATURES list in
                                                           # occm.py/ht.py/llp.py and every ht_variants
                                                           # module; no collision found.
+    "TIME CONTROLLED ITEMS STATUS",                      # time_controlled_items_status.py --
+                                                          # checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every ht_variants
+                                                          # module (including the similarly-named but
+                                                          # structurally different
+                                                          # time_controlled_components_status.py); no
+                                                          # collision found.
 ]
 
 
