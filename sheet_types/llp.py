@@ -10,7 +10,7 @@ from sheet_types.llp_variants import (
     cai_first_landing_gear_llp, mm510_llp, swiss_a340_ldg_llp,
     landing_gear_llp_report, aircraft_llp_status_report, sas_drawing_item_llp,
     sky_airlines_llp_summary, b737_gear_llp_inventory, egat_llp_on_log_list,
-    ihi_engine_llp_time_cycle_record,
+    ihi_engine_llp_time_cycle_record, elal_internal_parts_list,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -23,7 +23,7 @@ VARIANTS = [
     cai_first_landing_gear_llp, mm510_llp, swiss_a340_ldg_llp,
     landing_gear_llp_report, aircraft_llp_status_report, sas_drawing_item_llp,
     sky_airlines_llp_summary, b737_gear_llp_inventory, egat_llp_on_log_list,
-    ihi_engine_llp_time_cycle_record,
+    ihi_engine_llp_time_cycle_record, elal_internal_parts_list,
 ]
 
 # OCR-based variants depend on pytesseract (the native Tesseract binary),
@@ -74,6 +74,7 @@ SIGNATURES = [
                                             # gate itself had no phrase for this document family
                                             # at all, so it never got that far
     "IHI Corporation",                     # ihi_engine_llp_time_cycle_record.py
+    "LIST OF INTERNAL PARTS",              # elal_internal_parts_list.py
     # mm510_llp.py deliberately has NO entry here: the same "MM_510" header
     # is emitted verbatim by the same MIS tool for both HT-relevant and
     # LLP-relevant queries (confirmed: no discriminating phrase exists in

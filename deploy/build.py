@@ -119,6 +119,7 @@ SOURCES = [
     "sheet_types/ht_variants/time_controlled_items_status.py",
     "sheet_types/ht_variants/time_controlled_items_report.py",
     "sheet_types/ht_variants/remaining_potentials.py",
+    "sheet_types/ht_variants/cognos_ht_listing.py",
     # LLP variants — original + 5 added this session
     "sheet_types/llp_variants/__init__.py",
     "sheet_types/llp_variants/_base.py",
@@ -153,6 +154,7 @@ SOURCES = [
     # LLP variant added during the post-marathon corpus re-triage
     "sheet_types/llp_variants/egat_llp_on_log_list.py",
     "sheet_types/llp_variants/ihi_engine_llp_time_cycle_record.py",
+    "sheet_types/llp_variants/elal_internal_parts_list.py",
 
     # sheet-type routers — depend on their variants
     "sheet_types/occm.py",
