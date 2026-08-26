@@ -23,6 +23,7 @@ from sheet_types.ht_variants import (
     activity_life_expiry_report,
     time_controlled_items_status,
     time_controlled_items_report,
+    remaining_potentials,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -44,7 +45,8 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             air_france_ccinv_aircraft_inventory,
             activity_life_expiry_report,
             time_controlled_items_status,
-            time_controlled_items_report]
+            time_controlled_items_report,
+            remaining_potentials]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -101,6 +103,18 @@ SIGNATURES = [
                                                           # time_controlled_items_status.py and
                                                           # time_controlled_components_status.py); no
                                                           # collision found.
+    "Protocol Type H/T",                                 # remaining_potentials.py -- the AMASIS
+                                                          # "Remaining potentials report" template
+                                                          # (shared with occm_variants/
+                                                          # remaining_potentials.py) is emitted for
+                                                          # both OCCM- and HT-flavored exports; this
+                                                          # phrase only appears when the export was
+                                                          # filtered to Hard-Time positions, so it's
+                                                          # the mutually-exclusive discriminator used
+                                                          # here instead of the shared generic header
+                                                          # phrases (deliberately NOT added to this
+                                                          # list -- see remaining_potentials.py's own
+                                                          # docstring for why).
 ]
 
 

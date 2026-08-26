@@ -87,6 +87,12 @@ SIGNATURES = [
     # stars_trax_occm's cluster is reachable via normal routing today --
     # see docs/TODO.md for the other half and a real fix.
     "A/C Status Audit Print",             # stars_trax_occm.py (partial -- see above)
+    # remaining_potentials.py's AMASIS template also emits an HT-flavoured
+    # export of the same report ("Protocol Type H/T" in the header);
+    # ht.py's own top-level SIGNATURES claims that specific phrase first
+    # per DETECTION_ORDER, so this generic phrase is safe here for every
+    # other (OCCM-flavoured) export of the same template.
+    "Remaining potentials report",
     # sriwijaya_b737_occm.py needs no entry here: its files have no text
     # layer at all (confirmed near-zero chars), so they're only ever
     # reached via the ocr_detect fallback loop below, not this list.
