@@ -89,6 +89,9 @@ SOURCES = [
     "sheet_types/occm_variants/fl_compound_code_occm.py",
     # OCCM variant added 2026-08-26 — "TAH@INS/TAC@INS at-install" OCCM list
     "sheet_types/occm_variants/occm_tah_tac_at_install.py",
+    # OCCM variant added 2026-08-27 — "OCCM LIST MSN <n>" dot-dated list
+    # with a CON(dition) column
+    "sheet_types/occm_variants/occm_list_msn_dotdate.py",
     "sheet_types/occm_variants/occm_report_scanned.py",
     "sheet_types/occm_variants/occm_report.py",
     "sheet_types/occm_variants/aircraft_occm_list_scanned.py",

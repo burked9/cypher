@@ -27,7 +27,7 @@ from sheet_types.occm_variants import (
     aircraft_rotables_report_scanned, occm_list_for_registration,
     fl_compound_code_occm, occm_tah_tac_at_install, occm_report_scanned,
     occm_report, aircraft_occm_list_scanned,
-    occm_summary_list,
+    occm_summary_list, occm_list_msn_dotdate,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -51,6 +51,7 @@ VARIANTS = [
     georgian_airways_b737,
     fl_compound_code_occm,
     occm_tah_tac_at_install,
+    occm_list_msn_dotdate,
     aeroflot, aircraft_inventory_report, aircraft_rotables_report, amos,
     cathay_occm, config_slot_occm, iberia_listado, oases,
     occm_list_as_at, occm_status_list, on_condition_components_report,
