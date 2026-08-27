@@ -41,11 +41,8 @@ forced into 4 numeric columns it doesn't have.
 from __future__ import annotations
 import re
 
-import fitz
-import pytesseract
-from PIL import Image
-
 from sheet_types.llp_variants._base import merged_rules
+from shared.ocr_bridge import render_page, ocr_text, page_count
 
 NAME = "Thai Landing Gear LLP Status"
 SIGNATURES = [
@@ -181,32 +178,26 @@ def _parse_row(line: str) -> dict | None:
     return rec
 
 
-def _ocr_all_pages(pdf_path: str, dpi: int = 300) -> list[str]:
-    doc = fitz.open(pdf_path)
-    try:
-        texts = []
-        for page in doc:
-            pix = page.get_pixmap(dpi=dpi)
-            img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-            texts.append(pytesseract.image_to_string(img, config="--psm 6"))
-        return texts
-    finally:
-        doc.close()
+async def _ocr_all_pages(pdf_path: str, dpi: int = 300) -> list[str]:
+    n = await page_count(pdf_path)
+    texts = []
+    for i in range(n):
+        img = await render_page(pdf_path, i, dpi=dpi)
+        texts.append(await ocr_text(img, psm=6))
+    return texts
 
 
-def ocr_detect(pdf_path: str) -> bool:
+async def ocr_detect(pdf_path: str) -> bool:
     try:
-        doc = fitz.open(pdf_path)
-        pix = doc[0].get_pixmap(dpi=300)
-        img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-        text = pytesseract.image_to_string(img, config="--psm 6").upper()
+        img = await render_page(pdf_path, 0, dpi=300)
+        text = (await ocr_text(img, psm=6)).upper()
         return "LANDING GEAR LIFE LIMITED PARTS STATUS" in text
     except Exception:
         return False
 
 
-def extract(pdf_path: str) -> list[dict]:
-    pages = _ocr_all_pages(pdf_path)
+async def extract(pdf_path: str) -> list[dict]:
+    pages = await _ocr_all_pages(pdf_path)
     meta = _parse_meta("\n".join(pages))
 
     records: list[dict] = []

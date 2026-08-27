@@ -142,15 +142,16 @@ SOURCES = [
     "sheet_types/llp_variants/pro_rata_engine_llp.py",
     "sheet_types/llp_variants/subject.py",
     "sheet_types/llp_variants/vietnam_airlines.py",
-    # LLP variants added from the 2026-08-22 triage-driven build. Two
-    # sibling modules built the same night (thai_landing_gear_llp_status.py,
-    # b777_gear_llp_availability.py) still do top-level `import fitz`/
-    # `import pytesseract` and are deliberately NOT listed here -- same
-    # reasoning as part_m_engine_disk_sheet.py below, they'd crash on
-    # import under Pyodide. sheet_types/llp.py's own defensive try/except
-    # already tolerates their absence here. kalstar_aviation_llp_status.py
-    # was migrated to the async ocr_bridge primitives and is deploy-safe
-    # now, so it's listed below with the rest instead.
+    # LLP variants added from the 2026-08-22 triage-driven build. One
+    # sibling module built the same night (b777_gear_llp_availability.py)
+    # still does top-level `import fitz`/`import pytesseract` and is
+    # deliberately NOT listed here -- same reasoning as
+    # part_m_engine_disk_sheet.py below, it'd crash on import under Pyodide.
+    # sheet_types/llp.py's own defensive try/except already tolerates its
+    # absence here. kalstar_aviation_llp_status.py and
+    # thai_landing_gear_llp_status.py were migrated to the async ocr_bridge
+    # primitives and are deploy-safe now, so they're listed below with the
+    # rest instead.
     "sheet_types/llp_variants/erj190_landing_gear_llp.py",
     "sheet_types/llp_variants/n3_engine_overhaul_llp.py",
     "sheet_types/llp_variants/messier_dowty_landing_gear_llp.py",
@@ -172,6 +173,7 @@ SOURCES = [
     "sheet_types/llp_variants/iai_dual_rating_engine_llp.py",
     "sheet_types/llp_variants/kalstar_engine_llp_status.py",
     "sheet_types/llp_variants/kalstar_aviation_llp_status.py",
+    "sheet_types/llp_variants/thai_landing_gear_llp_status.py",
 
     # sheet-type routers — depend on their variants
     "sheet_types/occm.py",
