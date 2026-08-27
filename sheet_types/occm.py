@@ -28,6 +28,7 @@ from sheet_types.occm_variants import (
     fl_compound_code_occm, occm_tah_tac_at_install, occm_report_scanned,
     occm_report, aircraft_occm_list_scanned,
     occm_summary_list, occm_list_msn_dotdate,
+    eastar_jet_occm_list,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -60,7 +61,7 @@ VARIANTS = [
     aircraft_inventory_report_scanned, xiamen_b737_installed_components,
     aircraft_rotables_report_scanned, occm_list_for_registration,
     occm_report, occm_report_scanned, aircraft_occm_list_scanned,
-    occm_summary_list,
+    occm_summary_list, eastar_jet_occm_list,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
