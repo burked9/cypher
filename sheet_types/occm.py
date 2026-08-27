@@ -27,6 +27,7 @@ from sheet_types.occm_variants import (
     aircraft_rotables_report_scanned, occm_list_for_registration,
     fl_compound_code_occm, occm_tah_tac_at_install, occm_report_scanned,
     occm_report, aircraft_occm_list_scanned,
+    occm_summary_list,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -58,6 +59,7 @@ VARIANTS = [
     aircraft_inventory_report_scanned, xiamen_b737_installed_components,
     aircraft_rotables_report_scanned, occm_list_for_registration,
     occm_report, occm_report_scanned, aircraft_occm_list_scanned,
+    occm_summary_list,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
@@ -104,6 +106,13 @@ SIGNATURES = [
     # entry (checked for collisions against every SIGNATURES list in
     # sheet_types/{occm,ht,llp}.py and every existing variant file).
     "ATA INSTALL DATE POSITION PN SN DESCRIPTION",
+    # occm_summary_list.py's own column-header line and title line both
+    # contain "OCCM" already, but its variant-level SIGNATURES phrase
+    # ("OCCM SUMMARY LIST") is added explicitly too, since it's a more
+    # precise anchor than the generic "OCCM" entry above (checked for
+    # collisions against every SIGNATURES list in sheet_types/
+    # {occm,ht,llp}.py and every existing variant file first).
+    "OCCM SUMMARY LIST",
     # sriwijaya_b737_occm.py needs no entry here: its files have no text
     # layer at all (confirmed near-zero chars), so they're only ever
     # reached via the ocr_detect fallback loop below, not this list.

@@ -92,6 +92,7 @@ SOURCES = [
     "sheet_types/occm_variants/occm_report_scanned.py",
     "sheet_types/occm_variants/occm_report.py",
     "sheet_types/occm_variants/aircraft_occm_list_scanned.py",
+    "sheet_types/occm_variants/occm_summary_list.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
