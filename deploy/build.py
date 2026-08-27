@@ -168,6 +168,7 @@ SOURCES = [
     "sheet_types/llp_variants/ihi_engine_llp_time_cycle_record.py",
     "sheet_types/llp_variants/elal_internal_parts_list.py",
     "sheet_types/llp_variants/iai_dual_rating_engine_llp.py",
+    "sheet_types/llp_variants/kalstar_engine_llp_status.py",
 
     # sheet-type routers — depend on their variants
     "sheet_types/occm.py",

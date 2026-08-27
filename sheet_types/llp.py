@@ -11,7 +11,7 @@ from sheet_types.llp_variants import (
     landing_gear_llp_report, aircraft_llp_status_report, sas_drawing_item_llp,
     sky_airlines_llp_summary, b737_gear_llp_inventory, egat_llp_on_log_list,
     ihi_engine_llp_time_cycle_record, elal_internal_parts_list,
-    iai_dual_rating_engine_llp,
+    iai_dual_rating_engine_llp, kalstar_engine_llp_status,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -25,7 +25,7 @@ VARIANTS = [
     landing_gear_llp_report, aircraft_llp_status_report, sas_drawing_item_llp,
     sky_airlines_llp_summary, b737_gear_llp_inventory, egat_llp_on_log_list,
     ihi_engine_llp_time_cycle_record, elal_internal_parts_list,
-    iai_dual_rating_engine_llp,
+    iai_dual_rating_engine_llp, kalstar_engine_llp_status,
 ]
 
 # OCR-based variants depend on pytesseract (the native Tesseract binary),
