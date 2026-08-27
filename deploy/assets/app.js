@@ -11,6 +11,27 @@ const status = $("status");
 let pyodide = null;
 let lastResult = null;
 
+// Ring-buffer of recent console output, so a failure can show the user
+// (and let them copy) what actually printed to devtools without asking
+// them to open the console themselves. Wraps console.log/warn/error;
+// still forwards to the real console so devtools behaves normally.
+const CONSOLE_LOG_LIMIT = 60;
+const _consoleLog = [];
+function _captureConsole(level) {
+  const orig = console[level].bind(console);
+  console[level] = (...args) => {
+    const line = args.map((a) => {
+      if (a instanceof Error) return a.stack || a.message;
+      if (typeof a === "object") { try { return JSON.stringify(a); } catch (_) { return String(a); } }
+      return String(a);
+    }).join(" ");
+    _consoleLog.push(`[${level}] ${line}`);
+    if (_consoleLog.length > CONSOLE_LOG_LIMIT) _consoleLog.shift();
+    orig(...args);
+  };
+}
+["log", "warn", "error"].forEach(_captureConsole);
+
 // Python module list comes from _pymods/manifest.json, which is regenerated
 // every time deploy/build.py runs. This means changes to module structure
 // only require updating build.py — no parallel JS edits needed. (Previously
@@ -207,8 +228,9 @@ json.dumps(await main.run(_bytes, has_text_layer=_has_text_layer))
     lastResult = data;
     render(data, f.name);
   } catch (e) {
-    status.textContent = "Error: " + e.message;
     console.error(e);
+    showErrorPanel(`Something went wrong while processing "${f.name}".`,
+                    { filename: f.name, error: e });
   } finally {
     $("run").disabled = false;
   }
@@ -216,7 +238,8 @@ json.dumps(await main.run(_bytes, has_text_layer=_has_text_layer))
 
 function render(data, fname) {
   if (!data.ok) {
-    showStatus(`Extraction failed: ${data.error || "unknown"}`, "error");
+    showErrorPanel(`Extraction failed: ${data.error || "unknown"}`,
+                    { filename: fname, error: data.error });
     return;
   }
 
@@ -230,9 +253,10 @@ function render(data, fname) {
     `Sheet type: <strong>${escapeHtml(sheetType)}</strong> &middot; ` +
     `Variant: <span class="tag ${tagCls}">${escapeHtml(variant)}</span>`;
 
-  // Warning case
+  // Warning case — usually "unsupported/unrecognized format" or "zero rows",
+  // which for the user is functionally the same as "it didn't run".
   if (data.warning) {
-    showStatus(data.warning, "warning");
+    showErrorPanel(data.warning, { filename: fname });
     return;
   }
 
@@ -371,8 +395,9 @@ json.dumps(await main.run_combined(_occm, _ht, _manual_key, _occm_filename, _ht_
     lastResult = data;
     renderCombined(data);
   } catch (e) {
-    status.textContent = "Error: " + e.message;
     console.error(e);
+    showErrorPanel(`Something went wrong while pairing "${occmFile.name}" and "${htFile.name}".`,
+                    { filename: `${occmFile.name} + ${htFile.name}`, error: e });
   } finally {
     $("run-combined").disabled = false;
   }
@@ -380,7 +405,8 @@ json.dumps(await main.run_combined(_occm, _ht, _manual_key, _occm_filename, _ht_
 
 function renderCombined(data) {
   if (!data.ok) {
-    showStatus(`Extraction failed (${data.stage || "?"}): ${data.error || "unknown"}`, "error");
+    showErrorPanel(`Extraction failed (${data.stage || "?"}): ${data.error || "unknown"}`,
+                    { stage: data.stage, error: data.error });
     return;
   }
   const pair = data.pair || {};
@@ -482,6 +508,56 @@ function showStatus(msg, type) {
   $("summary").hidden = false;
   $("summary").className = "summary " + (type || "");
   $("summary").textContent = msg;
+}
+
+// Shown whenever the app can't handle a PDF — an unrecognized format, a
+// zero-row extraction, or an unexpected exception. Combines a plain-English
+// explanation, a "the deeper notebook path isn't ready yet" note, and a
+// collapsible technical dump (the error itself plus recent console output)
+// so a user can paste something useful into a bug report without opening
+// devtools themselves.
+function showErrorPanel(message, opts) {
+  opts = opts || {};
+  const context = [];
+  context.push(`time: ${new Date().toISOString()}`);
+  if (opts.filename) context.push(`file: ${opts.filename}`);
+  if (opts.stage) context.push(`stage: ${opts.stage}`);
+  if (opts.error) {
+    context.push(`error: ${opts.error.message || opts.error}`);
+    if (opts.error.stack) context.push(opts.error.stack);
+  }
+  const consoleTail = _consoleLog.slice(-25);
+  const debugText = [...context, "", "-- recent console output --", ...consoleTail]
+    .join("\n");
+
+  $("variant-info").hidden = false;
+  $("summary").hidden = false;
+  $("summary").className = "summary error";
+  $("summary").innerHTML = `
+    <div>${escapeHtml(message)}</div>
+    <div class="notebook-notice">
+      <strong>We're sorry — this PDF is more complex than the in-browser tool can handle today.</strong>
+      <span class="badge">Coming soon</span><br>
+      We're building a more thorough, step-by-step analyst notebook for cases like this one,
+      but it isn't ready yet and isn't available right now.
+      For the time being, this deeper path is offline.
+    </div>
+    <details class="debug-details">
+      <summary>Show technical details</summary>
+      <pre id="debug-log-text"></pre>
+      <button type="button" class="copy-debug" id="copy-debug-btn">Copy details</button>
+    </details>
+  `;
+  // Set via textContent (not the innerHTML template above) so stack traces
+  // and console output can't be misinterpreted as markup.
+  $("debug-log-text").textContent = debugText;
+  $("copy-debug-btn").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(debugText);
+      $("copy-debug-btn").textContent = "Copied!";
+      setTimeout(() => { $("copy-debug-btn").textContent = "Copy details"; }, 1500);
+    } catch (_) { /* clipboard permission denied — button just does nothing */ }
+  });
 }
 function toCSV(rows, cols) {
   const esc = (v) => {
