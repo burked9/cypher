@@ -1,12 +1,11 @@
 """Part M Aviation Ireland — scanned engine LLP "Life Limited Parts (Engine
 Disk Sheets) Time/Cycle Record".
 
-Local-only, like L3/L4/L5 elsewhere in this project: every page is a single
-flat scanned image with **no text layer**, so this module renders each page
-and OCRs it directly via `pytesseract` (the native Tesseract binary, not
-Tesseract.js) — it cannot run under Pyodide and must never be imported
-unconditionally from the router. See the try/except around this import in
-`sheet_types/llp.py`.
+Every page is a single flat scanned image with **no text layer**, so this
+module renders each page and OCRs it via `shared/ocr_bridge.py`'s async
+primitives (`render_page()`/`ocr_text()`/`ocr_words()`), which run on
+fitz+pytesseract locally and on a JS/Tesseract.js bridge under Pyodide —
+see that module's docstring for why the split exists.
 
 Row shape: a MODULE section header (e.g. "HPC ROTOR MODULE") followed by one
 row per component — DESCRIPTION, PART_NUMBER, SERIAL_NUMBER, then 4
@@ -45,16 +44,10 @@ from __future__ import annotations
 import re
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import ImageDraw
 
 from sheet_types.llp_variants._base import merged_rules
-
-try:
-    import fitz  # pymupdf
-    import pytesseract
-    _OCR_AVAILABLE = True
-except ImportError:  # pragma: no cover - exercised under Pyodide, not locally
-    _OCR_AVAILABLE = False
+from shared.ocr_bridge import render_page, ocr_text, ocr_words
 
 NAME = "Part M Engine Disk Sheet"
 
@@ -87,11 +80,8 @@ _ROW_LABEL_COLS = ["DESCRIPTION", "PART_NUMBER", "SERIAL_NUMBER", *_RATING_COLS[
                     *_RATING_COLS[4:8], "TOTAL_CYCLES", *_RATING_COLS[8:12]]
 
 
-def _render_page0(pdf_path: str, dpi: int = 300):
-    doc = fitz.open(pdf_path)
-    page = doc[0]
-    pix = page.get_pixmap(dpi=dpi)
-    return Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+async def _render_page0(pdf_path: str, dpi: int = 300):
+    return await render_page(pdf_path, 0, dpi=dpi)
 
 
 def _collapse_and_dedup(idx: np.ndarray, merge_dist: int = 15) -> list[int]:
@@ -187,7 +177,7 @@ def _clean_text_token(raw: str) -> str:
     return _JUNK_RE.sub("", raw).strip()
 
 
-def _parse_header_metadata(img: Image.Image) -> dict:
+async def _parse_header_metadata(img) -> dict:
     """The info box above the table (engine model/serial, ref date, TSN/CSN,
     TSSV/CSSV, installed MSN/position/power) is OCR'd as one block and
     regex-parsed rather than grid-detected — its layout is simpler and more
@@ -199,7 +189,7 @@ def _parse_header_metadata(img: Image.Image) -> dict:
     # attempt at this crop (0.10-0.20) sat entirely above the real box and
     # every field silently came back empty.
     crop = img.crop((int(w * 0.02), int(h * 0.20), int(w * 0.99), int(h * 0.30)))
-    text = pytesseract.image_to_string(crop, config="--psm 6")
+    text = await ocr_text(crop, psm=6)
     meta: dict[str, str] = {}
 
     def grab(pattern: str, key: str, cast=str):
@@ -224,8 +214,8 @@ def _parse_header_metadata(img: Image.Image) -> dict:
     return meta
 
 
-def _ocr_row_bucketed(img: Image.Image, v_lines: list[int], ry0: int, ry1: int,
-                       pad: int = 2, psm: int = 7) -> list[str]:
+async def _ocr_row_bucketed(img, v_lines: list[int], ry0: int, ry1: int,
+                             pad: int = 2, psm: int = 7) -> list[str]:
     """OCR one full row as a single wide strip and bucket words into columns
     by known x-position, instead of cropping each of the 16 columns
     separately.
@@ -254,13 +244,20 @@ def _ocr_row_bucketed(img: Image.Image, v_lines: list[int], ry0: int, ry1: int,
         # converted to grayscale internally, which is exactly what was
         # producing spurious symbols at every column boundary.
         draw.rectangle([bar - 3, 0, bar + 3, strip.height], fill=(255, 255, 255))
-    df = pytesseract.image_to_data(strip, output_type=pytesseract.Output.DATAFRAME,
-                                    config=f"--psm {psm}")
-    df = df.dropna(subset=["text"])
-    df = df[df["text"].astype(str).str.strip() != ""]
+    # min_conf=-1: the pre-migration pytesseract.image_to_data() DataFrame
+    # path never filtered by confidence at all (only dropna(text) + a blank-
+    # text check) -- ocr_words()'s own default (conf > 30) would silently
+    # drop legitimate-but-low-confidence digits that the old code kept, on
+    # exactly the kind of noisy scan this module's docstring already
+    # documents (digit-concatenation misreads, gridline-bleed punctuation).
+    # This module's own _clean_numeric_token()/_cycles_sum_check already
+    # catch and flag garbage downstream, so keeping every recognized word
+    # here (like the old code did) rather than dropping some of them is the
+    # behavior-preserving choice.
+    words = await ocr_words(strip, psm=psm, min_conf=-1)
     n_cols = len(v_lines) - 1
     buckets: list[list[tuple[int, str]]] = [[] for _ in range(n_cols)]
-    for _, word in df.iterrows():
+    for word in words:
         x_center = v_lines[0] + word["left"] + word["width"] / 2
         for i in range(n_cols):
             if v_lines[i] <= x_center < v_lines[i + 1]:
@@ -273,12 +270,12 @@ def _ocr_row_bucketed(img: Image.Image, v_lines: list[int], ry0: int, ry1: int,
     return cells
 
 
-def _parse_rating_labels(img: Image.Image, v_lines: list[int], h_lines: list[int]) -> dict:
+async def _parse_rating_labels(img, v_lines: list[int], h_lines: list[int]) -> dict:
     """Read the 4 rating labels once from the CYCLE LIMITERS sub-header band
     (the 2nd row-band) rather than assume they match the other known file —
     confirmed to vary per engine (e.g. "-7B24/3" vs "-A"). psm 6 (block, not
     single line) since these header cells wrap onto 2-3 lines."""
-    cells = _ocr_row_bucketed(img, v_lines, h_lines[1], h_lines[2], psm=6)
+    cells = await _ocr_row_bucketed(img, v_lines, h_lines[1], h_lines[2], psm=6)
     labels = {}
     for i, key in enumerate(("RATING_1_LABEL", "RATING_2_LABEL", "RATING_3_LABEL", "RATING_4_LABEL")):
         txt = re.sub(r"LIMIT\s*@", "", cells[3 + i], flags=re.I).strip()
@@ -286,13 +283,11 @@ def _parse_rating_labels(img: Image.Image, v_lines: list[int], h_lines: list[int
     return labels
 
 
-def ocr_detect(pdf_path: str) -> bool:
+async def ocr_detect(pdf_path: str) -> bool:
     """Cheap header-only OCR check the router falls back to when a PDF has no
     usable text layer. Deliberately narrow (title + letterhead only) so a
     false match is unlikely and the cost stays low for the common case where
     this variant doesn't apply."""
-    if not _OCR_AVAILABLE:
-        return False
     try:
         # 300dpi, not a cheaper lower res: confirmed by testing 150/200/300
         # side by side that "PART M" OCRs as "PARTMG"/"PARTM" (the logo's
@@ -303,37 +298,35 @@ def ocr_detect(pdf_path: str) -> bool:
         # either way. "LIFE LIMITED PARTS" + "ENGINE DISK SHEETS" both read
         # cleanly at all three DPIs tested and are far more specific to this
         # exact template.
-        img = _render_page0(pdf_path, dpi=300)
+        img = await _render_page0(pdf_path, dpi=300)
         w, h = img.size
         # Letterhead + title band sits at roughly y=0.14-0.23 of page height
         # (confirmed against the rendered page, not guessed) -- cutting
         # through it vertically produces garbage OCR.
         crop = img.crop((0, int(h * 0.14), w, int(h * 0.23)))
-        text = pytesseract.image_to_string(crop, config="--psm 6").upper()
+        text = (await ocr_text(crop, psm=6)).upper()
         return "LIFE LIMITED PARTS" in text and "ENGINE DISK SHEETS" in text
     except Exception:
         return False
 
 
-def extract(pdf_path: str) -> list[dict]:
-    if not _OCR_AVAILABLE:
-        return []
-    img = _render_page0(pdf_path, dpi=300)
+async def extract(pdf_path: str) -> list[dict]:
+    img = await _render_page0(pdf_path, dpi=300)
     gray = np.array(img.convert("L"))
     grid = _detect_table_grid(gray)
     if grid is None:
         return []
     v_lines, h_lines = grid
 
-    meta = _parse_header_metadata(img)
-    rating_labels = _parse_rating_labels(img, v_lines, h_lines)
+    meta = await _parse_header_metadata(img)
+    rating_labels = await _parse_rating_labels(img, v_lines, h_lines)
 
     records: list[dict] = []
     current_module = None
     # First 2 row-bands are the two header rows (super-header + sub-header) --
     # skip both, so start the (start, end) pairing from index 2, not 1.
     for ry0, ry1 in zip(h_lines[2:-1], h_lines[3:]):
-        cells = _ocr_row_bucketed(img, v_lines, ry0, ry1)
+        cells = await _ocr_row_bucketed(img, v_lines, ry0, ry1)
         desc = _clean_text_token(cells[0])
         if not desc:
             continue
