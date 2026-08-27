@@ -54,12 +54,10 @@ which was meant.
 from __future__ import annotations
 import re
 
-import fitz
 import numpy as np
-import pytesseract
-from PIL import Image
 
 from sheet_types.llp_variants._base import merged_rules
+from shared.ocr_bridge import render_page, ocr_text
 
 NAME = "Kalstar Aviation LLP Status"
 SIGNATURES = [
@@ -146,13 +144,8 @@ _UNIT_CSO_RE = re.compile(r"UNIT CSO @ INSTALL\s*:\s*(\S+)", re.I)
 _LOWER_LIMITER_RE = re.compile(r"LOWER LIMITER\s*:\s*(\S+)", re.I)
 
 
-def _page_image(pdf_path: str, dpi: int = _DPI) -> Image.Image:
-    doc = fitz.open(pdf_path)
-    try:
-        pix = doc[0].get_pixmap(dpi=dpi)
-        return Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-    finally:
-        doc.close()
+async def _page_image(pdf_path: str, dpi: int = _DPI):
+    return await render_page(pdf_path, 0, dpi=dpi)
 
 
 def _line_groups(frac: np.ndarray, thresh: float = _LINE_FRAC) -> list[int]:
@@ -188,7 +181,7 @@ def _y_at(edges, i: int, x: float) -> int:
     return int(round(lo[i] + (hi[i] - lo[i]) * t))
 
 
-def _table_grid(img: Image.Image):
+def _table_grid(img):
     arr = np.array(img.convert("L"))
     dark = arr < _DARK_THRESH
     h, w = arr.shape
@@ -204,13 +197,11 @@ def _table_grid(img: Image.Image):
     return edges, best_xs
 
 
-def _ocr(img: Image.Image, box, psm: int = 7, whitelist: str | None = None, pad: int = 4) -> str:
+async def _ocr(img, box, psm: int = 7, whitelist: str | None = None, pad: int = 4) -> str:
     x0, y0, x1, y1 = box
     crop = img.crop((x0 + pad, y0 + pad, x1 - pad, y1 - pad))
-    cfg = f"--psm {psm}"
-    if whitelist:
-        cfg += f" -c tessedit_char_whitelist={whitelist}"
-    return pytesseract.image_to_string(crop, config=cfg).strip()
+    text = await ocr_text(crop, psm=psm, whitelist=whitelist)
+    return text.strip()
 
 
 def _clean_pn(raw: str) -> str:
@@ -254,20 +245,20 @@ def _parse_meta(text: str) -> dict:
     return meta
 
 
-def ocr_detect(pdf_path: str) -> bool:
+async def ocr_detect(pdf_path: str) -> bool:
     try:
-        img = _page_image(pdf_path, dpi=_DPI)
+        img = await _page_image(pdf_path, dpi=_DPI)
         crop = img.crop((0, 0, img.width, int(img.height * 0.45)))
-        text = pytesseract.image_to_string(crop, config="--psm 6").upper()
+        text = (await ocr_text(crop, psm=6)).upper()
         return "LOWER LIMITER" in text and "AIRCRAFT MSN" in text
     except Exception:
         return False
 
 
-def extract(pdf_path: str) -> list[dict]:
-    img = _page_image(pdf_path)
+async def extract(pdf_path: str) -> list[dict]:
+    img = await _page_image(pdf_path)
     header_crop = img.crop((0, 0, img.width, int(img.height * 0.45)))
-    header_text = pytesseract.image_to_string(header_crop, config="--psm 6")
+    header_text = await ocr_text(header_crop, psm=6)
     meta = _parse_meta(header_text)
 
     edges, xs = _table_grid(img)
@@ -275,36 +266,36 @@ def extract(pdf_path: str) -> list[dict]:
     if len(xs) != 10 or len(lo) < 2:
         return []
 
-    def cell(row_i: int, col_j: int, **kw) -> str:
+    async def cell(row_i: int, col_j: int, **kw) -> str:
         xc = (xs[col_j] + xs[col_j + 1]) / 2
         y0, y1 = _y_at(edges, row_i, xc), _y_at(edges, row_i + 1, xc)
-        return _ocr(img, (xs[col_j], y0, xs[col_j + 1], y1), **kw)
+        return await _ocr(img, (xs[col_j], y0, xs[col_j + 1], y1), **kw)
 
     records: list[dict] = []
     parent_desc = parent_pn = parent_sn = ""
     for i in range(len(lo) - 1):
         x_full = (xs[0] + xs[-1]) / 2
         y0, y1 = _y_at(edges, i, x_full), _y_at(edges, i + 1, x_full)
-        full_raw = _ocr(img, (xs[0], y0, xs[-1], y1), pad=2)
+        full_raw = await _ocr(img, (xs[0], y0, xs[-1], y1), pad=2)
         m = _ASSY_HDR_RE.search(full_raw)
         if m:
             parent_desc, parent_pn, parent_sn = m.group(1).strip(), m.group(2), m.group(3)
             continue
 
-        pn = _clean_pn(cell(i, 2))
+        pn = _clean_pn(await cell(i, 2))
         if not pn:
             continue
-        remark = cell(i, 8)
+        remark = await cell(i, 8)
         sm = _STATUS_RE.search(remark)
 
         rec = {c: "" for c in CANONICAL_COLUMNS}
-        rec["DESCRIPTION"] = cell(i, 1)
+        rec["DESCRIPTION"] = await cell(i, 1)
         rec["PART_NUMBER"] = pn
-        rec["SERIAL_NUMBER"] = _clean_sn(cell(i, 3))
-        rec["LIFE_LIMIT"] = _clean_numeric(cell(i, 4, whitelist="0123456789"))
-        rec["CSN_AT_INSTALL"] = _clean_numeric(cell(i, 5, whitelist="0123456789"))
-        rec["OPERATED_CYCLES"] = _clean_numeric(cell(i, 6, whitelist="0123456789"))
-        rec["REMAINING_CYCLES"] = _clean_numeric(cell(i, 7, whitelist="0123456789"))
+        rec["SERIAL_NUMBER"] = _clean_sn(await cell(i, 3))
+        rec["LIFE_LIMIT"] = _clean_numeric(await cell(i, 4, whitelist="0123456789"))
+        rec["CSN_AT_INSTALL"] = _clean_numeric(await cell(i, 5, whitelist="0123456789"))
+        rec["OPERATED_CYCLES"] = _clean_numeric(await cell(i, 6, whitelist="0123456789"))
+        rec["REMAINING_CYCLES"] = _clean_numeric(await cell(i, 7, whitelist="0123456789"))
         rec["STATUS"] = sm.group(1).upper() if sm else ""
         rec["PARENT_ASSY_DESC"] = parent_desc
         rec["PARENT_ASSY_PN"] = parent_pn

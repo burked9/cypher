@@ -12,6 +12,7 @@ from sheet_types.llp_variants import (
     sky_airlines_llp_summary, b737_gear_llp_inventory, egat_llp_on_log_list,
     ihi_engine_llp_time_cycle_record, elal_internal_parts_list,
     iai_dual_rating_engine_llp, kalstar_engine_llp_status,
+    kalstar_aviation_llp_status,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -26,13 +27,14 @@ VARIANTS = [
     sky_airlines_llp_summary, b737_gear_llp_inventory, egat_llp_on_log_list,
     ihi_engine_llp_time_cycle_record, elal_internal_parts_list,
     iai_dual_rating_engine_llp, kalstar_engine_llp_status,
+    kalstar_aviation_llp_status,
 ]
 
 # OCR-based variants depend on pytesseract (the native Tesseract binary),
 # which doesn't exist under Pyodide. Import defensively so the deploy build
 # (which never mirrors this file) still loads everything else fine; locally,
 # where pytesseract is installed, it participates normally.
-for _modname in ("part_m_engine_disk_sheet", "kalstar_aviation_llp_status",
+for _modname in ("part_m_engine_disk_sheet",
                   "thai_landing_gear_llp_status", "b777_gear_llp_availability"):
     try:
         _mod = __import__(f"sheet_types.llp_variants.{_modname}", fromlist=[_modname])
