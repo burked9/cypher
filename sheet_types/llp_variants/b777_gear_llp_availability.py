@@ -44,11 +44,8 @@ character and getting that character exactly right isn't load-bearing.
 from __future__ import annotations
 import re
 
-import fitz
-import pytesseract
-from PIL import Image
-
 from sheet_types.llp_variants._base import merged_rules
+from shared.ocr_bridge import render_page, ocr_text, page_count
 
 NAME = "B777 Gear LLP Availability"
 SIGNATURES = [
@@ -136,26 +133,17 @@ _TSLV_CSLV_RE = re.compile(r"TSLV\s*/\s*CSLV\s*:\s*(\S+)\s*/\s*(\S+)", re.I)
 _REMARKS_RE = re.compile(r"Remarks\s*:\s*(.+)$", re.I | re.M)
 
 
-def _page_image(pdf_path: str, page_index: int, dpi: int = _DPI) -> Image.Image:
-    doc = fitz.open(pdf_path)
-    try:
-        pix = doc[page_index].get_pixmap(dpi=dpi)
-        return Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-    finally:
-        doc.close()
+async def _page_image(pdf_path: str, page_index: int, dpi: int = _DPI):
+    return await render_page(pdf_path, page_index, dpi=dpi)
 
 
-def _ocr_all_pages(pdf_path: str) -> list[str]:
-    doc = fitz.open(pdf_path)
-    try:
-        texts = []
-        for page in doc:
-            pix = page.get_pixmap(dpi=_DPI)
-            img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-            texts.append(pytesseract.image_to_string(img, config="--psm 6"))
-        return texts
-    finally:
-        doc.close()
+async def _ocr_all_pages(pdf_path: str) -> list[str]:
+    n = await page_count(pdf_path)
+    texts = []
+    for i in range(n):
+        img = await render_page(pdf_path, i, dpi=_DPI)
+        texts.append(await ocr_text(img, psm=6))
+    return texts
 
 
 def _parse_meta(text: str) -> dict:
@@ -259,18 +247,18 @@ def _parse_row(line: str) -> dict | None:
     return rec
 
 
-def ocr_detect(pdf_path: str) -> bool:
+async def ocr_detect(pdf_path: str) -> bool:
     try:
-        img = _page_image(pdf_path, 0, dpi=_DPI)
+        img = await _page_image(pdf_path, 0, dpi=_DPI)
         crop = img.crop((0, 0, img.width, int(img.height * 0.15)))
-        text = pytesseract.image_to_string(crop, config="--psm 6").upper()
+        text = (await ocr_text(crop, psm=6)).upper()
         return "AVAILABLE HOURS" in text and "LIFE LIMITED PARTS" in text
     except Exception:
         return False
 
 
-def extract(pdf_path: str) -> list[dict]:
-    pages = _ocr_all_pages(pdf_path)
+async def extract(pdf_path: str) -> list[dict]:
+    pages = await _ocr_all_pages(pdf_path)
     meta = _parse_meta("\n".join(pages))
 
     records: list[dict] = []
