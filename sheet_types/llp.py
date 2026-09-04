@@ -17,6 +17,8 @@ from sheet_types.llp_variants import (
     revima_landing_gear_als_status, powerplant_maintenance_center_llp_status,
     lan_engine_control_fleet_llp, engine_items_control_llp_status,
     master_tracking_list, aar_landing_gear_serialized_list,
+    turbine_acceptance_tag, esn_disc_sheet,
+    oases_lifed_components_llp,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -36,6 +38,8 @@ VARIANTS = [
     revima_landing_gear_als_status, powerplant_maintenance_center_llp_status,
     lan_engine_control_fleet_llp, engine_items_control_llp_status,
     master_tracking_list, aar_landing_gear_serialized_list,
+    turbine_acceptance_tag, esn_disc_sheet,
+    oases_lifed_components_llp,
 ]
 
 _BY_NAME = {v.NAME: v for v in VARIANTS}
@@ -118,6 +122,40 @@ SIGNATURES = [
                                             # for collisions against every SIGNATURES list in
                                             # sheet_types/{occm,ht,llp}.py and every existing
                                             # variant file; no collision found.
+    "TURBINE ACCEPTANCE TAG",              # turbine_acceptance_tag.py -- checked for
+                                            # collisions against every SIGNATURES list in
+                                            # sheet_types/{occm,ht,llp}.py and every existing
+                                            # variant file; no collision found.
+    "Disc Sheet",                          # esn_disc_sheet.py -- checked for collisions
+                                            # against every SIGNATURES list in
+                                            # sheet_types/{occm,ht,llp}.py and every existing
+                                            # variant file (including turbine_acceptance_tag.py,
+                                            # added the same session); no collision found.
+    "Lowest Cycles Remaining",              # esn_disc_sheet.py -- same check, no collision.
+    # oases_lifed_components_llp.py deliberately has NO entry here, for the
+    # same reason mm510_llp.py has none (see that comment above): the same
+    # "Lifed Component Report" header is emitted by OASES for a single
+    # aircraft's *entire* lifed-position list -- Hard Time items and true
+    # cycle-limited LLPs interleaved in one continuous table, not two
+    # separate report runs. The HT sibling (ht_variants/
+    # oases_lifed_components.py, SIGNATURES = ["Lifed Component Report"])
+    # already owns this phrase at the top level; adding it here too would
+    # just make whichever of LLP/HT is checked first in router.py's
+    # DETECTION_ORDER (LLP, then HT) silently win for every file of this
+    # family, permanently starving the other sibling of files it should
+    # also get a chance to run on. Checked for a textual collision against
+    # every SIGNATURES list in sheet_types/{occm,ht,llp}.py and every
+    # existing variant file: none found today (only the HT sibling's own
+    # module-level SIGNATURES carries this phrase) -- but a *behavioral*
+    # collision is exactly why this stays out of the top-level list.
+    # oases_lifed_components_llp.py is registered above for internal
+    # variant dispatch only -- unreachable via top-level routing today.
+    # See docs/TODO.md for the real fix this whole family needs
+    # (content-based, not header-phrase-based, disambiguation -- and,
+    # unlike the mm510/STARS Trax case, this one isn't even two different
+    # report runs of the same header: it's one document that legitimately
+    # contains both row types at once, which the current one-sheet-type-
+    # per-file architecture has no way to split without a deeper change).
 ]
 
 
