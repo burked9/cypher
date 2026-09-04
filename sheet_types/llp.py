@@ -15,6 +15,7 @@ from sheet_types.llp_variants import (
     kalstar_aviation_llp_status, thai_landing_gear_llp_status,
     b777_gear_llp_availability, part_m_engine_disk_sheet,
     revima_landing_gear_als_status, powerplant_maintenance_center_llp_status,
+    lan_engine_control_fleet_llp,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -32,6 +33,7 @@ VARIANTS = [
     kalstar_aviation_llp_status, thai_landing_gear_llp_status,
     b777_gear_llp_availability, part_m_engine_disk_sheet,
     revima_landing_gear_als_status, powerplant_maintenance_center_llp_status,
+    lan_engine_control_fleet_llp,
 ]
 
 _BY_NAME = {v.NAME: v for v in VARIANTS}
@@ -83,6 +85,10 @@ SIGNATURES = [
                                             # found. ("P.CSN", the variant's other signature, is
                                             # equally collision-free but a facility-block heading is
                                             # the more legible anchor for this top-level list.)
+    "ENGINE CONTROL FLEET ENGINES",        # lan_engine_control_fleet_llp.py -- checked for
+                                            # collisions against every SIGNATURES list in
+                                            # sheet_types/{occm,ht,llp}.py and every existing
+                                            # variant file; no collision found.
     # mm510_llp.py deliberately has NO entry here: the same "MM_510" header
     # is emitted verbatim by the same MIS tool for both HT-relevant and
     # LLP-relevant queries (confirmed: no discriminating phrase exists in

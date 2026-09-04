@@ -139,6 +139,7 @@ SOURCES = [
     "sheet_types/llp_variants/cfm56_7b_llp.py",
     "sheet_types/llp_variants/cfm_overhaul_llp.py",
     "sheet_types/llp_variants/lan_engine_llp.py",
+    "sheet_types/llp_variants/lan_engine_control_fleet_llp.py",
     "sheet_types/llp_variants/pro_rata_engine_llp.py",
     "sheet_types/llp_variants/subject.py",
     "sheet_types/llp_variants/vietnam_airlines.py",
