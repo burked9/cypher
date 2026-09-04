@@ -14,6 +14,7 @@ from sheet_types.llp_variants import (
     iai_dual_rating_engine_llp, kalstar_engine_llp_status,
     kalstar_aviation_llp_status, thai_landing_gear_llp_status,
     b777_gear_llp_availability, part_m_engine_disk_sheet,
+    revima_landing_gear_als_status,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -30,6 +31,7 @@ VARIANTS = [
     iai_dual_rating_engine_llp, kalstar_engine_llp_status,
     kalstar_aviation_llp_status, thai_landing_gear_llp_status,
     b777_gear_llp_availability, part_m_engine_disk_sheet,
+    revima_landing_gear_als_status,
 ]
 
 _BY_NAME = {v.NAME: v for v in VARIANTS}
@@ -66,6 +68,10 @@ SIGNATURES = [
                                             # already matched once inside LLP, but the sheet-type
                                             # gate itself had no phrase for this document family
                                             # at all, so it never got that far
+    "ALS Part 1",                          # revima_landing_gear_als_status.py -- checked for
+                                            # collisions against every SIGNATURES list in
+                                            # sheet_types/{occm,ht,llp}.py and every existing
+                                            # variant file; no collision found.
     "IHI Corporation",                     # ihi_engine_llp_time_cycle_record.py
     "LIST OF INTERNAL PARTS",              # elal_internal_parts_list.py
     "Life Limited Parts for:",             # iai_dual_rating_engine_llp.py -- the colon after
