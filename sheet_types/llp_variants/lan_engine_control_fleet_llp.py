@@ -2,7 +2,7 @@
 
 Confirmed on a single real file so far (singleton cluster). Header block::
 
-    April 04, 2002 16:24:42
+    <report generation date/time>
     <operator name>
     ENGINE CONTROL FLEET ENGINES
     PLACE & POS <place code> <position>
@@ -14,11 +14,11 @@ Confirmed on a single real file so far (singleton cluster). Header block::
 
 followed by one line per disk, e.g. (values genericized)::
 
-    LPC Hub F CBDUAY4343 50B301 0 15000 27412 6256
+    LPC Hub F ABCDEF1234 50X301 0 15000 27412 6256
 
 Row grain: one row per LLP disk. DESCRIPTION, DISK_SERIAL_NUMBER and
 DISK_PART_NUMBER are anchored reliably -- the serial number is always an
-all-caps letters+digits token 9-11 chars long (e.g. "CBDUAY4343"), found by
+all-caps letters+digits token 9-11 chars long (e.g. "ABCDEF1234"), found by
 scanning the line's tokens; everything before it is the description, and
 the token right after it is the part number (2 digits + letter + 3 digits,
 optionally "-NN").
@@ -106,7 +106,7 @@ _OVERRIDES = {
 RULES = merged_rules(_OVERRIDES)
 
 # All-caps letters-then-digits token, 9-11 chars -- shape observed for every
-# disk serial number on the sample file (e.g. "CBDUAY4343", "CENCAM9297").
+# disk serial number on the sample file (e.g. "ABCDEF1234", "GHIJKL5678").
 _SN_RE = re.compile(r"^[A-Z]{3,7}[0-9]{2,7}$")
 # Disk part number: 2 digits, a letter, 3 digits, optional "-NN" suffix.
 # A stray checkmark-like glyph is sometimes glued directly onto the end of

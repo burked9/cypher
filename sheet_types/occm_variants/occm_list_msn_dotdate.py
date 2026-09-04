@@ -22,7 +22,7 @@ Per-row layout, whitespace-tokenized::
 
 A typical row::
 
-    21 1091A0000-01 03638 INJECTOR-WATER R 21HM 15.01.2009 21426 16183 33343 25467
+    21 <pn> <sn> INJECTOR-WATER R <position> <date> <tah_inst> <tac_inst> <tsn> <csn>
 
 CON is a short condition code. Confirmed vocabulary on the sample file,
 exhaustively checked (every one of 1679 rows matched exactly this set,
@@ -51,7 +51,7 @@ misclassify the description's own "N" as CON and leave the real CON stuck
 in POS.
 
 SERIAL_NO and PART_NUMBER can carry a hyphenated/lettered prefix rather
-than being purely alphanumeric (e.g. a serial like "C-HGY21521002") --
+than being purely alphanumeric (e.g. a serial like "C-ABC12345678") --
 confirmed on a meaningful fraction of rows (roughly one in ten sampled),
 not a rare edge case, so no tokenizer assumption here treats a hyphen as
 a field separator within these two columns.

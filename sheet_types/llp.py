@@ -16,7 +16,7 @@ from sheet_types.llp_variants import (
     b777_gear_llp_availability, part_m_engine_disk_sheet,
     revima_landing_gear_als_status, powerplant_maintenance_center_llp_status,
     lan_engine_control_fleet_llp, engine_items_control_llp_status,
-    master_tracking_list,
+    master_tracking_list, aar_landing_gear_serialized_list,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -35,7 +35,7 @@ VARIANTS = [
     b777_gear_llp_availability, part_m_engine_disk_sheet,
     revima_landing_gear_als_status, powerplant_maintenance_center_llp_status,
     lan_engine_control_fleet_llp, engine_items_control_llp_status,
-    master_tracking_list,
+    master_tracking_list, aar_landing_gear_serialized_list,
 ]
 
 _BY_NAME = {v.NAME: v for v in VARIANTS}
@@ -112,6 +112,10 @@ SIGNATURES = [
     # (content-based, not header-phrase-based, disambiguation).
     "Master Tracking List",                # master_tracking_list.py -- checked for
                                             # collisions against every SIGNATURES list in
+                                            # sheet_types/{occm,ht,llp}.py and every existing
+                                            # variant file; no collision found.
+    "Serialized List",                     # aar_landing_gear_serialized_list.py -- checked
+                                            # for collisions against every SIGNATURES list in
                                             # sheet_types/{occm,ht,llp}.py and every existing
                                             # variant file; no collision found.
 ]

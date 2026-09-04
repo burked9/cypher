@@ -177,6 +177,7 @@ SOURCES = [
     "sheet_types/llp_variants/revima_landing_gear_als_status.py",
     "sheet_types/llp_variants/powerplant_maintenance_center_llp_status.py",
     "sheet_types/llp_variants/master_tracking_list.py",
+    "sheet_types/llp_variants/aar_landing_gear_serialized_list.py",
 
     # sheet-type routers — depend on their variants
     "sheet_types/occm.py",

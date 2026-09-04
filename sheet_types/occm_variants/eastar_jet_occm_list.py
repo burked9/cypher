@@ -210,7 +210,7 @@ def _parse_line(line: str, page_num: int) -> dict | None:
     # cell ("j 21", "j} 23" -- see module docstring). The search stops (does
     # not skip past) the first hyphenated cell it meets without a hit --
     # this template's PART_NUMBER is routinely hyphenated (e.g.
-    # "3505945-10") and its ATA/POSITION cells never are, so a hyphenated
+    # "1234567-10") and its ATA/POSITION cells never are, so a hyphenated
     # cell is always PART_NUMBER territory. Confirmed necessary on a
     # handful of rows where the real ATA cell ("80") OCRs as the bare word
     # "so" -- no digit at all -- which would otherwise let this search run

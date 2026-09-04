@@ -10,7 +10,7 @@ top. Columns (per the footer legend on the sample file):
 
 Row grammar::
 
-    72-31-00-01-230A HPC FWD SHAFT SAC TI 1386M56P03 ABC1234R \
+    72-31-00-01-230A HPC FWD SHAFT SAC TI <pn> ABC1234R \
         17894 11953 17894 11953 17894 11953 17894 11953 20000 8047 LLP
     └── CODE ────────┘└─ DESCRIPTION ─┘  │└── PN ───┘└ SN ───┘\
         └──────────── 8 time/cycle fields ────────────┘└LIMIT┘└REMAIN┘└CAT┘
@@ -36,7 +36,7 @@ wrapped-off leading dash from the following row's "- SAC TI" marker); it
 carries no data and is simply skipped since it never matches the row regex.
 
 Occasionally the PN or SIN column absorbs a spurious internal space from
-kerning (e.g. "1 386M56P03" for what is otherwise "1386M56P03"); the parser
+kerning (e.g. a stray space splitting an otherwise-contiguous P/N); the parser
 rejoins every token between the description and the serial number with no
 separator to undo this, then takes the final token as SERIAL_NUMBER.
 """

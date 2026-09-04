@@ -8,9 +8,9 @@ ruled grid as the scanned variant's known source file::
 
     MSN <n> <mon>-<yyyy>
     ATA INSTALL DATE POSITION PN SN DESCRIPTION
-    21 12/Jan/14 10HM1 LT 1263A0000-03 03149 MACHINE, AIR CYCLE (LHT)
-    21 3/Sep/01 11HM1 RT 1263A0000-03 DUM905002 MACHINE, AIR CYCLE (LHT)
-    21 31/Aug/18 8HB RT 1303A0000-04 01868 VALVE-FLOW CONTROL (LHT)
+    21 <date> <position> LT <pn> <sn> MACHINE, AIR CYCLE (LHT)
+    21 <date> <position> RT <pn> <sn> MACHINE, AIR CYCLE (LHT)
+    21 <date> <position> RT <pn> <sn> VALVE-FLOW CONTROL (LHT)
 
 POSITION is variable-width in plain whitespace-split terms -- it can be one
 token ("22HQ") or several ("35HN ONLY", "14HG RT", "1CA1 LT", "CON27 2 LT").
@@ -28,7 +28,7 @@ is too wide for its column:
      POSITION or DESCRIPTION value spills its tail onto the very next
      physical line, still left-aligned to that field's own column, e.g.::
 
-         27 3/Sep/01 6087CM SLAT4 830C0000-01 26313 ACTUATOR-ROTARY, SLAT B (LHT)
+         27 <date> <position> <pn> <sn> ACTUATOR-ROTARY, SLAT B (LHT)
          RT INBD
 
      ("RT INBD" is the rest of that row's POSITION value, landing in the
@@ -43,7 +43,7 @@ is too wide for its column:
 
          22 FMGC, FLIGHT MANAGEMENT & GUIDANCE
          COMPUTER (LHT) UPGRADE FMGC OBRM IAW
-         27/Jul/17 1CA1 LT C13043AA06 C13043030100 SB A20-22-1545
+         <date> <position> LT <pn> <sn> SB A20-22-1545
 
      Here the row's real anchor (a date-shaped token) only appears on the
      third physical line. A line carrying a bare ATA-column token with no

@@ -11,9 +11,9 @@ anywhere)::
     FLIGHT HRS: <n>
     FLIGHT CYCLE: <n>
     ATA Description Partno Serialno Description Pos. Inst-Date TSN CSN
-    21 AIR CONDITIONING 1209-100 20609 PRESSURE SWITCH 17HQ 30-Mar-10 24852 14777
-    21 1209-100 2936 PRESSURE SWITCH 30HQ 17-Sep-98 49385 29711
-    21 1263A0000-03 334 MACHINE CYCLE ONLY 28-Dec-00 92738 56573
+    21 AIR CONDITIONING <pn> <sn> PRESSURE SWITCH <position> <date> <tsn> <csn>
+    21 <pn> <sn> PRESSURE SWITCH <position> <date> <tsn> <csn>
+    21 <pn> <sn> MACHINE CYCLE ONLY <date> <tsn> <csn>
 
 The column header line has TWO "Description" columns at different
 x-positions -- the first is an ATA-CHAPTER-level heading (e.g. "AIR

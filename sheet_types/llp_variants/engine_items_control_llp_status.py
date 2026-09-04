@@ -10,7 +10,7 @@ life-limited parts headed by a title line resembling::
 
 followed by one row per LLP, e.g. (values genericized)::
 
-    CONE SEG CPR INLET 51A046 CBDUAT6702 2396 548 30000 29452
+    CONE SEG CPR INLET <pn> <sn> 2396 548 30000 29452
 
 Confirmed on a single real file so far (singleton cluster). The text layer
 is real (pdfplumber extracts real characters, not a blank/raster page) but

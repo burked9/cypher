@@ -21,7 +21,7 @@ belong in this docstring):
     Hrs Ldgs Hrs Ldgs Hrs Ldgs Hrs Ldgs
     DATE :
     <acft TSN> <acft CSN> 0 0 0 0 0 0
-    10 1900 201272649 SER10328/99 Wheel axle 0 0 43611 10965 0 0 72489 19035
+    10 1900 <pn9digit> <sn> Wheel axle 0 0 43611 10965 0 0 72489 19035
     ...
     REVIMA WO : <wo number> LH MLG
 
