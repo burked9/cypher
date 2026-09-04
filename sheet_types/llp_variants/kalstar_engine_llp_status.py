@@ -113,6 +113,19 @@ malformed; and the REMARK/status column's vocabulary is not fully known
 were seen across the 3 known files, not enough to safely hardcode a
 closed enum, so STATUS is validated as an uppercase word rather than a
 fixed pattern list.
+
+Remaining known imperfections, left uncorrected deliberately rather than
+patched with a fragile heuristic: SERIAL_NUMBER's O/0 (and similar
+letter/digit) ambiguity is not resolved -- the same unresolvable
+confusion the sibling module documents for its own serials, and for the
+same reason (no per-manufacturer serial reference list to check against).
+And a small number of individual cells (an isolated digit or the
+low-order metadata ITEM_NO field) still misread occasionally even after
+the grid-line/tight-crop fix described above -- confirmed across the 3
+known files to be rare (a cell or two per file, never a whole column),
+not systematic, and not worth chasing further with format-specific
+one-off corrections that risk being wrong in the opposite direction on
+a file not yet seen.
 """
 from __future__ import annotations
 import re
@@ -331,18 +344,33 @@ def _tight_crop(cell_img):
     """Crop a table cell down to its own glyph bounding box (+ margin),
     or return None for a genuinely blank cell.
 
-    Confirmed directly: passing tesseract the FULL cell box (minus a
-    small fixed pad) reliably fails on this format's narrower numeric
-    columns (CSN FULL / CSN / F.C.F / REMAINING CYCLES) -- e.g. a cell
-    containing only a clean, correctly-cropped "2" glyph against a wide
-    blank field returns an empty string at every page-segmentation mode
-    tried. The same glyph, re-cropped tightly around just its own dark
-    pixels (using a strict threshold well below the grid-line detection
-    one, since this only needs to find solid ink, not faint ruled lines)
-    with a small margin, is read correctly by every mode. Wider cells
-    (DESCRIPTION, REMARK) aren't affected by this bug in practice but
-    tightening them too is harmless -- their own text simply becomes the
-    bounding box."""
+    Confirmed directly: passing tesseract the full cell box reliably
+    fails on this format's narrower numeric columns (CSN FULL / CSN /
+    F.C.F / REMAINING CYCLES) -- e.g. a cell containing only a clean,
+    correctly-cropped "2" glyph against a wide blank field returns an
+    empty string at every page-segmentation mode tried. The same glyph,
+    re-cropped tightly around just its own dark pixels (using a strict
+    threshold well below the grid-line detection one, since this only
+    needs to find solid ink, not faint ruled lines) with a small margin,
+    is read correctly by every mode. Wider cells (DESCRIPTION, REMARK)
+    aren't affected by this bug in practice but tightening them too is
+    harmless -- their own text simply becomes the bounding box.
+
+    This alone wasn't sufficient, though: with only a small (4px) initial
+    pad on the raw cell box, a sliver of the column's own LEFT vertical
+    grid line routinely survived into the glyph bbox -- confirmed
+    directly by dumping the dark-pixel mask, which showed a persistent
+    thin dark strip spanning nearly the cell's full height right at the
+    left edge. Because that stripe is tall (not an isolated speck), it
+    doesn't get filtered out by the bbox itself, and dragging it into the
+    crop widened a single "1" glyph enough that tesseract consistently
+    misread it as "4" (both standalone and as the leading digit of a
+    multi-digit number, e.g. a genuine "14998" read back as "44998" on
+    every affected cell). Widening `_cell_text()`'s own initial pad from
+    4 to 10px (comfortably larger than the observed grid-line remnant,
+    still well inside these columns' ~200-300px width) excludes it before
+    the tight-bbox pass ever runs -- confirmed to fix every one of the
+    misreads found this way across all 3 known files."""
     arr = np.array(cell_img.convert("L"))
     dark = arr < _GLYPH_DARK_THRESH
     if not dark.any():
@@ -356,7 +384,7 @@ def _tight_crop(cell_img):
     return cell_img.crop((x0, y0, x1, y1))
 
 
-async def _cell_text(img, edges, col_xs, row_i: int, col_j: int, pad: int = 4,
+async def _cell_text(img, edges, col_xs, row_i: int, col_j: int, pad: int = 10,
                       psm: int = 7, whitelist: str | None = None) -> str:
     xc = (col_xs[col_j] + col_xs[col_j + 1]) / 2
     y0, y1 = _y_at(edges, row_i, xc), _y_at(edges, row_i + 1, xc)
