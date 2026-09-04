@@ -14,7 +14,7 @@ from sheet_types.llp_variants import (
     iai_dual_rating_engine_llp, kalstar_engine_llp_status,
     kalstar_aviation_llp_status, thai_landing_gear_llp_status,
     b777_gear_llp_availability, part_m_engine_disk_sheet,
-    revima_landing_gear_als_status,
+    revima_landing_gear_als_status, powerplant_maintenance_center_llp_status,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -31,7 +31,7 @@ VARIANTS = [
     iai_dual_rating_engine_llp, kalstar_engine_llp_status,
     kalstar_aviation_llp_status, thai_landing_gear_llp_status,
     b777_gear_llp_availability, part_m_engine_disk_sheet,
-    revima_landing_gear_als_status,
+    revima_landing_gear_als_status, powerplant_maintenance_center_llp_status,
 ]
 
 _BY_NAME = {v.NAME: v for v in VARIANTS}
@@ -77,6 +77,12 @@ SIGNATURES = [
     "Life Limited Parts for:",             # iai_dual_rating_engine_llp.py -- the colon after
                                             # "for" distinguishes it from this list's own earlier
                                             # "LIFE LIMITED PARTS FOR A" entry (pro_rata_engine_llp.py)
+    "POWERPLANT MAINTENANCE CENTER",       # powerplant_maintenance_center_llp_status.py -- checked
+                                            # for collisions against every SIGNATURES list in this
+                                            # file and every {occm,ht,llp}_variants/*.py file; none
+                                            # found. ("P.CSN", the variant's other signature, is
+                                            # equally collision-free but a facility-block heading is
+                                            # the more legible anchor for this top-level list.)
     # mm510_llp.py deliberately has NO entry here: the same "MM_510" header
     # is emitted verbatim by the same MIS tool for both HT-relevant and
     # LLP-relevant queries (confirmed: no discriminating phrase exists in
