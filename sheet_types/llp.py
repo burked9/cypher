@@ -15,7 +15,7 @@ from sheet_types.llp_variants import (
     kalstar_aviation_llp_status, thai_landing_gear_llp_status,
     b777_gear_llp_availability, part_m_engine_disk_sheet,
     revima_landing_gear_als_status, powerplant_maintenance_center_llp_status,
-    lan_engine_control_fleet_llp,
+    lan_engine_control_fleet_llp, engine_items_control_llp_status,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -33,7 +33,7 @@ VARIANTS = [
     kalstar_aviation_llp_status, thai_landing_gear_llp_status,
     b777_gear_llp_availability, part_m_engine_disk_sheet,
     revima_landing_gear_als_status, powerplant_maintenance_center_llp_status,
-    lan_engine_control_fleet_llp,
+    lan_engine_control_fleet_llp, engine_items_control_llp_status,
 ]
 
 _BY_NAME = {v.NAME: v for v in VARIANTS}
@@ -89,6 +89,14 @@ SIGNATURES = [
                                             # collisions against every SIGNATURES list in
                                             # sheet_types/{occm,ht,llp}.py and every existing
                                             # variant file; no collision found.
+    "ITEMS CONTROL FOR",                   # engine_items_control_llp_status.py -- checked for
+                                            # collisions against every SIGNATURES list in
+                                            # sheet_types/{occm,ht,llp}.py and every existing
+                                            # variant file; no collision found. Deliberately
+                                            # trimmed to drop "ENGINE" from the end of the
+                                            # phrase -- the sample file's own text layer
+                                            # corrupts that word to "EN8INE", so the full
+                                            # "ITEMS CONTROL FOR ENGINE" phrase would not match.
     # mm510_llp.py deliberately has NO entry here: the same "MM_510" header
     # is emitted verbatim by the same MIS tool for both HT-relevant and
     # LLP-relevant queries (confirmed: no discriminating phrase exists in
