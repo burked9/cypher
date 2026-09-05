@@ -18,7 +18,11 @@ from sheet_types.llp_variants import (
     lan_engine_control_fleet_llp, engine_items_control_llp_status,
     master_tracking_list, aar_landing_gear_serialized_list,
     turbine_acceptance_tag, esn_disc_sheet,
-    oases_lifed_components_llp,
+    oases_lifed_components_llp, llp_pn_sn_event_log,
+    lta_fan_module_llp_status, sas_component_drawing_parts_list,
+    apu_llp_inventory, cf34_life_limited_major_component,
+    esn_llps_status, pw4056_pw4060_dual_rating_llp_status,
+    engine_current_installation_llp, engine_propeller_component_llp,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -39,7 +43,11 @@ VARIANTS = [
     lan_engine_control_fleet_llp, engine_items_control_llp_status,
     master_tracking_list, aar_landing_gear_serialized_list,
     turbine_acceptance_tag, esn_disc_sheet,
-    oases_lifed_components_llp,
+    oases_lifed_components_llp, llp_pn_sn_event_log,
+    lta_fan_module_llp_status, sas_component_drawing_parts_list,
+    apu_llp_inventory, cf34_life_limited_major_component,
+    esn_llps_status, pw4056_pw4060_dual_rating_llp_status,
+    engine_current_installation_llp, engine_propeller_component_llp,
 ]
 
 _BY_NAME = {v.NAME: v for v in VARIANTS}

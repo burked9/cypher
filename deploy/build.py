@@ -181,6 +181,15 @@ SOURCES = [
     "sheet_types/llp_variants/turbine_acceptance_tag.py",
     "sheet_types/llp_variants/esn_disc_sheet.py",
     "sheet_types/llp_variants/oases_lifed_components_llp.py",
+    "sheet_types/llp_variants/llp_pn_sn_event_log.py",
+    "sheet_types/llp_variants/lta_fan_module_llp_status.py",
+    "sheet_types/llp_variants/apu_llp_inventory.py",
+    "sheet_types/llp_variants/sas_component_drawing_parts_list.py",
+    "sheet_types/llp_variants/cf34_life_limited_major_component.py",
+    "sheet_types/llp_variants/esn_llps_status.py",
+    "sheet_types/llp_variants/pw4056_pw4060_dual_rating_llp_status.py",
+    "sheet_types/llp_variants/engine_current_installation_llp.py",
+    "sheet_types/llp_variants/engine_propeller_component_llp.py",
 
     # sheet-type routers — depend on their variants
     "sheet_types/occm.py",
