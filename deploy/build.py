@@ -98,6 +98,44 @@ SOURCES = [
     "sheet_types/occm_variants/occm_summary_list.py",
     # OCCM variant added 2026-08-27 — "EASTAR JET OC/CM List" scanned export
     "sheet_types/occm_variants/eastar_jet_occm_list.py",
+    # OCCM variant added 2026-09-05 — "<reg> OCCM LIST - <date> AT AIRCRAFT
+    # FH:" six-pair FH/CYC time-matrix export, real text layer
+    "sheet_types/occm_variants/occm_list_at_aircraft_fh.py",
+    # OCCM variant added 2026-09-05 — wide multi-basis (NEW/OHAU/REPA/BENC/
+    # INST accumulated) per-component OCCM export, real text layer.
+    "sheet_types/occm_variants/multi_basis_accumulated_occm.py",
+    # OCCM variant added 2026-09-05 — "Components List" dense 3-line-per-row
+    # status matrix (Plane/TS Util/CS Util header), real text layer.
+    "sheet_types/occm_variants/components_list_status_matrix.py",
+    # OCCM variant added 2026-09-05 — "OC/CM status <date>" header,
+    # position-anchored word-bucketing parse, real text layer.
+    "sheet_types/occm_variants/oc_cm_status_report.py",
+    # OCCM variant added 2026-09-05 — "OCCM Report Date :" header block +
+    # 10-column T@I/C@I/TSI@Today/CSI@Today time-matrix grid, real text
+    # layer. Distinct from occm_report.py's own differently-titled 6-column
+    # "OCCM Report" variant (confirmed via direct inspection).
+    "sheet_types/occm_variants/occm_report_time_matrix.py",
+    # OCCM variant added 2026-09-05 — "ON CONDITION CONDITION MONITORING
+    # STATUS" / "OCCM Component List" header, two-band INSTALLATION DATA /
+    # COMPONENT DATA column groups resolved by word x-position rather than
+    # token count, real text layer.
+    "sheet_types/occm_variants/occm_component_list.py",
+    # OCCM variant added 2026-09-05 — "OC/CM status" header, rows grouped
+    # under repeated "ATA <n> - <description>" section headings rather
+    # than carrying ATA as an inline column, real text layer. Distinct
+    # from oc_cm_status_report.py's own same-day, flat-column "OC/CM
+    # status" sibling (confirmed via direct inspection) — must be listed
+    # before it in sheet_types/occm.py's VARIANTS so its more specific
+    # column-header signature gets first refusal.
+    "sheet_types/occm_variants/occm_status_by_ata_chapter.py",
+    # OCCM variant added 2026-09-05 — "ON CONDITION COMPONENTS REPORT"
+    # header, dual hours/landings basis (TSN/TSI vs LSN/LSI) resolved via
+    # word x-position bucketing, real text layer.
+    "sheet_types/occm_variants/occm_component_status_dual_basis.py",
+    # OCCM variant added 2026-09-05 — "O/C COMPONENT STATUS" header, real
+    # text layer, word x-position bucketing (PN/SN/DESC/ZONE/FIN/ATA/
+    # install-date/TSN/CSN/TSI-TSR/CSI-CSR/certificate columns).
+    "sheet_types/occm_variants/oc_component_status.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",

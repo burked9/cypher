@@ -28,7 +28,11 @@ from sheet_types.occm_variants import (
     fl_compound_code_occm, occm_tah_tac_at_install, occm_report_scanned,
     occm_report, aircraft_occm_list_scanned,
     occm_summary_list, occm_list_msn_dotdate,
-    eastar_jet_occm_list,
+    eastar_jet_occm_list, occm_list_at_aircraft_fh,
+    multi_basis_accumulated_occm, components_list_status_matrix,
+    occm_report_time_matrix, oc_cm_status_report,
+    occm_component_list, occm_status_by_ata_chapter,
+    occm_component_status_dual_basis, oc_component_status,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -62,6 +66,23 @@ VARIANTS = [
     aircraft_rotables_report_scanned, occm_list_for_registration,
     occm_report, occm_report_scanned, aircraft_occm_list_scanned,
     occm_summary_list, eastar_jet_occm_list,
+    occm_list_at_aircraft_fh,
+    multi_basis_accumulated_occm,
+    components_list_status_matrix,
+    occm_report_time_matrix,
+    # occm_status_by_ata_chapter.py MUST precede oc_cm_status_report.py:
+    # both known source files share the same "OC/CM status" front-matter
+    # line, but oc_cm_status_report.py's own SIGNATURES entry is that
+    # generic phrase (matching either file), while this module's is the
+    # more specific column-header line unique to its own format (see its
+    # module docstring) -- so it needs the earlier slot per this file's
+    # "specific formats before generic ones" convention, or its own real
+    # files would get mis-routed to oc_cm_status_report.py first.
+    occm_status_by_ata_chapter,
+    oc_cm_status_report,
+    occm_component_list,
+    occm_component_status_dual_basis,
+    oc_component_status,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
@@ -120,6 +141,47 @@ SIGNATURES = [
     # reached via the ocr_detect fallback loop below, not this list.
     # occm_report_scanned.py: same reason -- no text layer on its known
     # source file either.
+    # components_list_status_matrix.py's known source file has no "OCCM"/
+    # "OC&CM"/"OC/CM" text anywhere in it either (confirmed via direct
+    # inspection of every page) -- its column-header line is the only
+    # reliable anchor, and doubles as its own variant-level SIGNATURES
+    # entry (checked for collisions against every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing variant file).
+    "Pos InstDate OvhDateDSO",
+    # occm_report_time_matrix.py's known source file has no "OCCM" text
+    # collision risk here since its title line literally starts "OCCM
+    # Report Date :" -- the generic "OCCM" entry above already matches it,
+    # but this more precise phrase (and its column-header line) are added
+    # too, distinguishing it from occm_report.py's own, differently-worded
+    # column-header signature above (checked for collisions against every
+    # SIGNATURES list in sheet_types/{occm,ht,llp}.py and every existing
+    # variant file, occm_report.py included).
+    "OCCM Report Date :",
+    "Serial # Position Description Installation Date",
+    # oc_cm_status_report.py's known source file's header is literally
+    # "OC/CM status <date>" -- the slash means it does NOT contain "OCCM"
+    # as a substring, so without this entry the top-level router returns
+    # "Unknown" on it (confirmed directly: none of the existing entries in
+    # this list, nor any ht.py/llp.py signature, match its header text).
+    # Checked for collisions against every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing variant file first.
+    "OC/CM STATUS",
+    # occm_component_status_dual_basis.py's known source file has no
+    # "OCCM" text anywhere in it either (confirmed via direct inspection
+    # of every page) -- its title line reads "ON CONDITION COMPONENTS
+    # REPORT" and its column-header line is the only reliable anchor,
+    # doubling as its own variant-level SIGNATURES entry (checked for
+    # collisions against every SIGNATURES list in sheet_types/
+    # {occm,ht,llp}.py and every existing variant file first).
+    "ATA P/N DESCRIPTION S/N POS MPCODE INST. DATE UNIT TSN TSI LSN LSI",
+    # oc_component_status.py's known source file's title reads literally
+    # "O/C COMPONENT STATUS" -- the slash means it does NOT contain "OCCM"
+    # as a substring, so without this entry the top-level router returns
+    # "Unknown" on it (confirmed directly: none of the existing entries in
+    # this list, nor any ht.py/llp.py signature, match its header text).
+    # Checked for collisions against every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing variant file first.
+    "O/C COMPONENT STATUS",
 ]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
