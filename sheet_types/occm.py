@@ -39,6 +39,8 @@ from sheet_types.occm_variants import (
     occm_component_status_facility_msn,
     occm_component_data_install_current,
     serialized_component_list,
+    installed_parts_list,
+    serialization_list_by_ata,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -98,6 +100,8 @@ VARIANTS = [
     occm_listing,
     occm_component_data_install_current,
     serialized_component_list,
+    installed_parts_list,
+    serialization_list_by_ata,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
@@ -249,6 +253,25 @@ SIGNATURES = [
     # "Serialized Unit List - Hard Limits" are NOT substrings of this
     # phrase (or vice versa), so no collision risk with either.
     "Serialized Component List",
+    # installed_parts_list.py's known source file has no "OCCM" text
+    # anywhere in it (confirmed via direct inspection) -- its title line
+    # reads literally "INSTALLED PARTS LIST" (rendered with or without the
+    # space between PARTS and LIST depending on the page), added here as
+    # its own variant-level SIGNATURES phrase, doubling as the top-level
+    # anchor. Checked for collisions against every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing variant file first.
+    "INSTALLED PARTS LIST",
+    # serialization_list_by_ata.py's known source file has no "OCCM" text
+    # anywhere in it (confirmed via direct inspection) -- its title line
+    # reads "<report_id> SERIALIZATION LIST by ATA CHAPTER", added here as
+    # its own variant-level SIGNATURES phrase, doubling as the top-level
+    # anchor. Checked for collisions against every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing variant file first --
+    # in particular llp_variants/aar_landing_gear_serialized_list.py's
+    # "Serialized List" and serialized_component_list.py's "Serialized
+    # Component List" are NOT substrings of this phrase (or vice versa), so
+    # no collision risk with either.
+    "SERIALIZATION LIST by ATA CHAPTER",
 ]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 

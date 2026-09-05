@@ -192,6 +192,23 @@ SOURCES = [
     # x-position bucketing (some middle columns -- P/N, S/N, Install Date,
     # TSN, CSN -- are legitimately blank together on a subset of rows).
     "sheet_types/occm_variants/serialized_component_list.py",
+    # OCCM variant added 2026-09-05 — "INSTALLED PARTS LIST" header block
+    # (StatusASAT/UnitMSN/Item type/UnitTSN/UnitCSN/reg+serial/UnitDSN),
+    # real text layer, row anchored purely by exactly-8-token count plus a
+    # date-shaped 6th token (no word x-position bucketing needed); header
+    # metadata locked from the first page where every field parses cleanly,
+    # since later pages carry occasional rendering glitches on the same
+    # fields.
+    "sheet_types/occm_variants/installed_parts_list.py",
+    # OCCM variant added 2026-09-05 — "<report_id> SERIALIZATION LIST by ATA
+    # CHAPTER" header block, landing-gear-focused parts serialization/
+    # interchangeability list (tracks verification status, not TSN/CSN
+    # flight-hour life), real text layer, word x-position bucketing;
+    # LIFED/MANUF_DATE/SERIAL/INTRCHGE/RPLCBLE are independent marker
+    # columns not mutually exclusive or sequential, and a stray token that
+    # can't be confirmed as belonging to a marker column is folded into
+    # STATUS_TRAIL rather than guessed (see the module docstring).
+    "sheet_types/occm_variants/serialization_list_by_ata.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
