@@ -33,6 +33,12 @@ from sheet_types.occm_variants import (
     occm_report_time_matrix, oc_cm_status_report,
     occm_component_list, occm_status_by_ata_chapter,
     occm_component_status_dual_basis, oc_component_status,
+    occm_dual_description_list, occm_part_status,
+    occm_control_sheet, all_fitted_aircraft_component_log,
+    occm_component_inventory, occm_listing,
+    occm_component_status_facility_msn,
+    occm_component_data_install_current,
+    serialized_component_list,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -41,6 +47,7 @@ from shared.ocr_bridge import maybe_await
 # first match. Specific airframe/operator variants are listed first.
 VARIANTS = [
     aircraft_spec_file_occm,
+    all_fitted_aircraft_component_log,
     aegean_erj_occm,
     a330_engineering_planning,
     avianca_occm,
@@ -49,6 +56,8 @@ VARIANTS = [
     cca_a340_occm,
     swiss_a340_occm,
     a305_a340_occm,
+    occm_part_status,
+    occm_component_inventory,
     on_condition_monitoring_occm,
     msn_components_status_list,
     sedor_b737_occm,
@@ -57,6 +66,7 @@ VARIANTS = [
     fl_compound_code_occm,
     occm_tah_tac_at_install,
     occm_list_msn_dotdate,
+    occm_component_status_facility_msn,
     aeroflot, aircraft_inventory_report, aircraft_rotables_report, amos,
     cathay_occm, config_slot_occm, iberia_listado, oases,
     occm_list_as_at, occm_status_list, on_condition_components_report,
@@ -83,6 +93,11 @@ VARIANTS = [
     occm_component_list,
     occm_component_status_dual_basis,
     oc_component_status,
+    occm_dual_description_list,
+    occm_control_sheet,
+    occm_listing,
+    occm_component_data_install_current,
+    serialized_component_list,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
@@ -182,6 +197,58 @@ SIGNATURES = [
     # Checked for collisions against every SIGNATURES list in
     # sheet_types/{occm,ht,llp}.py and every existing variant file first.
     "O/C COMPONENT STATUS",
+    # occm_control_sheet.py's known source file already contains "OCCM" in
+    # its title line ("OCCM Control Sheet"), so the generic "OCCM" entry
+    # above already matches it -- its own variant-level SIGNATURES phrase
+    # is added here too anyway, as the more precise anchor, per this file's
+    # convention (checked for collisions against every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing variant file first).
+    "OCCM Control Sheet",
+    # all_fitted_aircraft_component_log.py's known source file has no "OCCM"
+    # text anywhere in it (confirmed via direct inspection) -- its title
+    # line reads literally "All Fitted Aircraft Component LOG". The
+    # existing generic "AIRCRAFT COMPONENT LOG" entry above (added for
+    # georgian_airways_b737.py) already matches it as a substring, so this
+    # more precise full-title phrase is added too as the sharper anchor, per
+    # this file's convention (checked for collisions against every
+    # SIGNATURES list in sheet_types/{occm,ht,llp}.py and every existing
+    # variant file first -- including georgian_airways_b737.py's own
+    # variant-level SIGNATURES, which use a different, more specific phrase
+    # and do not match this title).
+    "All Fitted Aircraft Component LOG",
+    # occm_component_inventory.py's title line already contains "OCCM"
+    # ("MSN <msn> OCCM COMPONENT INVENTORY"), so the generic "OCCM" entry
+    # above already matches it -- this more precise phrase is added anyway
+    # as the sharper anchor, per this file's convention (checked for
+    # collisions against every SIGNATURES list in sheet_types/
+    # {occm,ht,llp}.py and every existing variant file first).
+    "OCCM COMPONENT INVENTORY",
+    # occm_listing.py's title line already contains "OCCM" ("OCCM Listing"),
+    # so the generic "OCCM" entry above already matches it -- this more
+    # precise phrase is added anyway as the sharper anchor, per this file's
+    # convention (checked for collisions against every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing variant file first).
+    "OCCM Listing",
+    # occm_component_data_install_current.py's known source file's title
+    # line reads literally "<code> OC/CM(MSN<n>)" -- the slash means it does
+    # NOT contain "OCCM" as a substring (confirmed directly), so without an
+    # entry here the top-level router returns "Unknown" on it. Its own
+    # variant-level SIGNATURES phrase ("Component Data at Install") is used
+    # here too since it's a more precise, title-independent anchor. Checked
+    # for collisions against every SIGNATURES list in sheet_types/
+    # {occm,ht,llp}.py and every existing variant file first.
+    "Component Data at Install",
+    # serialized_component_list.py's known source file has no "OCCM" text
+    # anywhere in it (confirmed via direct inspection) -- its title line
+    # reads literally "Serialized Component List", added here as its own
+    # variant-level SIGNATURES phrase, doubling as the top-level anchor.
+    # Checked for collisions against every SIGNATURES list in sheet_types/
+    # {occm,ht,llp}.py and every existing variant file first -- in
+    # particular llp_variants/aar_landing_gear_serialized_list.py's
+    # "Serialized List" and llp_variants/serialized_unit_hard_limits.py's
+    # "Serialized Unit List - Hard Limits" are NOT substrings of this
+    # phrase (or vice versa), so no collision risk with either.
+    "Serialized Component List",
 ]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 

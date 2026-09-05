@@ -136,6 +136,62 @@ SOURCES = [
     # text layer, word x-position bucketing (PN/SN/DESC/ZONE/FIN/ATA/
     # install-date/TSN/CSN/TSI-TSR/CSI-CSR/certificate columns).
     "sheet_types/occm_variants/oc_component_status.py",
+    # OCCM variant added 2026-09-05 — "MSN <msn> OCCM PART STATUS" header,
+    # real text layer, row anchored on trailing (POSITION, INST_DATE, TSN,
+    # CSN)-shaped tokens rather than word x-position.
+    "sheet_types/occm_variants/occm_part_status.py",
+    # OCCM variant added 2026-09-05 — two-description-column layout ("ATA
+    # DESCRIPTION PART NO. SERIAL NO. DESCRIPTION2 POS. INST-DATE" header),
+    # real text layer, word x-position bucketing; row anchor differs from
+    # occm_summary_list.py's sibling format since only the chapter-heading
+    # row (not every row) starts with an ATA-shaped token here.
+    "sheet_types/occm_variants/occm_dual_description_list.py",
+    # OCCM variant added 2026-09-05 — "OCCM Control Sheet" header block,
+    # real text layer, word x-position bucketing; unusual column order with
+    # ATA as the LAST column (DESCRIPTION/PN/SN/POSITION/INSTALL_DATE/FH/
+    # FC/TSI/CSI/ATA) rather than first as in several sibling variants.
+    "sheet_types/occm_variants/occm_control_sheet.py",
+    # OCCM variant added 2026-09-05 — "All Fitted Aircraft Component LOG"
+    # header block (AIRCRAFT <reg> / SINCE NEW HOUR / CYCLES / UNIT REMOVAL
+    # BASED ON.../A/C at installation), real text layer, word x-position
+    # bucketing; PART_NUMBER/DESCRIPTION print once per part group and are
+    # blank on subsequent same-group rows (left as literal blanks, not
+    # forward-filled).
+    "sheet_types/occm_variants/all_fitted_aircraft_component_log.py",
+    # OCCM variant added 2026-09-05 — "MSN <msn> OCCM COMPONENT INVENTORY"
+    # header, real text layer, plain token splitting (no word x-position
+    # needed); row anchored on a trailing ISO installed-date token, with
+    # multi-line PART_DESCRIPTION wraps reassembled from the bare
+    # description-only lines either side of the row's own data line.
+    "sheet_types/occm_variants/occm_component_inventory.py",
+    # OCCM variant added 2026-09-05 — "OCCM Listing" header block (<model> /
+    # MSN <msn> Regn <reg> / OCCM Listing / Total Aircraft Hours <n> and <n>
+    # Flight Cycles), real text layer, word x-position bucketing; the header
+    # row's own "Unit" column is never populated on the real sample (data
+    # fills flush against Description instead), so UNIT is always emitted
+    # empty. Row anchored on a bare 2-digit ATA in the leftmost column.
+    "sheet_types/occm_variants/occm_listing.py",
+    # OCCM variant added 2026-09-05 — "<facility> sn <msn> OCCM Component"
+    # header block, real text layer, word x-position bucketing (tight
+    # x_tolerance to split an ATA glued directly onto PART_NUMBER with no
+    # space). Six-column trailing time group (TAH Inst/TAC Inst/TSI/CSI/
+    # TSN/CSN) and CON vocabulary (IN/IT/MO/NE/OH/RE/SV/TE) both confirmed
+    # distinct from occm_list_msn_dotdate.py's own four-column trailing
+    # group and different CON set.
+    "sheet_types/occm_variants/occm_component_status_facility_msn.py",
+    # OCCM variant added 2026-09-05 — "<code> OC/CM(MSN<n>)" header block,
+    # real text layer, word x-position bucketing across a paired "at
+    # install" / "current" TSN/TSO/CSN/CSO layout; CSN/CSO at install are
+    # sparsely populated on most rows (legitimate missing data, not a parse
+    # gap) and an ambiguous numeric-region collision (rare, e.g. an upstream
+    # "#REF!" export artifact) folds into STATUS_TRAIL rather than guessing.
+    "sheet_types/occm_variants/occm_component_data_install_current.py",
+    # OCCM variant added 2026-09-05 — "Serialized Component List" header
+    # block (AIRCRAFT / AIRBUS <type> HOURS <n> / MSN <msn> CYCLES <n> /
+    # REG <reg> DATE <date> / DOM <date>), real text layer, word
+    # x-position bucketing (some middle columns -- P/N, S/N, Install Date,
+    # TSN, CSN -- are legitimately blank together on a subset of rows).
+    "sheet_types/occm_variants/serialized_component_list.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
