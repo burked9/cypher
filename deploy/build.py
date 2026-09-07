@@ -209,6 +209,19 @@ SOURCES = [
     # can't be confirmed as belonging to a marker column is folded into
     # STATUS_TRAIL rather than guessed (see the module docstring).
     "sheet_types/occm_variants/serialization_list_by_ata.py",
+    # OCCM Index — born-digital, full text layer; ATA/DESCRIPTION/
+    # PART_NUMBER/SERIAL_NUMBER/INSTALL_DATE/TSN/CSN rows anchored on the
+    # trailing install-date token, with MSN/type/reg/MFG/FH/FC/report-date
+    # header metadata stamped on every row.
+    "sheet_types/occm_variants/occm_index.py",
+    # Assembly Configuration / Status Report — born-digital, full text
+    # layer; each component prints as 4 physical lines (FHR/CYC/CAL basis
+    # rows plus a trailing serial/position/GRN line), CON-token x-position
+    # anchored (not text search, since the same literal tokens also appear
+    # as trailing status values); expanded to 3 rows per component with a
+    # BASIS column, ambiguous per-basis numeric trail kept verbatim in
+    # STATUS_TRAIL rather than force-split into named sub-columns.
+    "sheet_types/occm_variants/assembly_configuration_status_report.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",

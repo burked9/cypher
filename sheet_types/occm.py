@@ -41,6 +41,8 @@ from sheet_types.occm_variants import (
     serialized_component_list,
     installed_parts_list,
     serialization_list_by_ata,
+    occm_index,
+    assembly_configuration_status_report,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -102,6 +104,8 @@ VARIANTS = [
     serialized_component_list,
     installed_parts_list,
     serialization_list_by_ata,
+    occm_index,
+    assembly_configuration_status_report,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
@@ -272,6 +276,14 @@ SIGNATURES = [
     # Component List" are NOT substrings of this phrase (or vice versa), so
     # no collision risk with either.
     "SERIALIZATION LIST by ATA CHAPTER",
+    # assembly_configuration_status_report.py's known source file has no
+    # "OCCM" text anywhere in it (confirmed via direct inspection of every
+    # page) -- its title line reads literally "ASSEMBLY CONFIGURATION /
+    # STATUS REPORT", added here as its own variant-level SIGNATURES phrase,
+    # doubling as the top-level anchor. Checked for collisions against every
+    # SIGNATURES list in sheet_types/{occm,ht,llp}.py and every existing
+    # variant file first.
+    "ASSEMBLY CONFIGURATION / STATUS REPORT",
 ]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
