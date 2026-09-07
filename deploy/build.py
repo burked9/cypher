@@ -222,6 +222,22 @@ SOURCES = [
     # BASIS column, ambiguous per-basis numeric trail kept verbatim in
     # STATUS_TRAIL rather than force-split into named sub-columns.
     "sheet_types/occm_variants/assembly_configuration_status_report.py",
+    # Maintenance Status Report (Report PR21) — born-digital, full text
+    # layer; "Aircraft Inventory and Maintenance System" export with no
+    # "OCCM" text anywhere in it (confirmed via direct inspection). Each
+    # record spans 2+ physical lines anchored on a TASK_CODE (C/M or O/C)
+    # token; the raw span between SERIAL_NUMBER and LOG_REF on line 2, and
+    # any extra continuation lines restating TASK_CODE with an alternate
+    # time basis, fold into POSITION/STATUS_TRAIL verbatim rather than
+    # being guessed apart (see the module docstring).
+    "sheet_types/occm_variants/maintenance_status_report_pr21.py",
+    # "COMPONENT LIST" Kardex-style OCCM summary — born-digital, real text
+    # layer (noisy per-page OCR-like re-render, not scanned), no "OCCM"
+    # text anywhere in it (confirmed via direct inspection). Rows anchored
+    # on tail-registration + TYPE token; multi-line descriptions resolved
+    # by which neighbouring row's own description cell is empty (see the
+    # module docstring for the full geometric-attribution rule).
+    "sheet_types/occm_variants/component_list_kardex.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",

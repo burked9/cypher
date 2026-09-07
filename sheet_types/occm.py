@@ -43,6 +43,8 @@ from sheet_types.occm_variants import (
     serialization_list_by_ata,
     occm_index,
     assembly_configuration_status_report,
+    maintenance_status_report_pr21,
+    component_list_kardex,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -106,6 +108,16 @@ VARIANTS = [
     serialization_list_by_ata,
     occm_index,
     assembly_configuration_status_report,
+    maintenance_status_report_pr21,
+    # component_list_kardex.py's known source file's title reads literally
+    # "COMPONENT LIST" -- a generic phrase, so it's placed near the end of
+    # this list (after every more-specific format) to minimise the risk of
+    # it stealing a real file that belongs to an earlier, more specific
+    # variant. Checked directly: no earlier variant's own SIGNATURES phrase
+    # appears in the real sample file's text, and this phrase does not
+    # appear as a substring of (nor contain as a substring) any other
+    # variant's SIGNATURES entries checked.
+    component_list_kardex,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
@@ -284,6 +296,23 @@ SIGNATURES = [
     # SIGNATURES list in sheet_types/{occm,ht,llp}.py and every existing
     # variant file first.
     "ASSEMBLY CONFIGURATION / STATUS REPORT",
+    # maintenance_status_report_pr21.py's known source file has no "OCCM"
+    # text anywhere in it (confirmed via direct inspection of every page)
+    # -- its title line reads literally "MAINTENANCE STATUS REPORT Report
+    # PR21", added here as its own variant-level SIGNATURES phrase,
+    # doubling as the top-level anchor. Checked for collisions against
+    # every SIGNATURES list in sheet_types/{occm,ht,llp}.py and every
+    # existing variant file first.
+    "MAINTENANCE STATUS REPORT",
+    # component_list_kardex.py's known source file has no "OCCM" text
+    # anywhere in it (confirmed via direct inspection of every page) -- its
+    # title line reads literally "COMPONENT LIST", added here as its own
+    # variant-level SIGNATURES phrase, doubling as the top-level anchor.
+    # This is a generic phrase, so it's added last and the variant itself
+    # is placed near the end of VARIANTS (see that list) to minimise
+    # misrouting risk. Checked for collisions against every SIGNATURES list
+    # in sheet_types/{occm,ht,llp}.py and every existing variant file first.
+    "COMPONENT LIST",
 ]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
