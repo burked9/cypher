@@ -49,6 +49,8 @@ from sheet_types.occm_variants import (
     aircraft_installed_parts_print,
     occm_components_status,
     occm_list_cert_remark,
+    oc_cm_components_install_current,
+    aircraft_occm_list_hcd,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -155,6 +157,15 @@ VARIANTS = [
     # phrase does not appear as a substring of (nor contain as a
     # substring) any other variant's SIGNATURES entries checked.
     occm_components_status,
+    # OC/CM Components (Installation / Current) -- its own variant-level
+    # SIGNATURES entries ("AIRCRAFT REG. :", "MFD :") are distinctive
+    # phrases unique to its own known source file. Checked directly: no
+    # earlier variant's own SIGNATURES phrase appears in the real sample
+    # file's text, and neither of these phrases appears as a substring of
+    # (nor contains as a substring) any other variant's SIGNATURES entries
+    # checked, including occm_component_data_install_current.py and
+    # occm_component_ac_corrected_at_install.py above.
+    oc_cm_components_install_current,
     # OCCM List (Certificate/Remark) -- its variant-level SIGNATURES entry
     # is the column-header line "Part No. Serial No. INST_DATE TSN CSN
     # Certificate Remark", a distinctive, specific phrase unique to this
@@ -168,6 +179,16 @@ VARIANTS = [
     # this phrase does not appear as a substring of (nor contain as a
     # substring) any other variant's SIGNATURES entries checked.
     occm_list_cert_remark,
+    # Aircraft OCCM List (H/C/D Basis) -- its own variant-level SIGNATURES
+    # entries are the two real column-header lines ("Zone ATA POS1 P/N S/N
+    # Inst. Date Parts Name NHA P/N NHA S/N Originator" and "TSI TST TSO
+    # TSN TTR TCI Limit Limit Type T/C# TASK Repairer # CERT # SER.DATE
+    # Task Note"), distinctive phrases unique to this module's own known
+    # source file. Checked directly (grep across every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing occm_variants file):
+    # neither phrase appears anywhere else, and doesn't contain (nor is
+    # contained by) any other variant's own SIGNATURES entries.
+    aircraft_occm_list_hcd,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
@@ -371,6 +392,18 @@ SIGNATURES = [
     # list in sheet_types/{occm,ht,llp}.py and every existing variant file
     # first.
     "A/C Installed Parts Print",
+    # oc_cm_components_install_current.py's known source file's title reads
+    # literally "OC/CM COMPONENTS" -- no "OCCM" substring (confirmed
+    # directly), so without an entry here the top-level router returns
+    # "Unknown" on it. "AIRCRAFT REG. :" is used instead of the title
+    # phrase itself, since "OC/CM COMPONENTS" is a substring of
+    # a305_a340_occm.py's own SIGNATURES phrase ("Components >> OC/CM
+    # Components", confirmed directly) and would risk stealing that
+    # variant's files at the top-level sheet-type check; "AIRCRAFT REG. :"
+    # is checked for collisions against every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing variant file first,
+    # with none found.
+    "AIRCRAFT REG. :",
 ]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 

@@ -283,6 +283,23 @@ SOURCES = [
     # anything not confidently a description continuation folds into
     # STATUS_TRAIL rather than being guessed (see the module docstring).
     "sheet_types/occm_variants/occm_list_cert_remark.py",
+    # OC/CM Components (Installation / Current) — born-digital, full text
+    # layer; fixed 5-line per-page header (AIRCRAFT_TYPE/AIRCRAFT_REG/
+    # CURRENT_DATE/MSN/MFD/TOTAL_AIRCRAFT_HOURS/TOTAL_AIRCRAFT_CYCLES)
+    # parsed once per page and stamped onto every row; word x-position
+    # column bucketing across a paired "INSTALLATION" (DATE/TAT/TAC) /
+    # "CURRENT" (TSN/CSN) layout, distinct from occm_component_data_
+    # install_current.py's own differently-shaped install/current pairing.
+    # Row validity needs no marker-string matching: every genuine row's
+    # first two buckets are clean Item/ATA integers, which the repeating
+    # header/footer/signature-block noise never produces. A genuine
+    # numeric-bucket split collision folds into STATUS_TRAIL rather than
+    # guessing (see the module docstring).
+    "sheet_types/occm_variants/oc_cm_components_install_current.py",
+    # Aircraft OCCM List (H/C/D Basis) -- complex multi-line-per-component
+    # export (one main line + three H/C/D basis sub-lines per component),
+    # real text layer, no OCR needed.
+    "sheet_types/occm_variants/aircraft_occm_list_hcd.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
