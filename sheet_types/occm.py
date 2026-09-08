@@ -45,6 +45,8 @@ from sheet_types.occm_variants import (
     assembly_configuration_status_report,
     maintenance_status_report_pr21,
     component_list_kardex,
+    aircraft_installed_parts_print,
+    occm_components_status,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -118,6 +120,25 @@ VARIANTS = [
     # appear as a substring of (nor contain as a substring) any other
     # variant's SIGNATURES entries checked.
     component_list_kardex,
+    # A/C Installed Parts Print — its known source file's title line reads
+    # literally "A/C Installed Parts Print" (a distinctive, specific
+    # phrase), so it's safe to place near the other specific-format
+    # variants rather than at the very end. Checked directly: no earlier
+    # variant's own SIGNATURES phrase appears in the real sample file's
+    # text, and this phrase does not appear as a substring of (nor
+    # contain as a substring) any other variant's SIGNATURES entries.
+    aircraft_installed_parts_print,
+    # OCCM Components Status — its own variant-level SIGNATURES entry is
+    # the column-header line "ATA Description P/N S/N Position Date TTSN
+    # TCSN TSI CSI Document" (a distinctive, specific phrase; the report's
+    # own title text "OCCM COMPONENTS STATUS" is a prefix substring of
+    # occm_status_list.py's "OCCM COMPONENTS STATUS LIST" signature above,
+    # so the title text alone is NOT used here to avoid stealing that
+    # variant's files). Checked directly: no earlier variant's own
+    # SIGNATURES phrase appears in the real sample file's text, and this
+    # phrase does not appear as a substring of (nor contain as a
+    # substring) any other variant's SIGNATURES entries checked.
+    occm_components_status,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
@@ -313,6 +334,14 @@ SIGNATURES = [
     # misrouting risk. Checked for collisions against every SIGNATURES list
     # in sheet_types/{occm,ht,llp}.py and every existing variant file first.
     "COMPONENT LIST",
+    # aircraft_installed_parts_print.py's known source file has no "OCCM"
+    # text anywhere in it (confirmed via direct inspection of every page)
+    # -- its title line reads literally "A/C Installed Parts Print", added
+    # here as its own variant-level SIGNATURES phrase, doubling as the
+    # top-level anchor. Checked for collisions against every SIGNATURES
+    # list in sheet_types/{occm,ht,llp}.py and every existing variant file
+    # first.
+    "A/C Installed Parts Print",
 ]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 

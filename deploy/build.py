@@ -238,6 +238,28 @@ SOURCES = [
     # by which neighbouring row's own description cell is empty (see the
     # module docstring for the full geometric-attribution rule).
     "sheet_types/occm_variants/component_list_kardex.py",
+    # A/C Installed Parts Print — born-digital, real text layer; each
+    # component spans 2 physical lines (a P/N-anchored data line plus a
+    # trailing DESCRIPTION line), row anchored from the right via a TIME
+    # token immediately preceding an ATA token (POSITION is variable-
+    # length so cannot be anchored by fixed token count); the constant
+    # per-row "A/C" tail code and report date are parsed once and stamped
+    # as header metadata. On a confirmed minority of real rows the
+    # POSITION+DATE span is character-interleaved in the source PDF's own
+    # text stream and unparseable -- those are left blank and folded into
+    # STATUS_TRAIL verbatim rather than guessed (see the module
+    # docstring).
+    "sheet_types/occm_variants/aircraft_installed_parts_print.py",
+    # OCCM COMPONENTS STATUS — born-digital, full text layer with
+    # character-substitution noise (same "real but noisy" pattern as
+    # llp_variants/engine_items_control_llp_status.py), no OCR needed.
+    # Two page layouts (letterhead first/last page vs plain interior
+    # pages) handled via proportional column-fraction interpolation per
+    # row plus a small per-layout absolute-boundary table for the
+    # trailing TTSN/TCSN/TSI/CSI/DOCUMENT span; ambiguous orphan
+    # fragments fold into STATUS_TRAIL rather than being guessed (see
+    # the module docstring).
+    "sheet_types/occm_variants/occm_components_status.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
