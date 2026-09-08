@@ -38,6 +38,7 @@ from sheet_types.occm_variants import (
     occm_component_inventory, occm_listing,
     occm_component_status_facility_msn,
     occm_component_data_install_current,
+    occm_component_ac_corrected_at_install,
     serialized_component_list,
     installed_parts_list,
     serialization_list_by_ata,
@@ -47,6 +48,7 @@ from sheet_types.occm_variants import (
     component_list_kardex,
     aircraft_installed_parts_print,
     occm_components_status,
+    occm_list_cert_remark,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -104,6 +106,20 @@ VARIANTS = [
     occm_dual_description_list,
     occm_control_sheet,
     occm_listing,
+    # occm_component_ac_corrected_at_install.py MUST precede
+    # occm_component_data_install_current.py: both known source files share
+    # the literal header phrase "Component Data at Install" (confirmed
+    # directly), but occm_component_data_install_current.py's own
+    # SIGNATURES entry is that exact shared phrase (matching either file),
+    # while this earlier module's own SIGNATURES entries ("Corrected A/C
+    # Data at Install", "Posi (May be differ with A/C Log)") are unique,
+    # more specific phrases confirmed NOT present in the other module's
+    # known source file -- so it needs the earlier slot per this file's
+    # "specific formats before generic ones" convention, or its own real
+    # files would get mis-routed to occm_component_data_install_current.py
+    # first (confirmed directly: detect_variant() returns the wrong module
+    # without this ordering).
+    occm_component_ac_corrected_at_install,
     occm_component_data_install_current,
     serialized_component_list,
     installed_parts_list,
@@ -139,6 +155,19 @@ VARIANTS = [
     # phrase does not appear as a substring of (nor contain as a
     # substring) any other variant's SIGNATURES entries checked.
     occm_components_status,
+    # OCCM List (Certificate/Remark) -- its variant-level SIGNATURES entry
+    # is the column-header line "Part No. Serial No. INST_DATE TSN CSN
+    # Certificate Remark", a distinctive, specific phrase unique to this
+    # module's own known source file. Checked directly: no earlier
+    # variant's own SIGNATURES phrase appears in the real sample file's
+    # text (in particular, occm_list_as_at.py's "OCCM LIST AS AT",
+    # occm_list_for_registration.py's "OCCM LIST FOR",
+    # occm_list_msn_dotdate.py's "OCCM LIST MSN", and
+    # aircraft_components_list.py's "...INST_DATE TSN CSN" phrase are all
+    # NOT substrings of this module's own signature or vice versa), and
+    # this phrase does not appear as a substring of (nor contain as a
+    # substring) any other variant's SIGNATURES entries checked.
+    occm_list_cert_remark,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)

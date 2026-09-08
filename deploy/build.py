@@ -260,6 +260,29 @@ SOURCES = [
     # fragments fold into STATUS_TRAIL rather than being guessed (see
     # the module docstring).
     "sheet_types/occm_variants/occm_components_status.py",
+    # OCCM Component (Corrected A/C Data at Install) — born-digital, full
+    # text layer; "OCCM COMPONENT" header block (A/C TSN/A/C CSN/AS OF,
+    # parsed once from page 1 only -- it does not repeat per page), word
+    # x-position bucketing across a paired "Corrected A/C Data at Install" /
+    # "Component Data at Install" TSN/TSO/CSN/CSO layout (distinct from
+    # occm_component_data_install_current.py's own "at install"/"current"
+    # pairing, despite sharing one literal header phrase -- see that
+    # module's docstring and sheet_types/occm.py's VARIANTS ordering note).
+    # Each record spans 2 (occasionally 3) physical lines, grouped by
+    # anchoring on the DESCRIPTION column rather than line-gap proximity
+    # (the gap between a record's own continuation line and the next
+    # record's first line is not reliably larger). An ambiguous numeric-
+    # region collision folds into STATUS_TRAIL rather than guessing.
+    "sheet_types/occm_variants/occm_component_ac_corrected_at_install.py",
+    # OCCM List (Certificate/Remark) — born-digital, full text layer;
+    # word x-position column bucketing with a per-page header cutoff
+    # anchored on the header's own "Remark" word (the column-header line's
+    # vertical position isn't fixed page to page on this format's known
+    # source file). Multi-line DESCRIPTION wraps above and/or below its
+    # anchor row and is reassembled by nearest-anchor vertical proximity;
+    # anything not confidently a description continuation folds into
+    # STATUS_TRAIL rather than being guessed (see the module docstring).
+    "sheet_types/occm_variants/occm_list_cert_remark.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
