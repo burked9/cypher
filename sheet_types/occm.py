@@ -53,6 +53,8 @@ from sheet_types.occm_variants import (
     aircraft_occm_list_hcd,
     occm_components_control_sma,
     on_condition_monitoring_components,
+    occm_component_status_report,
+    component_fit_list,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -212,6 +214,26 @@ VARIANTS = [
     # title phrase "ON CONDITION COMPONENTS REPORT" (no "MONITORING") is
     # distinct in both directions.
     on_condition_monitoring_components,
+    # OCCM Component Status Report -- its own variant-level SIGNATURES entry
+    # ("OCCM COMPONENT STATUS", singular "COMPONENT") is a distinctive
+    # phrase unique to this module's own known source file's title line.
+    # Checked directly (grep across every SIGNATURES list in sheet_types/
+    # {occm,ht,llp}.py and every existing occm_variants/ht_variants/
+    # llp_variants file): the exact phrase "OCCM COMPONENT STATUS" appears
+    # nowhere else -- in particular occm.py's own top-level "OCCM COMPONENTS
+    # STATUS LIST" entry and occm_components_status.py's own SIGNATURES
+    # (plural "COMPONENTS") do NOT contain this singular phrase as a
+    # substring (the character after "COMPONENT" differs, "S" vs " "), so
+    # no collision risk in either direction.
+    occm_component_status_report,
+    # Component Fit List -- its own variant-level SIGNATURES entry
+    # ("COMPONENT FIT LIST") is a distinctive phrase unique to this
+    # module's own known source file's title line. Checked directly (grep
+    # across every SIGNATURES list in sheet_types/{occm,ht,llp}.py and
+    # every existing occm_variants/ht_variants/llp_variants file): the
+    # phrase appears nowhere else, and is not a substring of (nor
+    # contains) any other variant's own SIGNATURES entries.
+    component_fit_list,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)

@@ -310,6 +310,16 @@ SOURCES = [
     # a minority of pages carry no repeated column-header line to derive
     # per-page anchors from.
     "sheet_types/occm_variants/on_condition_monitoring_components.py",
+    # OCCM Component Status Report ("OCCM COMPONENT STATUS" title, singular
+    # "Component") -- real text layer, real but heavily OCR-noise-corrupted
+    # (character-substitution pattern), no OCR needed; rows parsed by word
+    # x-position bucketing.
+    "sheet_types/occm_variants/occm_component_status_report.py",
+    # Component Fit List ("COMPONENT FIT LIST" title) -- real text layer,
+    # no OCR needed; rows parsed by word x-position bucketing, with a
+    # deterministic per-row de-interleave for a rare doubled-character
+    # rendering artifact (see the module's own docstring).
+    "sheet_types/occm_variants/component_fit_list.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",

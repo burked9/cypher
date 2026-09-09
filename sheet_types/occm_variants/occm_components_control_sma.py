@@ -114,7 +114,11 @@ _CYCLE_RULE = {"pattern": r"^\d{1,6}$", "allow_empty": True}
 _OVERRIDES = {
     "INSTALL_DATE":  _DATE_RULE,
     "MAP":           {"pattern": r"^\d{6}$"},
-    "POS":           {"pattern": r"^[A-Z0-9]{1,10}$", "uppercase": True},
+    # POS values include plain side/index codes (e.g. "<n>", "LH", "RH")
+    # as well as hyphenated/slashed sub-position codes (e.g. "<n>-<n>",
+    # "LH-<letter>", "F/O") -- confirmed directly across the full 87-page
+    # known source file.
+    "POS":           {"pattern": r"^[A-Z0-9/\-]{1,10}$", "uppercase": True},
     "TSN":           _TIME_RULE,
     "CSN":           _CYCLE_RULE,
     "TSI":           _TIME_RULE,
