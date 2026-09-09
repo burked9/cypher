@@ -355,6 +355,14 @@ SOURCES = [
     # otherwise shifts x0 across column boundaries (see the module's own
     # docstring).
     "sheet_types/occm_variants/on_condition_components_install_current.py",
+    # Aircraft Fitlist (OCCM) -- scanned, no text layer, async OCR bridge
+    # (render_page/ocr_text/page_count), same pattern as this batch's other
+    # scanned OCCM variants.
+    "sheet_types/occm_variants/aircraft_fitlist_occm.py",
+    # OCCM List (Func.loc / A/C Hours Header) -- scanned, no text layer,
+    # async OCR bridge (render_page/ocr_words/ocr_text/page_count), same
+    # pattern as this batch's other scanned OCCM variants.
+    "sheet_types/occm_variants/occm_list_func_loc_scanned.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",

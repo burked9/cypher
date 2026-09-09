@@ -59,6 +59,8 @@ from sheet_types.occm_variants import (
     occm_uic_status,
     condition_monitoring_components_status,
     on_condition_components_install_current,
+    aircraft_fitlist_occm,
+    occm_list_func_loc_scanned,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -290,6 +292,33 @@ VARIANTS = [
     # and neither is a substring of (nor contains) any other variant's own
     # SIGNATURES entries.
     on_condition_components_install_current,
+    # Aircraft Fitlist (OCCM) -- known source file has no text layer at all
+    # (confirmed via pdfplumber -- near-zero chars on every page), so it is
+    # only ever reached via ocr_detect()'s blank-text fallback below, never
+    # through the normal pdfplumber SIGNATURES match. Its own variant-level
+    # SIGNATURES ("AIRCRAFT FITLIST (OCCM)" and the column-header phrase
+    # "PART NUMBER SERIAL NUMBER POSITION INST-DATE") are still declared,
+    # per this file's convention, as a documented anchor / safety net for
+    # any future born-digital re-export. Checked directly (grep across
+    # every SIGNATURES list in sheet_types/{occm,ht,llp}.py and every
+    # existing occm_variants/ht_variants/llp_variants file, including every
+    # module added in this same batch): neither phrase appears anywhere
+    # else, and neither is a substring of (nor contains) any other
+    # variant's own SIGNATURES entries.
+    aircraft_fitlist_occm,
+    # OCCM List (Func.loc / A/C Hours Header) -- known source file has no
+    # text layer at all (confirmed via pdfplumber -- 0 chars on every
+    # page), so it is only ever reached via ocr_detect()'s blank-text
+    # fallback below; SIGNATURES is deliberately empty (see module
+    # docstring). Its ocr_detect() anchor ("OCCM LIST A/C HOURS") is a more
+    # specific phrase than the bare "OCCM LIST" substring shared by
+    # occm_list_msn_dotdate.py/occm_list_as_at.py/occm_list_for_registration.py
+    # (see occm_list_at_aircraft_fh.py's own docstring note on that
+    # collision) -- checked directly (grep across every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing occm_variants file,
+    # aircraft_fitlist_occm.py included): the fuller phrase appears nowhere
+    # else.
+    occm_list_func_loc_scanned,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
