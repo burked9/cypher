@@ -65,6 +65,8 @@ from sheet_types.occm_variants import (
     component_list_occm_airframe,
     componentes_oc_cm,
     msn_occm_list_scanned,
+    on_condition_cm_components_list,
+    occm_parts_compliance_status,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -383,6 +385,33 @@ VARIANTS = [
     # space after "MSN" and by what follows "OCCM", the latter by placing
     # "OCCM" before "MSN" entirely.
     msn_occm_list_scanned,
+    # On Condition, Condition Monitoring Components List -- known source
+    # file has no text layer at all (confirmed via pdfplumber -- 0 chars on
+    # its only page), so it is only ever reached via ocr_detect()'s
+    # blank-text fallback below; SIGNATURES is deliberately empty (see
+    # module docstring). Its ocr_detect() anchor (the title line's own
+    # leading "ON CONDITION," comma plus "CONDITION MONITORING COMPONENTS"
+    # plus a trailing "LIST", not "STATUS") is checked directly (grep
+    # across every SIGNATURES list in sheet_types/{occm,ht,llp}.py and
+    # every existing occm_variants/ht_variants/llp_variants file, this same
+    # batch's siblings included): no other module's own SIGNATURES/
+    # ocr_detect anchor combines all three of those -- in particular
+    # on_condition_monitoring_components.py's own title phrase has no
+    # leading comma and no trailing "LIST", and
+    # condition_monitoring_components_status.py's own title phrase has no
+    # leading "ON" and ends in "STATUS" not "LIST".
+    on_condition_cm_components_list,
+    # OCCM Parts Compliance Status Report -- known source file has no text
+    # layer at all (confirmed via pdfplumber -- 0 chars on every page), so
+    # it is only ever reached via ocr_detect()'s blank-text fallback below;
+    # SIGNATURES is deliberately empty (see module docstring). Its
+    # ocr_detect() anchor ("OCCM PARTS COMPLIANCE STATUS REPORT") is
+    # checked directly (grep across every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing occm_variants file,
+    # this same batch's siblings included): the phrase "PARTS COMPLIANCE"/
+    # "COMPLIANCE STATUS" appears nowhere else, and is not a substring of
+    # (nor contains) any other variant's own SIGNATURES/ocr_detect anchor.
+    occm_parts_compliance_status,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
