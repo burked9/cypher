@@ -61,6 +61,8 @@ from sheet_types.occm_variants import (
     on_condition_components_install_current,
     aircraft_fitlist_occm,
     occm_list_func_loc_scanned,
+    occm_status_on_condition_items,
+    component_list_occm_airframe,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -306,6 +308,19 @@ VARIANTS = [
     # else, and neither is a substring of (nor contains) any other
     # variant's own SIGNATURES entries.
     aircraft_fitlist_occm,
+    # On Condition Items (OCCM Status) -- known source file has no text
+    # layer at all (confirmed via the router's own pdfplumber head-text
+    # check returning "Unknown" -- fewer than 50 chars recovered), so it is
+    # only ever reached via ocr_detect()'s blank-text fallback below. Its
+    # own variant-level SIGNATURES ("ON CONDITION ITEMS" and the
+    # column-header fragment "Partno | Serialno | Description") are still
+    # declared, per this file's convention, as a documented anchor / safety
+    # net for any future born-digital re-export. Checked directly (grep
+    # across every SIGNATURES list in sheet_types/{occm,ht,llp}.py and
+    # every existing occm_variants file): neither phrase appears anywhere
+    # else, and neither is a substring of (nor contains) any other
+    # variant's own SIGNATURES entries.
+    occm_status_on_condition_items,
     # OCCM List (Func.loc / A/C Hours Header) -- known source file has no
     # text layer at all (confirmed via pdfplumber -- 0 chars on every
     # page), so it is only ever reached via ocr_detect()'s blank-text
@@ -319,6 +334,24 @@ VARIANTS = [
     # aircraft_fitlist_occm.py included): the fuller phrase appears nowhere
     # else.
     occm_list_func_loc_scanned,
+    # Component List OCCM- Airframe -- known source file has no text layer
+    # at all (confirmed via pdfplumber -- 0 chars on every page), so it is
+    # only ever reached via ocr_detect()'s blank-text fallback below. Its
+    # own variant-level SIGNATURES entry (the report's own title line,
+    # "COMPONENT LIST OCCM- AIRFRAME") is still declared, per this file's
+    # convention, as a documented anchor / safety net for any future
+    # born-digital re-export. Checked directly (grep across every
+    # SIGNATURES list in sheet_types/{occm,ht,llp}.py and every existing
+    # occm_variants file): no other module's own SIGNATURES entry contains
+    # "AIRFRAME" combined with "COMPONENT LIST", and this phrase is not a
+    # substring of (nor contains) any of them -- in particular
+    # component_list_kardex.py's own generic "COMPONENT LIST" phrase IS a
+    # substring of this fuller title (by design, see that module's own
+    # docstring on why it's generic and placed near the end of this list;
+    # this module's detection never goes through that generic entry since
+    # its known source file has no text layer for the pdfplumber path to
+    # match against in the first place).
+    component_list_occm_airframe,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)

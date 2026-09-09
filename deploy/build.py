@@ -363,6 +363,14 @@ SOURCES = [
     # async OCR bridge (render_page/ocr_words/ocr_text/page_count), same
     # pattern as this batch's other scanned OCCM variants.
     "sheet_types/occm_variants/occm_list_func_loc_scanned.py",
+    # On Condition Items (OCCM Status) -- scanned, no text layer, async OCR
+    # bridge (render_page/ocr_text/ocr_words/page_count), same pattern as
+    # this batch's other scanned OCCM variants.
+    "sheet_types/occm_variants/occm_status_on_condition_items.py",
+    # Component List OCCM- Airframe -- scanned, no text layer, async OCR
+    # bridge (render_page/ocr_text/ocr_words/page_count), same pattern as
+    # this batch's other scanned OCCM variants.
+    "sheet_types/occm_variants/component_list_occm_airframe.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
