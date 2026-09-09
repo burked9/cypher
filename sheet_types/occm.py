@@ -63,6 +63,8 @@ from sheet_types.occm_variants import (
     occm_list_func_loc_scanned,
     occm_status_on_condition_items,
     component_list_occm_airframe,
+    componentes_oc_cm,
+    msn_occm_list_scanned,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -352,6 +354,35 @@ VARIANTS = [
     # its known source file has no text layer for the pdfplumber path to
     # match against in the first place).
     component_list_occm_airframe,
+    # COMPONENTES OC/CM -- known source file has no text layer at all
+    # (confirmed via pdfplumber -- 0 chars on every page), so it is only
+    # ever reached via ocr_detect()'s blank-text fallback below; SIGNATURES
+    # is deliberately empty (see module docstring). Its ocr_detect() anchor
+    # ("COMPONENTES" + "OC/CM") is checked directly (grep across every
+    # SIGNATURES list in sheet_types/{occm,ht,llp}.py and every existing
+    # occm_variants/ht_variants/llp_variants file): "COMPONENTES" (Spanish
+    # spelling) appears nowhere else in this package, and is not a
+    # substring of (nor contains) any other variant's own SIGNATURES
+    # entries -- in particular a305_a340_occm.py's own "Components >> OC/CM
+    # Components" phrase (English spelling) differs at the first
+    # distinguishing letter in both directions.
+    componentes_oc_cm,
+    # OCCM List (MSN-Prefixed Title, Scanned) -- known source file has no
+    # text layer at all (confirmed via pdfplumber -- 0 chars on every
+    # page), so it is only ever reached via ocr_detect()'s blank-text
+    # fallback below; SIGNATURES is deliberately empty (see module
+    # docstring). Its ocr_detect() anchor ("MSN<n> OCCM LIST", no space
+    # between "MSN" and the digit run) is checked directly (grep across
+    # every SIGNATURES list in sheet_types/{occm,ht,llp}.py and every
+    # existing occm_variants/ht_variants/llp_variants file): no other
+    # module's own SIGNATURES/ocr_detect anchor combines the literal
+    # substring "MSN" immediately (no space) followed by digits and then
+    # "OCCM" -- in particular occm_component_inventory.py's own title
+    # ("MSN <n> OCCM COMPONENT INVENTORY") and occm_summary_list.py's own
+    # title ("OCCM SUMMARY LIST MSN <n>") both differ, the former by the
+    # space after "MSN" and by what follows "OCCM", the latter by placing
+    # "OCCM" before "MSN" entirely.
+    msn_occm_list_scanned,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
