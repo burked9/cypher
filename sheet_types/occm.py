@@ -57,6 +57,8 @@ from sheet_types.occm_variants import (
     component_fit_list,
     serialised_components_report,
     occm_uic_status,
+    condition_monitoring_components_status,
+    on_condition_components_install_current,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -256,6 +258,38 @@ VARIANTS = [
     # is not a substring of (nor contains) any other variant's own
     # SIGNATURES entries.
     occm_uic_status,
+    # Condition Monitoring Components Status -- its own variant-level
+    # SIGNATURES entry ("CONDITION MONITORING COMPONENTS STATUS") is the
+    # report's own title-line phrase (confirmed to render contiguously on
+    # this module's own known source file's first page, despite heavy
+    # surrounding character-substitution noise elsewhere in that line).
+    # Checked directly (grep across every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing occm_variants/
+    # ht_variants/llp_variants file): the phrase appears nowhere else --
+    # in particular on_condition_monitoring_components.py's own phrase
+    # "ON CONDITION MONITORING COMPONENTS" (leading "ON", no "STATUS"
+    # suffix) is NOT a substring of this phrase nor vice versa.
+    condition_monitoring_components_status,
+    # On-Condition Components Report (Install / Current) -- its own
+    # variant-level SIGNATURES entries are the paired-column group label
+    # line ("INSTALLATION DATA CURRENT DATA (<date>)") and the report's own
+    # column-header line ("## ATA PN SN DESCRIPTION POS INST Date TAH TAC
+    # TSN CSN TSI CSI"), both distinctive phrases confirmed unique to this
+    # module's own known source file. Note this module's title line reads
+    # literally "On-Condition Components Report" (hyphenated, mixed case)
+    # -- deliberately NOT used as a SIGNATURES entry here, since it is NOT
+    # the same string as occm_component_status_dual_basis.py's own title
+    # phrase "ON CONDITION COMPONENTS REPORT" (all-caps, no hyphen) is a
+    # substring of, or contains -- confirmed directly, the hyphen makes the
+    # two strings differ at the second character, so neither is a
+    # substring of the other, but the title text alone was still avoided
+    # as the anchor here in favour of the two more specific phrases above.
+    # Checked directly (grep across every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing occm_variants/
+    # ht_variants/llp_variants file): neither phrase appears anywhere else,
+    # and neither is a substring of (nor contains) any other variant's own
+    # SIGNATURES entries.
+    on_condition_components_install_current,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
@@ -504,6 +538,29 @@ SIGNATURES = [
     # convention (checked for collisions against every SIGNATURES list in
     # sheet_types/{occm,ht,llp}.py and every existing variant file first).
     "OCCMUIC",
+    # on_condition_components_install_current.py's known source file has no
+    # "OCCM" text anywhere in it either (confirmed via direct inspection of
+    # every page) -- its title line reads literally "On-Condition
+    # Components Report" (hyphenated, mixed case, so it does NOT contain
+    # "OCCM" as a substring). Without an entry here the top-level router
+    # returns "Unknown" on it. Its own variant-level SIGNATURES phrase
+    # ("INSTALLATION DATA CURRENT DATA (") is used here too since it's a
+    # more precise, title-independent anchor. Checked for collisions
+    # against every SIGNATURES list in sheet_types/{occm,ht,llp}.py and
+    # every existing variant file first.
+    "INSTALLATION DATA CURRENT DATA (",
+    # condition_monitoring_components_status.py's known source file has no
+    # "OCCM" text anywhere in it either (confirmed via direct inspection)
+    # -- its title line reads literally "... CONDITION MONITORING
+    # COMPONENTS STATUS ..." (renders contiguously despite heavy
+    # surrounding character-substitution noise). Without an entry here the
+    # top-level router returns "Unknown" on it. Checked for collisions
+    # against every SIGNATURES list in sheet_types/{occm,ht,llp}.py and
+    # every existing variant file first -- in particular
+    # on_condition_monitoring_components.py's own phrase "ON CONDITION
+    # MONITORING COMPONENTS" (leading "ON", no "STATUS" suffix) is NOT a
+    # substring of this phrase nor vice versa, so no collision risk.
+    "CONDITION MONITORING COMPONENTS STATUS",
 ]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 

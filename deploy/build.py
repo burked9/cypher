@@ -336,6 +336,25 @@ SOURCES = [
     # than most sibling modules to cope with this file's own wider word
     # scatter within a logical row (see the module's own docstring).
     "sheet_types/occm_variants/occm_uic_status.py",
+    # Condition Monitoring Components Status -- real text layer, no OCR
+    # needed; rows detected via PART_NUMBER/SERIAL_NUMBER-shaped anchor
+    # tokens (falling back to plain line-clustering on the small minority
+    # of pages with no such anchor at all) and columns parsed by word
+    # x-position bucketing. Everything right of POSITION (install date /
+    # hours / cycles / TSN-ish values) has no reliable per-column boundary
+    # on the real sample file -- values were observed glued together,
+    # duplicated, and/or out of the document's own row order -- so it's
+    # kept as one free-text STATUS_TRAIL column rather than guessed (see
+    # the module's own docstring for the full reliability discussion).
+    "sheet_types/occm_variants/condition_monitoring_components_status.py",
+    # On-Condition Components Report (Install / Current) -- real text
+    # layer, no OCR needed; page 1 is a cover/signature page only (real
+    # data table starts page 2). Columns parsed by word x-position
+    # bucketing: left-aligned leading fields by x0, the six trailing
+    # numeric columns (right-aligned) by x1 instead, since digit count
+    # otherwise shifts x0 across column boundaries (see the module's own
+    # docstring).
+    "sheet_types/occm_variants/on_condition_components_install_current.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
