@@ -320,6 +320,22 @@ SOURCES = [
     # deterministic per-row de-interleave for a rare doubled-character
     # rendering artifact (see the module's own docstring).
     "sheet_types/occm_variants/component_fit_list.py",
+    # Serialised Components Report ("Serialised Components Report" title,
+    # British spelling) -- real text layer, no OCR needed; rows anchored
+    # by an ATA-chapter-subchapter token and parsed by word x-position
+    # bucketing. Only the main repeating detail table is modeled; the
+    # page-1-only "life-limited parts" summary section uses an unrelated
+    # multi-line layout and isn't parsed (see the module's own docstring).
+    # Everything right of Serial Number (logbook/date/hours/work-order
+    # columns) has no reliable per-column boundary on the real sample file
+    # and is kept as one free-text STATUS_TRAIL column rather than guessed.
+    "sheet_types/occm_variants/serialised_components_report.py",
+    # OCCM UIC Status ("OCCMUIC <reg> (MSN <msn>), TSN: ..., CSN: ..."
+    # aircraft-summary line) -- real text layer, no OCR needed; rows parsed
+    # by word x-position bucketing with a wider row-clustering tolerance
+    # than most sibling modules to cope with this file's own wider word
+    # scatter within a logical row (see the module's own docstring).
+    "sheet_types/occm_variants/occm_uic_status.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",

@@ -55,6 +55,8 @@ from sheet_types.occm_variants import (
     on_condition_monitoring_components,
     occm_component_status_report,
     component_fit_list,
+    serialised_components_report,
+    occm_uic_status,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -234,6 +236,26 @@ VARIANTS = [
     # phrase appears nowhere else, and is not a substring of (nor
     # contains) any other variant's own SIGNATURES entries.
     component_fit_list,
+    # Serialised Components Report -- its own variant-level SIGNATURES
+    # entry ("serialised components report") is the report's own title
+    # line, a distinctive phrase unique to this module's own known source
+    # file (confirmed via direct inspection -- no "OCCM" text anywhere in
+    # it). Checked directly (grep across every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing occm_variants/
+    # ht_variants/llp_variants file): the phrase appears nowhere else, and
+    # is not a substring of (nor contains) any other variant's own
+    # SIGNATURES entries.
+    serialised_components_report,
+    # OCCM UIC Status -- its own variant-level SIGNATURES entry ("OCCMUIC")
+    # is the report's own aircraft-summary line ("OCCMUIC <reg> (MSN <msn>),
+    # TSN: ..., CSN: ...", confirmed to render with "OCCM" and "UIC" glued
+    # together, no space, on this module's own known source file's first
+    # page). Checked directly (grep across every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing occm_variants/
+    # ht_variants/llp_variants file): the phrase appears nowhere else, and
+    # is not a substring of (nor contains) any other variant's own
+    # SIGNATURES entries.
+    occm_uic_status,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
@@ -465,6 +487,23 @@ SIGNATURES = [
     # in sheet_types/{occm,ht,llp}.py and every existing variant file first,
     # with none found.
     "ON CONDITION MONITORING COMPONENTS",
+    # serialised_components_report.py's known source file has no "OCCM"
+    # text anywhere in it (confirmed via direct inspection) -- its title
+    # line reads literally "Serialised Components Report", added here as
+    # its own variant-level SIGNATURES phrase, doubling as the top-level
+    # anchor. Checked for collisions against every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing variant file first --
+    # in particular serialized_component_list.py's "Serialized Component
+    # List" (American spelling, singular "Component") is NOT a substring
+    # of this phrase (or vice versa), so no collision risk with it.
+    "serialised components report",
+    # occm_uic_status.py's known source file's title line already contains
+    # "OCCM" ("OCCMUIC <reg> (MSN <msn>), TSN: ..., CSN: ..."), so the
+    # generic "OCCM" entry above already matches it -- this more precise
+    # phrase is added anyway as the sharper anchor, per this file's
+    # convention (checked for collisions against every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing variant file first).
+    "OCCMUIC",
 ]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
