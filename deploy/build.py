@@ -300,6 +300,16 @@ SOURCES = [
     # export (one main line + three H/C/D basis sub-lines per component),
     # real text layer, no OCR needed.
     "sheet_types/occm_variants/aircraft_occm_list_hcd.py",
+    # OCCM Components Control (S.M.A. MIS, form PASCOM1R) -- real text
+    # layer, no OCR needed.
+    "sheet_types/occm_variants/occm_components_control_sma.py",
+    # On Condition Monitoring Components ("<operator> ATA <n>[-<n>] ON
+    # CONDITION MONITORING COMPONENTS" title) -- real text layer, no OCR
+    # needed; rows parsed by right-anchored token shape rather than
+    # x-position bucketing, since column x-positions shift page to page and
+    # a minority of pages carry no repeated column-header line to derive
+    # per-page anchors from.
+    "sheet_types/occm_variants/on_condition_monitoring_components.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",

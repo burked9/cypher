@@ -51,6 +51,8 @@ from sheet_types.occm_variants import (
     occm_list_cert_remark,
     oc_cm_components_install_current,
     aircraft_occm_list_hcd,
+    occm_components_control_sma,
+    on_condition_monitoring_components,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -189,6 +191,27 @@ VARIANTS = [
     # neither phrase appears anywhere else, and doesn't contain (nor is
     # contained by) any other variant's own SIGNATURES entries.
     aircraft_occm_list_hcd,
+    # OCCM Components Control (S.M.A. PASCOM1R) -- its own variant-level
+    # SIGNATURES entries ("PASCOM1R", "COMPONENTS CONTROL", and the real
+    # column-header line "Install. Date Map Description Pos P/N S/N TSN CSN
+    # TSI CSI TSO CSO TSR CSR TLP") are distinctive phrases unique to this
+    # module's own known source file. Checked directly (grep across every
+    # SIGNATURES list in sheet_types/{occm,ht,llp}.py and every existing
+    # occm_variants file): none of these phrases appear anywhere else, and
+    # none is a substring of (nor contains) any other variant's own
+    # SIGNATURES entries.
+    occm_components_control_sma,
+    # On Condition Monitoring Components -- its own variant-level SIGNATURES
+    # entry ("ON CONDITION MONITORING COMPONENTS") is a distinctive phrase
+    # unique to this module's own known source file's title line. Checked
+    # directly (grep across every SIGNATURES list in sheet_types/
+    # {occm,ht,llp}.py and every existing occm_variants/ht_variants/
+    # llp_variants file): the phrase appears nowhere else, and is not a
+    # substring of (nor contains) any other variant's own SIGNATURES
+    # entries -- in particular occm_component_status_dual_basis.py's own
+    # title phrase "ON CONDITION COMPONENTS REPORT" (no "MONITORING") is
+    # distinct in both directions.
+    on_condition_monitoring_components,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
@@ -404,6 +427,22 @@ SIGNATURES = [
     # sheet_types/{occm,ht,llp}.py and every existing variant file first,
     # with none found.
     "AIRCRAFT REG. :",
+    # occm_components_control_sma.py's known source file has no "OCCM" text
+    # anywhere in it (confirmed via direct inspection of every page) -- its
+    # title line reads literally "COMPONENTS CONTROL". Without an entry
+    # here the top-level router returns "Unknown" on it. Checked for
+    # collisions against every SIGNATURES list in sheet_types/
+    # {occm,ht,llp}.py and every existing variant file first, with none
+    # found.
+    "COMPONENTS CONTROL",
+    # on_condition_monitoring_components.py's known source file has no
+    # "OCCM" text anywhere in it (confirmed via direct inspection) -- its
+    # title line reads literally "... ATA <n>[-<n>] ON CONDITION MONITORING
+    # COMPONENTS". Without an entry here the top-level router returns
+    # "Unknown" on it. Checked for collisions against every SIGNATURES list
+    # in sheet_types/{occm,ht,llp}.py and every existing variant file first,
+    # with none found.
+    "ON CONDITION MONITORING COMPONENTS",
 ]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
