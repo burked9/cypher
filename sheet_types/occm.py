@@ -76,6 +76,8 @@ from sheet_types.occm_variants import (
     aircraft_occm_components_status_scanned,
     on_condition_monitored_components_engine_list,
     on_condition_component_status_scanned,
+    component_inventory_oc_cm_status_scanned,
+    occm_status_aircraft_info_box,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -526,6 +528,19 @@ VARIANTS = [
     # other module's own SIGNATURES/ocr_detect anchor is this phrase, nor a
     # substring of it, nor does it contain any other module's own anchor.
     on_condition_monitored_components_engine_list,
+    # Component Inventory (OC/CM Status, Scanned) -- known source file has
+    # no text layer at all (0 chars via pdfplumber on every page), so it is
+    # only ever reached via ocr_detect()'s blank-text fallback below;
+    # SIGNATURES is deliberately empty (see module docstring). Its
+    # ocr_detect() anchor combines "COMPONENT INVENTORY" with the
+    # space-tolerant "OC / CM" title fragment -- checked directly (grep
+    # across every SIGNATURES list in sheet_types/{occm,ht,llp}.py and
+    # every existing occm_variants file, occm_component_inventory.py,
+    # occm_component_inventory_list_scanned.py and componentes_oc_cm.py
+    # included): no other module's own SIGNATURES/ocr_detect anchor
+    # combines both of those (see this module's own ocr_detect() docstring
+    # for the specific distinctions checked against each).
+    component_inventory_oc_cm_status_scanned,
     # On-Condition Component Status (Boeing 767 Specification Sheet,
     # Scanned) -- known source file has no text layer at all (confirmed
     # via pdfplumber -- 0 extractable chars/words/rects on every page), so
@@ -540,6 +555,25 @@ VARIANTS = [
     # substring of (nor contains) any other variant's own SIGNATURES
     # entries.
     on_condition_component_status_scanned,
+    # OCCM Status (Aircraft Information Box, Scanned) -- known source file
+    # has no text layer at all (confirmed via pdfplumber -- 0 chars on
+    # every page), so it is only ever reached via ocr_detect()'s blank-text
+    # fallback below; SIGNATURES is deliberately empty (see module
+    # docstring). Its ocr_detect() anchor requires BOTH the report's own
+    # title phrase ("OCCM STATUS") and its info-box's own title-cell phrase
+    # ("AIRCRAFT INFORMATION") together. "OCCM STATUS" alone is also
+    # standard_occm.py's own SIGNATURES entry, but that module is a
+    # born-digital variant reached only through the router's pdfplumber
+    # text-match path above (its own known source file has a real text
+    # layer), so it can never reach this module's ocr_detect() fallback on
+    # the same file -- same reasoning documented in
+    # occm_component_status_parent_serial_grid.py's own docstring for its
+    # analogous "OCCM COMPONENT STATUS" case. "AIRCRAFT INFORMATION" is
+    # checked directly (grep across every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing occm_variants file,
+    # this module's own siblings included): appears nowhere else in this
+    # package.
+    occm_status_aircraft_info_box,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)

@@ -433,6 +433,17 @@ SOURCES = [
     # fixed column x-position bucketing, since this file's scan quality is
     # markedly noisier than this batch's other scanned OCCM variants.
     "sheet_types/occm_variants/on_condition_component_status_scanned.py",
+    # Component Inventory (OC/CM Status, Scanned) -- scanned, no text
+    # layer, async OCR bridge; column x-position bucketing (fixed pixel
+    # ranges @ 300 DPI) plus a PPM-flag ("OC"/"CM") row anchor, same
+    # pattern family as this batch's other scanned OCCM variants.
+    "sheet_types/occm_variants/component_inventory_oc_cm_status_scanned.py",
+    # OCCM Status (Aircraft Information Box, Scanned) -- scanned, no text
+    # layer, async OCR bridge; ruled-grid row/column boundaries recovered
+    # via numpy darkfrac scan, full-column-strip OCR with a per-cell OCR
+    # fallback for empty cells, same pattern family as this batch's other
+    # scanned, ruled-grid OCCM variants.
+    "sheet_types/occm_variants/occm_status_aircraft_info_box.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
