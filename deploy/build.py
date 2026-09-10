@@ -465,6 +465,12 @@ SOURCES = [
     # fresh per-page pixel-ruling detection (row and column dividers) and
     # per-column OCR word bucketing.
     "sheet_types/occm_variants/occm_components_status_ruled_grid.py",
+    # EMB-190 OC/CM Status List (Ruled Grid, Scanned) -- scanned, no text
+    # layer, async OCR bridge; 9-column ruled data grid resolved via fresh
+    # per-page pixel-ruling detection (row and column dividers, numpy-only,
+    # no cv2) and per-column OCR word bucketing, same pattern family as
+    # occm_components_status_ruled_grid.py above.
+    "sheet_types/occm_variants/emb190_occm_status_list_ruled_grid.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",

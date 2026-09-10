@@ -83,6 +83,7 @@ from sheet_types.occm_variants import (
     component_localization_list,
     occm_component_status_posn_fin,
     occm_components_status_ruled_grid,
+    emb190_occm_status_list_ruled_grid,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -674,6 +675,21 @@ VARIANTS = [
     # report's own title band has no "AIRCRAFT" and renders "OCCM" as one
     # word with no "/", so that anchor cannot fire here either.
     occm_components_status_ruled_grid,
+    # EMB-190 OC/CM Status List (Ruled Grid, Scanned) -- known source file
+    # has no text layer at all (confirmed via pdfplumber -- 0 chars on
+    # every page), so it is only ever reached via ocr_detect()'s
+    # blank-text fallback below. Its own ocr_detect() anchor requires
+    # BOTH "EMB-190" and "OC/CM Status List" together (see that module's
+    # own docstring for the full collision analysis). Checked directly
+    # (grep across every SIGNATURES list in sheet_types/{occm,ht,llp}.py
+    # and every existing occm_variants/ht_variants/llp_variants file, plus
+    # every module's own ocr_detect() anchor text): no other module's own
+    # SIGNATURES/ocr_detect anchor requires this combination, and neither
+    # "EMB-190" nor the slash-bearing "OC/CM STATUS LIST" phrase (as
+    # opposed to the no-slash "OCCM...STATUS LIST" phrases used elsewhere
+    # in this package) appears standalone as any other module's own
+    # anchor.
+    emb190_occm_status_list_ruled_grid,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
