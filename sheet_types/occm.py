@@ -68,6 +68,8 @@ from sheet_types.occm_variants import (
     on_condition_cm_components_list,
     occm_parts_compliance_status,
     on_component_monitoring_listing_status,
+    occm_inventory_sap_es,
+    occm_component_status_parent_serial_grid,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -424,6 +426,33 @@ VARIANTS = [
     # is not a substring of (nor contains) any other variant's own
     # SIGNATURES/ocr_detect anchor.
     on_component_monitoring_listing_status,
+    # OCCM Inventory (Spanish SAP-style header) -- its own variant-level
+    # SIGNATURES entry is the exact Spanish column-header line
+    # "Ubicac.técnica Denominación Material Número de serie Válido de",
+    # a distinctive phrase unique to this module's own known source file.
+    # Checked directly (grep across every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing occm_variants file):
+    # no accent-insensitive substring match ("ubicac", "denominaci",
+    # "valido de", "numero de serie") appears anywhere else, and this
+    # phrase does not contain (nor is contained by) any other variant's
+    # own SIGNATURES entries.
+    occm_inventory_sap_es,
+    # OCCM Component Status (Parent Serial / TSN-CSN Grid, Scanned) -- known
+    # source file has no text layer at all (0 chars via pdfplumber on every
+    # page), so it is only ever reached via ocr_detect()'s blank-text
+    # fallback below; SIGNATURES is deliberately empty (see module
+    # docstring). Its own title line ("OCCM COMPONENT STATUS") is shared
+    # with occm_component_status_report.py's SIGNATURES entry, but that
+    # module is reached only via the pdfplumber text-match path above (its
+    # own known source file has a real, if corrupted, text layer) and
+    # never via ocr_detect(), so the two cannot collide on the same file.
+    # This module's own ocr_detect() anchor ("PARENT SERIAL") is checked
+    # directly (grep across every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing occm_variants/
+    # ht_variants/llp_variants file): the phrase appears nowhere else, and
+    # is not a substring of (nor contains) any other variant's own
+    # SIGNATURES/ocr_detect anchor.
+    occm_component_status_parent_serial_grid,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)

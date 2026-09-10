@@ -392,6 +392,15 @@ SOURCES = [
     # layer, async OCR bridge (render_page/ocr_text/ocr_words/page_count),
     # same pattern as this batch's other scanned OCCM variants.
     "sheet_types/occm_variants/on_component_monitoring_listing_status.py",
+    # OCCM Inventory (Spanish SAP-style header) -- real text layer, single-
+    # line rows, compound Ubicac.técnica/Material columns split per its own
+    # module docstring.
+    "sheet_types/occm_variants/occm_inventory_sap_es.py",
+    # OCCM Component Status (Parent Serial / TSN-CSN Grid, Scanned) --
+    # scanned, no text layer, async OCR bridge, ruled-grid row/column
+    # detection via numpy darkfrac scan + per-cell OCR fallback, same
+    # pattern as this batch's other scanned OCCM variants.
+    "sheet_types/occm_variants/occm_component_status_parent_serial_grid.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
