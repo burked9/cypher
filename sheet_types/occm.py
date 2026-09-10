@@ -89,6 +89,7 @@ from sheet_types.occm_variants import (
     aircraft_installed_parts_list_scanned,
     occm_list_current_fh_fc_ruled_grid,
     aircraft_kardex_status_broken_font_scanned,
+    occm_list_pn_description_rotated_scanned,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -777,6 +778,25 @@ VARIANTS = [
     # `component_list_kardex.py`'s own "COMPONENT LIST" SIGNATURES entry
     # (no "KARDEX" substring at all).
     aircraft_kardex_status_broken_font_scanned,
+    # OCCM List (PN_description Column Headers, Rotated Scan) -- known
+    # source file has no text layer at all (confirmed via pdfplumber -- 0
+    # chars on every page), so it is only ever reached via ocr_detect()'s
+    # blank-text fallback below; SIGNATURES is deliberately empty (see
+    # module docstring). Its own ocr_detect() anchor requires the report's
+    # own bare title ("OCCM LIST") together with ALL THREE of its own
+    # snake_case column-header labels ("PN description", "installed date",
+    # "installed position", underscore/space-normalized) -- see that
+    # module's own docstring for the full collision analysis. Checked
+    # directly (grep across every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing occm_variants/
+    # ht_variants/llp_variants file): a bare "OCCM LIST" title is already
+    # shared by several sibling "OCCM LIST"-titled variants in this
+    # package, so never used alone here; combined with "INSTALLED DATE"
+    # (not a substring of, nor containing, `occm_components_status_ruled_
+    # grid.py`'s own "INSTALL DATE" anchor -- the extra "ED" breaks the
+    # contiguous match either direction) no other module's own SIGNATURES/
+    # ocr_detect anchor requires this combination.
+    occm_list_pn_description_rotated_scanned,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)

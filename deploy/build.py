@@ -490,6 +490,11 @@ SOURCES = [
     # ToUnicode table), OCR-only end to end; see the module's own
     # docstring and sheet_types/occm.py's VARIANTS ordering note.
     "sheet_types/occm_variants/aircraft_kardex_status_broken_font_scanned.py",
+    # OCCM List (PN_description Column Headers, Rotated Scan) — no text
+    # layer, page content stored sideways, OCR-only end to end; see the
+    # module's own docstring and sheet_types/occm.py's VARIANTS ordering
+    # note.
+    "sheet_types/occm_variants/occm_list_pn_description_rotated_scanned.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
