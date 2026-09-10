@@ -452,6 +452,12 @@ SOURCES = [
     # font-corrupted) text layer, x0-bucketed word geometry, ATA carried
     # forward from section-title rows.
     "sheet_types/occm_variants/component_localization_list.py",
+    # OCCM Component Status (Posn/Fin Ruled Grid, Scanned) -- scanned, no
+    # text layer, async OCR bridge; column-strip OCR with row anchors
+    # recovered from OCR's own text positions (not pixel ruling-line
+    # detection, which is unreliable on this file's per-page skew), plus a
+    # per-cell OCR fallback for empty cells.
+    "sheet_types/occm_variants/occm_component_status_posn_fin.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",

@@ -80,6 +80,7 @@ from sheet_types.occm_variants import (
     component_inventory_oc_cm_status_scanned,
     occm_status_aircraft_info_box,
     component_localization_list,
+    occm_component_status_posn_fin,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -603,6 +604,28 @@ VARIANTS = [
     # own SIGNATURES entries. Confirmed directly on the real sample file:
     # `occm.detect_variant()` returned "Unknown" before this module existed.
     component_localization_list,
+    # OCCM Component Status (Posn/Fin Ruled Grid, Scanned) -- known source
+    # file has no text layer at all (confirmed via pdfplumber -- 0 chars on
+    # every page), so it is only ever reached via ocr_detect()'s blank-text
+    # fallback below; SIGNATURES is deliberately empty (see module
+    # docstring). Its ocr_detect() anchor requires BOTH the report's own
+    # title-line phrase ("COMPONENT STATUS") and a `<reg> (<type>)`-shaped
+    # first line in the same title-band crop -- checked directly (grep
+    # across every SIGNATURES list in sheet_types/{occm,ht,llp}.py and every
+    # existing occm_variants/ht_variants/llp_variants file) against this
+    # package's two other "OCCM Component Status"-titled modules:
+    # occm_component_status_report.py is a born-digital variant reached only
+    # through the router's pdfplumber SIGNATURES match above (never through
+    # this ocr_detect fallback, since this module's own known source file
+    # has no text layer for that path to match against); and
+    # occm_component_status_parent_serial_grid.py's own ocr_detect() anchor
+    # ("PARENT SERIAL") does not appear anywhere in this module's own known
+    # source file (confirmed directly -- it has no PARENT_SERIAL column at
+    # all), and that module's own known source file's header does not carry
+    # a `<reg> (<type>)`-shaped title line (its reg/model/MSN print as
+    # separate labelled lines instead), so this module's own combined anchor
+    # cannot mis-fire on its file either.
+    occm_component_status_posn_fin,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
