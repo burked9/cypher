@@ -471,6 +471,19 @@ SOURCES = [
     # no cv2) and per-column OCR word bucketing, same pattern family as
     # occm_components_status_ruled_grid.py above.
     "sheet_types/occm_variants/emb190_occm_status_list_ruled_grid.py",
+    # A/C Installed Parts (Scanned) -- scanned, no text layer, async OCR
+    # bridge; whole-page word-level OCR (no per-column-strip cropping
+    # needed -- confirmed clean on this format, see module docstring),
+    # row-anchored on a trailing date+time token pair.
+    "sheet_types/occm_variants/aircraft_installed_parts_list_scanned.py",
+    # OCCM List (Current FH/FC Header, Ruled Grid, Scanned) -- scanned, no
+    # text layer, async OCR bridge; 10-column ruled data grid resolved via
+    # fresh per-page pixel-ruling detection (row and column dividers,
+    # numpy-only, no cv2) and per-column OCR word bucketing, same pattern
+    # family as occm_components_status_ruled_grid.py/
+    # emb190_occm_status_list_ruled_grid.py above; header info box
+    # (current FH/FC/date, aircraft type/reg/MSN) parsed once from page 1.
+    "sheet_types/occm_variants/occm_list_current_fh_fc_ruled_grid.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",

@@ -84,6 +84,8 @@ from sheet_types.occm_variants import (
     occm_component_status_posn_fin,
     occm_components_status_ruled_grid,
     emb190_occm_status_list_ruled_grid,
+    aircraft_installed_parts_list_scanned,
+    occm_list_current_fh_fc_ruled_grid,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -690,6 +692,39 @@ VARIANTS = [
     # in this package) appears standalone as any other module's own
     # anchor.
     emb190_occm_status_list_ruled_grid,
+    # A/C Installed Parts (Scanned) -- known source file has no text layer
+    # at all (confirmed via pdfplumber -- 0 chars on every page), so it is
+    # only ever reached via ocr_detect()'s blank-text fallback below;
+    # SIGNATURES is deliberately empty (see module docstring). Its own
+    # ocr_detect() anchor requires BOTH the report's own bare title "A/C
+    # Installed Parts" (no trailing "Print") and its column-header phrase
+    # "Installed Position" together -- see that module's own docstring for
+    # the full collision analysis against aircraft_installed_parts_print.py
+    # (a born-digital sibling reached only through the pdfplumber
+    # text-match path above, never through this ocr_detect fallback) and
+    # against occm_part_status.py (whose own "installed position" text is
+    # prose/docstring only, never an actual SIGNATURES entry). Checked
+    # directly (grep across every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing occm_variants file):
+    # no other module's own SIGNATURES/ocr_detect anchor requires this
+    # combination.
+    aircraft_installed_parts_list_scanned,
+    # OCCM List (Current FH/FC Header, Ruled Grid, Scanned) -- known source
+    # file has no text layer at all (confirmed via pdfplumber -- 0 chars on
+    # every page), so it is only ever reached via ocr_detect()'s blank-text
+    # fallback below; SIGNATURES is deliberately empty (see module
+    # docstring). Its own ocr_detect() anchor requires BOTH the report's
+    # own bare title "OCCM LIST" and its column-header line's own
+    # distinctive trailing phrase "AMM STRUCTURE" together -- see that
+    # module's own docstring for the full collision analysis (in
+    # particular against `occm_list_at_aircraft_fh.py`,
+    # `occm_list_func_loc_scanned.py` and `msn_occm_list_scanned.py`, this
+    # package's other scanned "OCCM LIST"-titled siblings, none of which
+    # require "AMM STRUCTURE" too). Checked directly (grep across every
+    # SIGNATURES list in sheet_types/{occm,ht,llp}.py and every existing
+    # occm_variants/ht_variants/llp_variants file): "AMM STRUCTURE" appears
+    # nowhere else in this package at all.
+    occm_list_current_fh_fc_ruled_grid,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
