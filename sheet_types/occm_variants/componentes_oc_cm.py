@@ -1,6 +1,6 @@
 """COMPONENTES OC/CM — scanned, no text layer, OCR required throughout.
 
-Confirmed on two real corpus files from the same document family (same
+Confirmed on three real corpus files from the same document family (same
 title/column layout, different aircraft) -- each a straight scan with 0
 extractable chars on every page via pdfplumber, no embedded text layer at
 all. Header block (bordered mini-table, repeats verbatim on every page)::
@@ -86,6 +86,26 @@ row's own CONFIG SLOT text, it's left blank so
 `occm.normalize_and_validate()`'s `forward_fill_ata()` post-process can
 inherit it from the preceding row, the same safety net every other OCCM
 variant in this package relies on for a missed chapter number.
+
+Whole-page rotation, confirmed directly on the third real file in this
+document family: unlike the first two real files (each already upright),
+this one's entire scan is embedded rotated 90 degrees off true -- every
+page checked (first, a middle, and the last) carries the same rotation,
+consistent with a whole document fed through a scanner sideways rather
+than a per-page artifact. The PDF's own page geometry (MediaBox) is
+portrait on every page of all three real files regardless of the scanned
+content's own true orientation, so the aspect-ratio check this package's
+other rotation-handling OCCM variant uses (`occm_parts_compliance_status.py`
+-- a landscape page rendering narrower-than-tall) can't tell a correctly
+oriented file from a rotated one here; the embedded content itself has to
+be read. `_detect_page_rotation()` below resolves this once per file, by
+OCR-testing page 0's own title text (the same "COMPONENTES"/"OC/CM" anchor
+`ocr_detect()` already relies on) across a small set of candidate
+rotations and keeping whichever one the title is actually readable in;
+that single per-file angle is then applied uniformly to every page's
+render before any other OCR runs, rather than re-detected page by page
+(confirmed consistent across the sampled pages above, and cheaper than a
+full OCR-based check on every page of a scanned multi-page file).
 
 TIME SINCE NEW / CYCLE SINCE NEW may read literally ``UNK`` in the source
 (confirmed directly -- a real, printed value on rows where the "since new"
@@ -417,10 +437,23 @@ def _header_incomplete(header_meta: dict) -> bool:
 
 
 async def _ocr_band(img, band: tuple[float, float]) -> str:
+    """OCR one tight header-row crop. Tries the default uniform-block
+    layout mode (psm 6) first -- confirmed directly the right choice for
+    AIRCRAFT/FLEET/MSN's own dense, left-aligned rows across all three
+    real files -- and falls back to a sparse-text pass (psm 11) only when
+    that comes back blank. Confirmed directly on the third real file's own
+    TITLE row: a short phrase set off to the right, with wide blank
+    margins on both sides and no other text on its row, is exactly the
+    shape psm 6 drops outright (see `_locate_header_bands`'s docstring for
+    the same failure mode there) but psm 11 reads cleanly and with high
+    per-word confidence."""
     w, h = img.size
     crop = img.crop((0, int(h * band[0]), w, int(h * band[1])))
     crop = crop.resize((crop.width * 2, crop.height * 2))
-    return await ocr_text(crop, psm=6)
+    text = await ocr_text(crop, psm=6)
+    if text.strip():
+        return text
+    return await ocr_text(crop, psm=11)
 
 
 async def _locate_header_bands(img) -> dict[str, tuple[float, float]]:
@@ -429,27 +462,88 @@ async def _locate_header_bands(img) -> dict[str, tuple[float, float]]:
     comment on _HEADER_ROW_ANCHORS/the fallback constants for why: this
     document family's header block shifts vertically file to file).
 
-    A single cheap `ocr_words()` pass over the top quarter of the page
-    locates each row by searching for its own label word ("COMPONENTES",
-    "AIRCRAFT", "FLEET", "MSN"); the caller then still does its own clean,
-    single-line `_ocr_band()` pass over the tight band returned here, same
-    as before. A label missing from this dict (couldn't be located at all)
-    should fall back to that row's fixed constant above.
+    A single cheap `ocr_words()` pass over the top quarter of the page,
+    with Tesseract's default uniform-block layout mode (psm 6), locates
+    AIRCRAFT/FLEET/MSN reliably -- confirmed directly across all three
+    real files. The TITLE row is a different shape (an isolated short
+    phrase set off to the right, above a horizontal rule, with a wide gap
+    of blank space on both sides) that the same uniform-block pass
+    confirmed directly, on the third real file, to drop entirely --
+    Tesseract's psm 6 layout analysis merges/discards it rather than
+    mis-reading it. A sparse-text pass (psm 11) over the same crop
+    recovers it cleanly (confirmed directly, high per-word confidence) and
+    is tried as a second pass, but only for whichever anchor(s) the first
+    pass didn't find, since the cheaper uniform-block pass already covers
+    the other rows correctly and psm 11 alone is not a reliable substitute
+    for it (looser layout assumptions read stray table-grid fragments in
+    that same crop as spurious words often enough to be worth avoiding
+    except where actually needed).
+
+    The caller still does its own clean, single-line `_ocr_band()` pass
+    over the tight band returned here, same as before. A label missing
+    from this dict (couldn't be located in either pass) should fall back
+    to that row's fixed constant above.
     """
     w, h = img.size
     crop = img.crop((0, 0, w, int(h * 0.25)))
     crop = crop.resize((crop.width * 2, crop.height * 2))
     words = await ocr_words(crop, psm=6, min_conf=-1)
-    bands: dict[str, tuple[float, float]] = {}
-    for key, (token, lo_margin, height) in _HEADER_ROW_ANCHORS.items():
-        for word in words:
-            text = str(word.get("text", "")).strip().upper()
-            if token in text:
-                top_frac = (word.get("top", 0) / 2) / h
-                lo = max(0.0, top_frac + lo_margin)
-                bands[key] = (lo, lo + height)
-                break
+
+    def _search(word_list) -> dict[str, tuple[float, float]]:
+        found: dict[str, tuple[float, float]] = {}
+        for key, (token, lo_margin, height) in _HEADER_ROW_ANCHORS.items():
+            for word in word_list:
+                text = str(word.get("text", "")).strip().upper()
+                if token in text:
+                    top_frac = (word.get("top", 0) / 2) / h
+                    lo = max(0.0, top_frac + lo_margin)
+                    found[key] = (lo, lo + height)
+                    break
+        return found
+
+    bands = _search(words)
+    missing = [k for k in _HEADER_ROW_ANCHORS if k not in bands]
+    if missing:
+        sparse_words = await ocr_words(crop, psm=11, min_conf=-1)
+        sparse_bands = _search(sparse_words)
+        for key in missing:
+            if key in sparse_bands:
+                bands[key] = sparse_bands[key]
     return bands
+
+
+# Whole-document rotation candidates, tried in this order (see module
+# docstring on the third real file's whole-scan 90-degree rotation): 0
+# first since the first two real files in this family were already
+# upright, then the confirmed -90 correction, then the two remaining
+# right-angle possibilities as an untested-but-plausible fallback for a
+# future file rotated the other way. `Image.rotate()`'s positive direction
+# is counter-clockwise, so -90 here means "rotate 90 degrees clockwise".
+_ROTATION_CANDIDATES = (0, -90, 90, 180)
+
+
+async def _detect_page_rotation(pdf_path: str, page_index: int = 0) -> int | None:
+    """Resolve this file's whole-document rotation correction once, by
+    OCR-testing page 0's own title text (the same "COMPONENTES"/"OC/CM"
+    anchor `ocr_detect()` uses) across `_ROTATION_CANDIDATES` and keeping
+    whichever angle actually makes the title readable. Returns None if the
+    title can't be found in any candidate orientation (e.g. a severely
+    degraded scan, or a file outside this variant entirely) -- callers
+    treat that as "not this variant" / "assume upright" as appropriate.
+
+    See module docstring: this document family's page geometry is
+    portrait in the PDF's own MediaBox regardless of the scanned content's
+    true orientation, so an aspect-ratio check alone can't tell a rotated
+    file from an upright one here -- the content itself has to be read.
+    """
+    base_img = await render_page(pdf_path, page_index, dpi=300)
+    for angle in _ROTATION_CANDIDATES:
+        img = base_img if angle == 0 else base_img.rotate(angle, expand=True)
+        band = (await _locate_header_bands(img)).get("TITLE", _TITLE_BAND)
+        text = (await _ocr_band(img, band)).upper()
+        if "COMPONENTES" in text and "OC/CM" in text:
+            return angle
+    return None
 
 
 async def ocr_detect(pdf_path: str) -> bool:
@@ -473,13 +567,12 @@ async def ocr_detect(pdf_path: str) -> bool:
     _HEADER_ROW_ANCHORS): confirmed directly on a second real file in this
     same document family that the fixed `_TITLE_BAND` below misses the
     title line entirely once the header block sits even one row lower on
-    the page.
+    the page. `_detect_page_rotation()` additionally tries the title in a
+    small set of rotated orientations, covering the third real file's own
+    whole-scan rotation (see module docstring).
     """
     try:
-        img = await render_page(pdf_path, 0, dpi=300)
-        band = (await _locate_header_bands(img)).get("TITLE", _TITLE_BAND)
-        text = (await _ocr_band(img, band)).upper()
-        return "COMPONENTES" in text and "OC/CM" in text
+        return (await _detect_page_rotation(pdf_path, 0)) is not None
     except Exception:
         return False
 
@@ -491,8 +584,16 @@ async def extract(pdf_path: str) -> list[dict]:
         "MSN": "", "MFG_DATE": "", "ENTERED_SERVICE_DATE": "", "MFL_DATE": "",
     }
     n_pages = await page_count(pdf_path)
+    # Resolved once from page 0 and applied uniformly to every page (see
+    # module docstring / `_detect_page_rotation`) -- None (title not found
+    # in any candidate orientation) falls back to upright rather than
+    # raising, consistent with this package's soft-failure conventions;
+    # downstream per-row parsing simply yields few/no rows in that case.
+    rotation = await _detect_page_rotation(pdf_path, 0) or 0
     for page_index in range(n_pages):
         img = await render_page(pdf_path, page_index, dpi=300)
+        if rotation:
+            img = img.rotate(rotation, expand=True)
         if _header_incomplete(header_meta):
             row_bands = await _locate_header_bands(img)
             aircraft_text = await _ocr_band(img, row_bands.get("AIRCRAFT", _AIRCRAFT_BAND))
