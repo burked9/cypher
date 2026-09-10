@@ -81,6 +81,7 @@ from sheet_types.occm_variants import (
     occm_status_aircraft_info_box,
     component_localization_list,
     occm_component_status_posn_fin,
+    occm_components_status_ruled_grid,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -626,6 +627,35 @@ VARIANTS = [
     # separate labelled lines instead), so this module's own combined anchor
     # cannot mis-fire on its file either.
     occm_component_status_posn_fin,
+    # OCCM Components Status (Plain Ruled Grid, Scanned) -- known source
+    # file has no text layer at all (confirmed via pdfplumber -- 0 chars on
+    # every page), so it is only ever reached via ocr_detect()'s blank-text
+    # fallback below; SIGNATURES is deliberately empty (see module
+    # docstring). Its ocr_detect() anchor requires the report's own
+    # plural-COMPONENTS title phrase ("OCCM COMPONENTS STATUS") together
+    # with the column-header words "INSTALL DATE" and "POSITION" (checked
+    # independently rather than as one exact phrase -- the column-header
+    # band's own two-line-wrapped cell text was confirmed directly to
+    # sometimes OCR with its wrapped fragment reordered at this psm).
+    # Checked directly (grep across every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing occm_variants file,
+    # plus every module's own ocr_detect() anchor text): no other module's
+    # own anchor requires this same combination. The bare title phrase
+    # alone is a prefix substring of occm_status_list.py's own SIGNATURES
+    # entry ("OCCM COMPONENTS STATUS LIST") -- a born-digital module never
+    # reachable through this ocr_detect fallback on a blank-text file, so
+    # no real collision, but not reused bare here regardless. Also
+    # confirmed NOT a match for occm_component_status_posn_fin.py's own
+    # anchor ("COMPONENT STATUS", singular, immediately above in this
+    # list): the character right after "COMPONENT" differs ("S" here vs a
+    # space there) so neither phrase contains the other, and that module's
+    # own ocr_detect additionally requires a `<reg> (<type>)`-shaped title
+    # line this report's own label:value header box never produces; and
+    # NOT a match for aircraft_occm_components_status_scanned.py's own
+    # anchor ("AIRCRAFT" + "OC/CM" + "COMPONENTS" + "STATUS"): this
+    # report's own title band has no "AIRCRAFT" and renders "OCCM" as one
+    # word with no "/", so that anchor cannot fire here either.
+    occm_components_status_ruled_grid,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)

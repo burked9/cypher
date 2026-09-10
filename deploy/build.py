@@ -458,6 +458,12 @@ SOURCES = [
     # detection, which is unreliable on this file's per-page skew), plus a
     # per-cell OCR fallback for empty cells.
     "sheet_types/occm_variants/occm_component_status_posn_fin.py",
+    # OCCM Components Status (Plain Ruled Grid, Scanned) -- scanned, no text
+    # layer, async OCR bridge; header info-box (FH/FC/report date/reg/MSN/
+    # type) parsed once from page 1, 6-column ruled data grid resolved via
+    # fresh per-page pixel-ruling detection (row and column dividers) and
+    # per-column OCR word bucketing.
+    "sheet_types/occm_variants/occm_components_status_ruled_grid.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
