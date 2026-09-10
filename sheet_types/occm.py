@@ -9,6 +9,7 @@ Public functions:
     normalize_and_validate(records, variant)   — apply per-variant rules
 """
 from __future__ import annotations
+import re
 import pdfplumber
 
 from sheet_types.occm_variants import (
@@ -86,6 +87,7 @@ from sheet_types.occm_variants import (
     emb190_occm_status_list_ruled_grid,
     aircraft_installed_parts_list_scanned,
     occm_list_current_fh_fc_ruled_grid,
+    aircraft_kardex_status_broken_font_scanned,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -725,6 +727,33 @@ VARIANTS = [
     # occm_variants/ht_variants/llp_variants file): "AMM STRUCTURE" appears
     # nowhere else in this package at all.
     occm_list_current_fh_fc_ruled_grid,
+    # Aircraft KARDEX Status (AMASIS, Broken Font, Scanned) -- known source
+    # file has a NON-blank pdfplumber text layer, but that text is
+    # unusable: nearly every recovered character is pdfplumber's own
+    # "(cid:<n>)" placeholder token, confirmed directly (the embedded font
+    # has no working ToUnicode/Encoding table). This is NOT the same
+    # failure mode as this package's other scanned variants (whose own
+    # known source files return truly blank/near-zero text), so neither of
+    # the router's two existing OCR-fallback checks below would have
+    # caught it on its own -- see `_is_cid_garbled()` just below, added
+    # specifically for this case, and used as an additional `or` in the
+    # trigger condition (never replacing the existing checks). SIGNATURES
+    # is deliberately empty (see module docstring); only ever reached via
+    # `ocr_detect()`. Checked directly (grep across every SIGNATURES list
+    # in sheet_types/{occm,ht,llp}.py and every existing occm_variants/
+    # ht_variants/llp_variants module, plus every module's own ocr_detect()
+    # anchor text): its own combined anchor ("AMASIS" + "REPORT KARDEX BY
+    # AIRCRAFT") does not collide with any other module's own SIGNATURES or
+    # ocr_detect anchor -- see that module's own `ocr_detect()` docstring
+    # for the full collision analysis, in particular against the bare
+    # "KARDEX" SIGNATURES entries used by `remaining_potentials.py` and
+    # `technical_object_listing.py` (both reached only through the normal
+    # pdfplumber SIGNATURES path, which requires real extracted text this
+    # module's own known source file never has, so the two paths cannot
+    # collide on the same file either way) and against
+    # `component_list_kardex.py`'s own "COMPONENT LIST" SIGNATURES entry
+    # (no "KARDEX" substring at all).
+    aircraft_kardex_status_broken_font_scanned,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
@@ -1037,6 +1066,38 @@ def _read_page1_text(pdf_path: str) -> str:
     return ""
 
 
+_CID_GARBLE_RE = re.compile(r"\(cid:\d+\)", re.IGNORECASE)
+
+
+def _is_cid_garbled(text: str) -> bool:
+    """True when `text` (pdfplumber's own `extract_text()` output) is
+    dominated by "(cid:<n>)" placeholder tokens -- the literal string
+    pdfplumber emits for a glyph it cannot map through the embedded font's
+    (missing/broken) ToUnicode table, rather than raising or returning
+    blank text. Confirmed directly on
+    `aircraft_kardex_status_broken_font_scanned.py`'s own known source
+    file: every page's `extract_text()` comes back non-blank (thousands of
+    characters), so neither of `detect_variant()`'s two existing
+    blank-text checks below catches it -- they only look at recovered
+    LENGTH, never at what the recovered text actually says. A real,
+    otherwise-working text layer occasionally embeds one or two truly
+    unmapped glyphs (an unusual symbol/ligature) without being globally
+    broken, so only text where these placeholders make up the bulk of the
+    recovered characters (checked directly against the real broken file:
+    "(cid:<n>)" tokens account for ~98% of every page's own recovered
+    text) is treated as unusable here -- a low, incidental rate is left
+    alone. Measured by total matched-character coverage rather than a
+    bare token count: "(cid:9)" and "(cid:123456)" cover very different
+    shares of a short head-text sample, and a count-only ratio was
+    confirmed directly to under-count this real file's own ~8-characters-
+    per-token average and miss it entirely at a naive per-token threshold."""
+    if not text:
+        return False
+    matches = _CID_GARBLE_RE.findall(text)
+    covered = sum(len(m) for m in matches)
+    return covered * 2 >= len(text)
+
+
 async def detect_variant(pdf_path: str) -> str:
     head = _read_head_text(pdf_path).upper()
     for v in VARIANTS:
@@ -1055,7 +1116,16 @@ async def detect_variant(pdf_path: str) -> str:
     # alone catches that case without weakening the existing aggregate
     # check for any variant that already relied on it (this is an
     # additional `or`, not a replacement).
-    if len(head.strip()) < 50 or len(_read_page1_text(pdf_path).strip()) < 50:
+    #
+    # A third case, also an additional `or`: the recovered text is
+    # non-blank (sails past both length checks above) but dominated by
+    # pdfplumber's own "(cid:<n>)" placeholder tokens -- a broken font
+    # ToUnicode table, not a scan, but just as unusable as either blank
+    # case above for SIGNATURES matching. See `_is_cid_garbled()` and
+    # `aircraft_kardex_status_broken_font_scanned.py`'s own module
+    # docstring for the real confirmed case this catches.
+    if (len(head.strip()) < 50 or len(_read_page1_text(pdf_path).strip()) < 50
+            or _is_cid_garbled(head)):
         # No usable text layer -- ask any OCR-capable variant to confirm its
         # own template via a cheap header OCR pass rather than guessing.
         # This used to default blind to "Aeroflot" (the only OCR variant

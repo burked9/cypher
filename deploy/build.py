@@ -484,6 +484,11 @@ SOURCES = [
     # emb190_occm_status_list_ruled_grid.py above; header info box
     # (current FH/FC/date, aircraft type/reg/MSN) parsed once from page 1.
     "sheet_types/occm_variants/occm_list_current_fh_fc_ruled_grid.py",
+    # AMASIS "Report KARDEX by Aircraft" — non-blank but "(cid:<n>)"
+    # placeholder-garbled pdfplumber text layer (broken embedded-font
+    # ToUnicode table), OCR-only end to end; see the module's own
+    # docstring and sheet_types/occm.py's VARIANTS ordering note.
+    "sheet_types/occm_variants/aircraft_kardex_status_broken_font_scanned.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
