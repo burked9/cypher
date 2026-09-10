@@ -67,6 +67,7 @@ from sheet_types.occm_variants import (
     msn_occm_list_scanned,
     on_condition_cm_components_list,
     occm_parts_compliance_status,
+    on_component_monitoring_listing_status,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -412,6 +413,17 @@ VARIANTS = [
     # "COMPLIANCE STATUS" appears nowhere else, and is not a substring of
     # (nor contains) any other variant's own SIGNATURES/ocr_detect anchor.
     occm_parts_compliance_status,
+    # On-Component/ Component Monitoring Listing Status -- known source file
+    # has no text layer at all (confirmed via pdfplumber -- 0 chars on every
+    # page), so it is only ever reached via ocr_detect()'s blank-text
+    # fallback below; SIGNATURES is deliberately empty (see module
+    # docstring). Its ocr_detect() anchor ("COMPONENT MONITORING LISTING
+    # STATUS") is checked directly (grep across every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing occm_variants/
+    # ht_variants/llp_variants file): the phrase appears nowhere else, and
+    # is not a substring of (nor contains) any other variant's own
+    # SIGNATURES/ocr_detect anchor.
+    on_component_monitoring_listing_status,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)

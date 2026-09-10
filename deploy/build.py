@@ -388,6 +388,10 @@ SOURCES = [
     # OCR bridge (render_page/ocr_text/ocr_words/page_count), same pattern
     # as this batch's other scanned OCCM variants.
     "sheet_types/occm_variants/occm_parts_compliance_status.py",
+    # On-Component/ Component Monitoring Listing Status -- scanned, no text
+    # layer, async OCR bridge (render_page/ocr_text/ocr_words/page_count),
+    # same pattern as this batch's other scanned OCCM variants.
+    "sheet_types/occm_variants/on_component_monitoring_listing_status.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",

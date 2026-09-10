@@ -1,8 +1,9 @@
 """COMPONENTES OC/CM — scanned, no text layer, OCR required throughout.
 
-Confirmed on one real corpus file (13 pages, 0 extractable chars on every
-page via pdfplumber -- a straight scan, no embedded text layer at all).
-Header block (bordered mini-table, repeats verbatim on every page)::
+Confirmed on two real corpus files from the same document family (same
+title/column layout, different aircraft) -- each a straight scan with 0
+extractable chars on every page via pdfplumber, no embedded text layer at
+all. Header block (bordered mini-table, repeats verbatim on every page)::
 
     <operator logo/name>                              COMPONENTES OC/CM
     AIRCRAFT | <reg> | DATE MANUFACTURER | <date> | DATE ENTERED SERVICES | <date>
@@ -24,6 +25,15 @@ AIRCRAFT/OWNER row values themselves (registration, operator name) are
 deliberately NOT captured into their own columns: this module's header spec
 only calls for the seven fields above, and the operator/registration cells
 would otherwise be free-text values with no validation anchor of their own.
+
+The header block's absolute vertical position on the page is NOT constant
+across files in this family (confirmed directly comparing the two real
+files: an extra/missing sub-line above the column-header row shifts every
+row below it by roughly one row's height) -- so the title/AIRCRAFT/FLEET/
+MSN row crops are located per-page by their own label text
+(`_locate_header_bands()`) rather than a single fixed set of page-fraction
+constants, which only ever matched the first file seen. See that
+function's docstring and `_HEADER_ROW_ANCHORS` below.
 
 Whole-page `ocr_text()` on this file's data grid is confirmed unreliable
 (digit/letter substitutions are severe enough that even a compound code's
@@ -332,11 +342,34 @@ def _parse_line(words: list[tuple[float, float, str]], page_width: int,
 # --- Header metadata parsing --------------------------------------------
 # The header mini-table is read one row-band at a time (see module
 # docstring on why a single whole-header OCR pass drops TOTAL_CYCLES).
-# Fractions of page height, measured on the real sample file's first page.
+# These are FALLBACK fractions of page height only, measured on the first
+# real sample file seen for this variant -- confirmed directly against a
+# second real file from the same document family (same title/column
+# layout, different aircraft) that the header block's absolute vertical
+# position is NOT constant across files: an extra/missing sub-line above
+# the column-header row shifts every row below it by roughly one row's
+# height. A fixed set of row-fraction bands tuned to one file therefore
+# misses every row on another file in the same family (confirmed directly:
+# each of these four bands landed on the WRONG row on that second file).
+# `_locate_header_bands()` below finds each row by its own label text on
+# whichever page is being read and falls back to these constants only if a
+# label can't be located at all (e.g. a severely degraded scan).
 _TITLE_BAND = (0.058, 0.075)
 _AIRCRAFT_BAND = (0.108, 0.124)
 _FLEET_BAND = (0.124, 0.138)
 _MSN_BAND = (0.141, 0.156)
+
+# (label token, top-margin, band height) -- as fractions of page height.
+# The top-margin/height pair for each row was tuned so the resulting crop
+# holds exactly that one row's text cleanly on both real files checked
+# (label word's own top position varies file-to-file; these offsets from
+# it do not).
+_HEADER_ROW_ANCHORS = {
+    "TITLE": ("COMPONENTES", -0.008, 0.022),
+    "AIRCRAFT": ("AIRCRAFT", -0.003, 0.014),
+    "FLEET": ("FLEET", -0.003, 0.014),
+    "MSN": ("MSN", -0.003, 0.014),
+}
 
 _MFG_RE = re.compile(r"MANUFACTURER\D{0,10}(\d{1,2}[-/. ]?[A-Za-z]{3}[-/. ]?\d{2,4})", re.IGNORECASE)
 _ENTERED_RE = re.compile(r"ENTERED\D{0,15}(\d{1,2}[-/. ]?[A-Za-z]{3}[-/. ]?\d{2,4})", re.IGNORECASE)
@@ -390,6 +423,35 @@ async def _ocr_band(img, band: tuple[float, float]) -> str:
     return await ocr_text(crop, psm=6)
 
 
+async def _locate_header_bands(img) -> dict[str, tuple[float, float]]:
+    """Find this page's own TITLE/AIRCRAFT/FLEET/MSN row bands by their
+    label text, instead of assuming the fixed fractions above (see the
+    comment on _HEADER_ROW_ANCHORS/the fallback constants for why: this
+    document family's header block shifts vertically file to file).
+
+    A single cheap `ocr_words()` pass over the top quarter of the page
+    locates each row by searching for its own label word ("COMPONENTES",
+    "AIRCRAFT", "FLEET", "MSN"); the caller then still does its own clean,
+    single-line `_ocr_band()` pass over the tight band returned here, same
+    as before. A label missing from this dict (couldn't be located at all)
+    should fall back to that row's fixed constant above.
+    """
+    w, h = img.size
+    crop = img.crop((0, 0, w, int(h * 0.25)))
+    crop = crop.resize((crop.width * 2, crop.height * 2))
+    words = await ocr_words(crop, psm=6, min_conf=-1)
+    bands: dict[str, tuple[float, float]] = {}
+    for key, (token, lo_margin, height) in _HEADER_ROW_ANCHORS.items():
+        for word in words:
+            text = str(word.get("text", "")).strip().upper()
+            if token in text:
+                top_frac = (word.get("top", 0) / 2) / h
+                lo = max(0.0, top_frac + lo_margin)
+                bands[key] = (lo, lo + height)
+                break
+    return bands
+
+
 async def ocr_detect(pdf_path: str) -> bool:
     """Cheap page-1 OCR check for the router's blank-text fallback (see
     sheet_types/occm.py) -- this variant's SIGNATURES can never match
@@ -405,10 +467,18 @@ async def ocr_detect(pdf_path: str) -> bool:
     entries -- in particular a305_a340_occm.py's own "Components >> OC/CM
     Components" phrase differs at the very first distinguishing letter
     ("Componentes" vs "Components") in both directions.
+
+    The title's own crop is now located per-page via `_locate_header_bands`
+    rather than a fixed fraction (see that function and the comment on
+    _HEADER_ROW_ANCHORS): confirmed directly on a second real file in this
+    same document family that the fixed `_TITLE_BAND` below misses the
+    title line entirely once the header block sits even one row lower on
+    the page.
     """
     try:
         img = await render_page(pdf_path, 0, dpi=300)
-        text = (await _ocr_band(img, _TITLE_BAND)).upper()
+        band = (await _locate_header_bands(img)).get("TITLE", _TITLE_BAND)
+        text = (await _ocr_band(img, band)).upper()
         return "COMPONENTES" in text and "OC/CM" in text
     except Exception:
         return False
@@ -424,9 +494,10 @@ async def extract(pdf_path: str) -> list[dict]:
     for page_index in range(n_pages):
         img = await render_page(pdf_path, page_index, dpi=300)
         if _header_incomplete(header_meta):
-            aircraft_text = await _ocr_band(img, _AIRCRAFT_BAND)
-            fleet_text = await _ocr_band(img, _FLEET_BAND)
-            msn_text = await _ocr_band(img, _MSN_BAND)
+            row_bands = await _locate_header_bands(img)
+            aircraft_text = await _ocr_band(img, row_bands.get("AIRCRAFT", _AIRCRAFT_BAND))
+            fleet_text = await _ocr_band(img, row_bands.get("FLEET", _FLEET_BAND))
+            msn_text = await _ocr_band(img, row_bands.get("MSN", _MSN_BAND))
             _parse_header_meta(header_meta, aircraft_text, fleet_text, msn_text)
         words = await ocr_words(img, psm=6, min_conf=-1)
         df = _words_to_df(words)
