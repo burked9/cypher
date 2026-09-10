@@ -61,6 +61,7 @@ from sheet_types.occm_variants import (
     on_condition_components_install_current,
     aircraft_fitlist_occm,
     occm_list_func_loc_scanned,
+    occm_component_inventory_list_scanned,
     occm_status_on_condition_items,
     component_list_occm_airframe,
     componentes_oc_cm,
@@ -72,6 +73,7 @@ from sheet_types.occm_variants import (
     occm_component_status_parent_serial_grid,
     occm_status_list_type_model_header,
     aircraft_build_occm_status_scanned,
+    aircraft_occm_components_status_scanned,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -343,6 +345,19 @@ VARIANTS = [
     # aircraft_fitlist_occm.py included): the fuller phrase appears nowhere
     # else.
     occm_list_func_loc_scanned,
+    # Component Inventory List (Func.loc / A/C Hours Header, Wide) -- known
+    # source file has no text layer at all (confirmed via pdfplumber -- 0
+    # chars on every page), so it is only ever reached via ocr_detect()'s
+    # blank-text fallback below; SIGNATURES is deliberately empty (see
+    # module docstring). Its ocr_detect() anchor ("COMPONENT INVENTORY
+    # LIST" + "A/C HOURS") is checked directly (grep across every
+    # SIGNATURES list in sheet_types/{occm,ht,llp}.py and every existing
+    # occm_variants file, occm_list_func_loc_scanned.py and
+    # occm_component_inventory.py included): the combined phrase appears
+    # nowhere else, and it does not collide with
+    # occm_list_func_loc_scanned.py's own "OCCM LIST A/C HOURS" anchor
+    # (the title words themselves differ).
+    occm_component_inventory_list_scanned,
     # Component List OCCM- Airframe -- known source file has no text layer
     # at all (confirmed via pdfplumber -- 0 chars on every page), so it is
     # only ever reached via ocr_detect()'s blank-text fallback below. Its
@@ -483,6 +498,19 @@ VARIANTS = [
     # ht_variants/llp_variants file): no other module's own SIGNATURES/
     # ocr_detect anchor is the bare "AIRCRAFT BUILD" phrase.
     aircraft_build_occm_status_scanned,
+    # Aircraft OC/CM Components Status (Scanned) -- known source file has
+    # no text layer at all (0 chars via pdfplumber on every page sampled),
+    # so it is only ever reached via ocr_detect()'s blank-text fallback
+    # below; SIGNATURES is deliberately empty (see module docstring).
+    # Confirmed directly on the real sample file: `occm.detect_variant()`
+    # returned "Unknown" before this module existed. Its own ocr_detect()
+    # anchor is the bare title phrase "AIRCRAFT OC/CM COMPONENTS STATUS",
+    # checked directly (grep across every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing occm_variants/
+    # ht_variants/llp_variants file): no other module's own SIGNATURES/
+    # ocr_detect anchor is this phrase, nor a substring of it, nor does it
+    # contain any other module's own anchor.
+    aircraft_occm_components_status_scanned,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)

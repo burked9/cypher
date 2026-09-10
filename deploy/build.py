@@ -363,6 +363,7 @@ SOURCES = [
     # async OCR bridge (render_page/ocr_words/ocr_text/page_count), same
     # pattern as this batch's other scanned OCCM variants.
     "sheet_types/occm_variants/occm_list_func_loc_scanned.py",
+    "sheet_types/occm_variants/occm_component_inventory_list_scanned.py",
     # On Condition Items (OCCM Status) -- scanned, no text layer, async OCR
     # bridge (render_page/ocr_text/ocr_words/page_count), same pattern as
     # this batch's other scanned OCCM variants.
@@ -414,6 +415,12 @@ SOURCES = [
     # UNIT_NUMBER columns, same pattern as this batch's other scanned OCCM
     # variants.
     "sheet_types/occm_variants/aircraft_build_occm_status_scanned.py",
+    # Aircraft OC/CM Components Status (Scanned) -- scanned, no text layer,
+    # async OCR bridge; column x-position bucketing (fixed pixel ranges @
+    # 300 DPI) resolves the report's 4 trailing hours/cycles-at-install and
+    # since-install columns, same pattern as this batch's other scanned
+    # OCCM variants.
+    "sheet_types/occm_variants/aircraft_occm_components_status_scanned.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
