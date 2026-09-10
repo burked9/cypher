@@ -385,6 +385,10 @@ SOURCES = [
     # page_count), same pattern as this batch's other scanned OCCM
     # variants.
     "sheet_types/occm_variants/on_condition_cm_components_list.py",
+    # On Condition Components List (T.T./T.C. Header) -- scanned, no text
+    # layer, async OCR bridge (render_page/ocr_text/ocr_words/page_count),
+    # same pattern as this batch's other scanned OCCM variants.
+    "sheet_types/occm_variants/on_condition_components_list_tt_tc.py",
     # OCCM Parts Compliance Status Report -- scanned, no text layer, async
     # OCR bridge (render_page/ocr_text/ocr_words/page_count), same pattern
     # as this batch's other scanned OCCM variants.
@@ -444,6 +448,10 @@ SOURCES = [
     # fallback for empty cells, same pattern family as this batch's other
     # scanned, ruled-grid OCCM variants.
     "sheet_types/occm_variants/occm_status_aircraft_info_box.py",
+    # Component Localization List — born-digital, real (if severely
+    # font-corrupted) text layer, x0-bucketed word geometry, ATA carried
+    # forward from section-title rows.
+    "sheet_types/occm_variants/component_localization_list.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",

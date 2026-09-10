@@ -67,6 +67,7 @@ from sheet_types.occm_variants import (
     componentes_oc_cm,
     msn_occm_list_scanned,
     on_condition_cm_components_list,
+    on_condition_components_list_tt_tc,
     occm_parts_compliance_status,
     on_component_monitoring_listing_status,
     occm_inventory_sap_es,
@@ -78,6 +79,7 @@ from sheet_types.occm_variants import (
     on_condition_component_status_scanned,
     component_inventory_oc_cm_status_scanned,
     occm_status_aircraft_info_box,
+    component_localization_list,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -425,6 +427,22 @@ VARIANTS = [
     # condition_monitoring_components_status.py's own title phrase has no
     # leading "ON" and ends in "STATUS" not "LIST".
     on_condition_cm_components_list,
+    # On Condition Components List (T.T./T.C. Header) -- known source file
+    # has no text layer at all (confirmed via pdfplumber -- 0 chars on
+    # every page sampled), so it is only ever reached via ocr_detect()'s
+    # blank-text fallback below; SIGNATURES is deliberately empty (see
+    # module docstring). Its ocr_detect() anchor ("ON CONDITION COMPONENTS
+    # LIST") is checked directly (grep across every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing occm_variants file,
+    # this batch's own on_condition_cm_components_list.py included): the
+    # bare phrase appears nowhere else -- in particular
+    # on_condition_cm_components_list.py's own anchor requires an extra
+    # leading "ON CONDITION," comma and "CONDITION MONITORING" insert not
+    # present here, so `detect_variant()` cannot route this module's real
+    # sample file to that earlier variant nor vice versa (confirmed
+    # directly: `detect_variant()` returned "Unknown" against this
+    # module's own real sample file before it existed).
+    on_condition_components_list_tt_tc,
     # OCCM Parts Compliance Status Report -- known source file has no text
     # layer at all (confirmed via pdfplumber -- 0 chars on every page), so
     # it is only ever reached via ocr_detect()'s blank-text fallback below;
@@ -574,6 +592,17 @@ VARIANTS = [
     # this module's own siblings included): appears nowhere else in this
     # package.
     occm_status_aircraft_info_box,
+    # Component Localization List -- its own variant-level SIGNATURES entries
+    # ("AIRPLANE MODEL:", "AIRPLANE SERIAL NUMBER:", "LOCALIZATION") are the
+    # report's own aircraft-summary field labels and repeating column-header
+    # word, distinctive phrases unique to this module's own known source
+    # file. Checked directly (grep across every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing occm_variants/
+    # ht_variants/llp_variants file): none of these phrases appear anywhere
+    # else, and none is a substring of (nor contains) any other variant's
+    # own SIGNATURES entries. Confirmed directly on the real sample file:
+    # `occm.detect_variant()` returned "Unknown" before this module existed.
+    component_localization_list,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
@@ -845,6 +874,14 @@ SIGNATURES = [
     # MONITORING COMPONENTS" (leading "ON", no "STATUS" suffix) is NOT a
     # substring of this phrase nor vice versa, so no collision risk.
     "CONDITION MONITORING COMPONENTS STATUS",
+    # component_localization_list.py's known source file has no "OCCM" text
+    # anywhere in it either (confirmed via direct inspection of every page)
+    # -- its own repeating column-header word is "Localization". Without an
+    # entry here the top-level router returns "Unknown" on it. Checked for
+    # collisions against every SIGNATURES list in sheet_types/
+    # {occm,ht,llp}.py and every existing variant file first, with none
+    # found.
+    "LOCALIZATION",
 ]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
