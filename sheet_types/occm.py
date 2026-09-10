@@ -70,6 +70,8 @@ from sheet_types.occm_variants import (
     on_component_monitoring_listing_status,
     occm_inventory_sap_es,
     occm_component_status_parent_serial_grid,
+    occm_status_list_type_model_header,
+    aircraft_build_occm_status_scanned,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -453,6 +455,34 @@ VARIANTS = [
     # is not a substring of (nor contains) any other variant's own
     # SIGNATURES/ocr_detect anchor.
     occm_component_status_parent_serial_grid,
+    # OCCM Status List (Type/Model Header, Scanned) -- known source file's
+    # title/header page and closing page are scanned (no text layer at
+    # all, confirmed via pdfplumber), so it is only ever reached via
+    # ocr_detect()'s blank-text fallback below; SIGNATURES is declared
+    # ("OCCM STATUS LIST") as a documented anchor / safety net for any
+    # future born-digital re-export only. Checked directly (grep across
+    # every SIGNATURES list in sheet_types/{occm,ht,llp}.py and every
+    # existing occm_variants/ht_variants/llp_variants file): "OCCM STATUS
+    # LIST" is not a substring of (nor contains) occm_status_list.py's own
+    # "OCCM COMPONENTS STATUS LIST" / "COMPONENTS STATUS LIST" entries (the
+    # word "COMPONENTS" sits between "OCCM" and "STATUS" there but not
+    # here), and appears nowhere else in this package.
+    occm_status_list_type_model_header,
+    # Aircraft Build OCCM Status (Scanned) -- known source file has no text
+    # layer at all (0 chars via pdfplumber on every page), so it is only
+    # ever reached via ocr_detect()'s blank-text fallback below; SIGNATURES
+    # is deliberately empty (see module docstring). Shares its "Aircraft
+    # Build" header phrase and Since-New/Fit/Overhaul/Repair matrix with
+    # oases.py's own SIGNATURES entries, but oases.py has no ocr_detect() of
+    # its own (pdfplumber-only) and this module's SIGNATURES is empty, so
+    # the two cannot collide on the pdfplumber-text match path OR the
+    # ocr_detect fallback loop. Confirmed directly on the real sample file:
+    # `occm.detect_variant()` returned "Unknown" before this module existed.
+    # Checked directly (grep across every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing occm_variants/
+    # ht_variants/llp_variants file): no other module's own SIGNATURES/
+    # ocr_detect anchor is the bare "AIRCRAFT BUILD" phrase.
+    aircraft_build_occm_status_scanned,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
@@ -744,13 +774,38 @@ def _read_head_text(pdf_path: str, n_pages: int = 3) -> str:
     return "\n".join(parts)
 
 
+def _read_page1_text(pdf_path: str) -> str:
+    """Text of page 1 alone (vs. `_read_head_text`'s 3-page aggregate) --
+    see its one caller in `detect_variant()` for why this is checked
+    separately."""
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            if pdf.pages:
+                return pdf.pages[0].extract_text() or ""
+    except Exception:
+        pass
+    return ""
+
+
 async def detect_variant(pdf_path: str) -> str:
     head = _read_head_text(pdf_path).upper()
     for v in VARIANTS:
         for sig in v.SIGNATURES:
             if sig.upper() in head:
                 return v.NAME
-    if len(head.strip()) < 50:
+    # OCR-fallback trigger: either the whole 3-page aggregate has no usable
+    # text (the original, wholly-scanned case), OR page 1 alone is blank
+    # even though later pages carry a real text layer -- confirmed on a
+    # real sample (occm_status_list_type_model_header.py's known source
+    # file): its title/header page (page 1) is a flat scanned image with
+    # 0 chars, but pages 2+ are born-digital with ~2.5-2.9k chars each, so
+    # the 3-page aggregate alone sails past the 50-char floor and this
+    # loop was never reached even though the header (and hence every
+    # SIGNATURES phrase) is only ever visible via OCR. Checking page 1
+    # alone catches that case without weakening the existing aggregate
+    # check for any variant that already relied on it (this is an
+    # additional `or`, not a replacement).
+    if len(head.strip()) < 50 or len(_read_page1_text(pdf_path).strip()) < 50:
         # No usable text layer -- ask any OCR-capable variant to confirm its
         # own template via a cheap header OCR pass rather than guessing.
         # This used to default blind to "Aeroflot" (the only OCR variant

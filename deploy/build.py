@@ -401,6 +401,19 @@ SOURCES = [
     # detection via numpy darkfrac scan + per-cell OCR fallback, same
     # pattern as this batch's other scanned OCCM variants.
     "sheet_types/occm_variants/occm_component_status_parent_serial_grid.py",
+    # OCCM Status List (Type/Model Header, Scanned) -- mixed text-layer +
+    # scanned pages (title page and closing page are scanned, no text
+    # layer; every page between has a real text layer), async OCR bridge
+    # for the header + the two scanned pages, gap-based word-x0 column
+    # split for the born-digital pages, same pattern as this batch's other
+    # mixed OCR/text OCCM variants.
+    "sheet_types/occm_variants/occm_status_list_type_model_header.py",
+    # Aircraft Build OCCM Status (Scanned) -- scanned, no text layer, async
+    # OCR bridge; column x-position bucketing (fixed pixel ranges @ 300
+    # DPI) resolves the report's independently-optional POSITION/ZONE/
+    # UNIT_NUMBER columns, same pattern as this batch's other scanned OCCM
+    # variants.
+    "sheet_types/occm_variants/aircraft_build_occm_status_scanned.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
