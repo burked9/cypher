@@ -74,6 +74,7 @@ from sheet_types.occm_variants import (
     occm_component_status_parent_serial_grid,
     occm_status_list_type_model_header,
     aircraft_build_occm_status_scanned,
+    aircraft_build_occm_status_rotated_scanned,
     aircraft_occm_components_status_scanned,
     on_condition_monitored_components_engine_list,
     on_condition_component_status_scanned,
@@ -522,6 +523,23 @@ VARIANTS = [
     # ht_variants/llp_variants file): no other module's own SIGNATURES/
     # ocr_detect anchor is the bare "AIRCRAFT BUILD" phrase.
     aircraft_build_occm_status_scanned,
+    # Aircraft Build OCCM Status (Rotated Scan) -- same underlying report
+    # template as the sibling module just above, but its own known source
+    # file stores every page portrait-shaped with the content drawn
+    # sideways (no `/Rotate` flag set -- a scan/export artifact, confirmed
+    # directly by rendering the real sample file). SIGNATURES is
+    # deliberately empty (see module docstring); only ever reached via
+    # ocr_detect()'s blank-text fallback below. Its own ocr_detect() only
+    # fires when the page-1 render is portrait-shaped (width < height),
+    # which the sibling module's own already-landscape source is not, and
+    # the sibling's own ocr_detect() was confirmed directly to return
+    # False on this module's sideways-page sample file (its unrotated
+    # header crop OCRs to noise, never "AIRCRAFT BUILD") -- so the two
+    # cannot collide. Checked directly (grep across every SIGNATURES list
+    # in sheet_types/{occm,ht,llp}.py and every existing occm_variants/
+    # ht_variants/llp_variants file): no other module's own SIGNATURES/
+    # ocr_detect anchor is the bare "AIRCRAFT BUILD" phrase.
+    aircraft_build_occm_status_rotated_scanned,
     # Aircraft OC/CM Components Status (Scanned) -- known source file has
     # no text layer at all (0 chars via pdfplumber on every page sampled),
     # so it is only ever reached via ocr_detect()'s blank-text fallback

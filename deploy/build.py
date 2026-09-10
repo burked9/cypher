@@ -419,6 +419,7 @@ SOURCES = [
     # UNIT_NUMBER columns, same pattern as this batch's other scanned OCCM
     # variants.
     "sheet_types/occm_variants/aircraft_build_occm_status_scanned.py",
+    "sheet_types/occm_variants/aircraft_build_occm_status_rotated_scanned.py",
     # Aircraft OC/CM Components Status (Scanned) -- scanned, no text layer,
     # async OCR bridge; column x-position bucketing (fixed pixel ranges @
     # 300 DPI) resolves the report's 4 trailing hours/cycles-at-install and
