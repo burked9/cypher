@@ -74,6 +74,7 @@ from sheet_types.occm_variants import (
     occm_inventory_sap_es,
     occm_component_status_parent_serial_grid,
     occm_status_list_type_model_header,
+    aircraft_build_occm_status_boxed_header_scanned,
     aircraft_build_occm_status_scanned,
     aircraft_build_occm_status_rotated_scanned,
     aircraft_occm_components_status_scanned,
@@ -513,6 +514,28 @@ VARIANTS = [
     # word "COMPONENTS" sits between "OCCM" and "STATUS" there but not
     # here), and appears nowhere else in this package.
     occm_status_list_type_model_header,
+    # Aircraft Build OCCM Status (Boxed Header Scan) -- same underlying
+    # report template and data-grid layout as the sibling module directly
+    # below, but its own known source file's identity metadata renders as a
+    # genuine shaded two-row table rather than that sibling's own plain OCR
+    # text line (confirmed directly, see module docstring). Placed ahead of
+    # both "Aircraft Build" siblings per this file's "specific formats
+    # before generic ones" convention: this module's own ocr_detect()
+    # requires the confirmed-distinctive shaded "Aircraft Reg" label row in
+    # addition to the shared "AIRCRAFT BUILD" title anchor, so it cannot
+    # steal either sibling's own known source file (neither carries that
+    # boxed label row, confirmed directly) -- but ordering still matters so
+    # a file satisfying more than one module's own ocr_detect is resolved
+    # to the more specific check here rather than falling through to a
+    # sibling's plain-line header parser, which was confirmed directly to
+    # stamp unrelated OCR noise onto every row of this module's own known
+    # source file. SIGNATURES is deliberately empty (see module docstring);
+    # only ever reached via ocr_detect()'s blank-text fallback below.
+    # Checked directly (grep across every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing occm_variants/
+    # ht_variants/llp_variants file): no other module's own SIGNATURES/
+    # ocr_detect anchor is the bare "AIRCRAFT BUILD" phrase.
+    aircraft_build_occm_status_boxed_header_scanned,
     # Aircraft Build OCCM Status (Scanned) -- known source file has no text
     # layer at all (0 chars via pdfplumber on every page), so it is only
     # ever reached via ocr_detect()'s blank-text fallback below; SIGNATURES

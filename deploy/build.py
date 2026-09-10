@@ -418,6 +418,7 @@ SOURCES = [
     # DPI) resolves the report's independently-optional POSITION/ZONE/
     # UNIT_NUMBER columns, same pattern as this batch's other scanned OCCM
     # variants.
+    "sheet_types/occm_variants/aircraft_build_occm_status_boxed_header_scanned.py",
     "sheet_types/occm_variants/aircraft_build_occm_status_scanned.py",
     "sheet_types/occm_variants/aircraft_build_occm_status_rotated_scanned.py",
     # Aircraft OC/CM Components Status (Scanned) -- scanned, no text layer,
