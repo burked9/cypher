@@ -421,6 +421,18 @@ SOURCES = [
     # since-install columns, same pattern as this batch's other scanned
     # OCCM variants.
     "sheet_types/occm_variants/aircraft_occm_components_status_scanned.py",
+    # On-Condition Monitored Components List (Engine, Scanned) -- scanned,
+    # no text layer, async OCR bridge; column x-position bucketing (fixed
+    # pixel ranges @ 300 DPI) plus a PART_NUMBER row anchor and per-page
+    # banded chapter-heading detection, same pattern family as this batch's
+    # other scanned OCCM variants.
+    "sheet_types/occm_variants/on_condition_monitored_components_engine_list.py",
+    # On-Condition Component Status (Boeing 767 Specification Sheet,
+    # Scanned) -- scanned, no text layer, async OCR bridge; anchor-based
+    # row parsing (leading ATA + trailing INSTALL_DATE shape) rather than
+    # fixed column x-position bucketing, since this file's scan quality is
+    # markedly noisier than this batch's other scanned OCCM variants.
+    "sheet_types/occm_variants/on_condition_component_status_scanned.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",

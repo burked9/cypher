@@ -74,6 +74,8 @@ from sheet_types.occm_variants import (
     occm_status_list_type_model_header,
     aircraft_build_occm_status_scanned,
     aircraft_occm_components_status_scanned,
+    on_condition_monitored_components_engine_list,
+    on_condition_component_status_scanned,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -511,6 +513,33 @@ VARIANTS = [
     # ocr_detect anchor is this phrase, nor a substring of it, nor does it
     # contain any other module's own anchor.
     aircraft_occm_components_status_scanned,
+    # On-Condition Monitored Components List (Engine, Scanned) -- its known
+    # source file has no text layer at all (confirmed via pdfplumber -- 0
+    # chars on every page of its own report section), so it is only ever
+    # reached via ocr_detect()'s blank-text fallback below; SIGNATURES is
+    # deliberately empty (see module docstring). Its own ocr_detect()
+    # anchor is the report's own generic title phrase "ON-CONDITION
+    # MONITORED COMPONENTS LIST - <LH or RH> ENGINE" (no organization name,
+    # per this project's data-sensitivity convention), checked directly
+    # (grep across every SIGNATURES list in sheet_types/{occm,ht,llp}.py
+    # and every existing occm_variants/ht_variants/llp_variants file): no
+    # other module's own SIGNATURES/ocr_detect anchor is this phrase, nor a
+    # substring of it, nor does it contain any other module's own anchor.
+    on_condition_monitored_components_engine_list,
+    # On-Condition Component Status (Boeing 767 Specification Sheet,
+    # Scanned) -- known source file has no text layer at all (confirmed
+    # via pdfplumber -- 0 extractable chars/words/rects on every page), so
+    # it is only ever reached via ocr_detect()'s blank-text fallback below.
+    # Its own variant-level SIGNATURES entries ("BOEING 767 SPECIFICATION
+    # SHEET" and "On-Condition Component Status") are still declared, per
+    # this file's convention, as a documented anchor / safety net for any
+    # future born-digital re-export. Checked directly (grep across every
+    # SIGNATURES list in sheet_types/{occm,ht,llp}.py and every existing
+    # occm_variants/ht_variants/llp_variants file, this batch's siblings
+    # included): neither phrase appears anywhere else, and neither is a
+    # substring of (nor contains) any other variant's own SIGNATURES
+    # entries.
+    on_condition_component_status_scanned,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
