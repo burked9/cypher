@@ -385,12 +385,18 @@ async def _extract_data_rows(img, arr: np.ndarray) -> list[dict]:
                     break
 
     # Fallback pass: direct per-cell OCR for any cell still empty after the
-    # full-strip pass (see module docstring).
+    # full-strip pass (see module docstring). For ATA specifically, the
+    # full-strip pass is confirmed to sometimes land a single garbled token
+    # (e.g. "pt"/"At") rather than genuinely nothing -- occupying the
+    # bucket slot without ever yielding a plausible chapter code -- so ATA
+    # also re-runs the fallback whenever its recovered value doesn't clean
+    # to a valid chapter, not only when the bucket is empty.
     for name, f0, f1 in _COLUMNS:
         cx0, cx1 = int(w * f0), int(w * f1)
         for i, (rt, rb) in enumerate(row_bounds):
             if name in buckets[i]:
-                continue
+                if name != "ATA" or _clean_ata(" ".join(buckets[i][name])):
+                    continue
             text = await _ocr_cell_fallback(img, cx0, cx1, rt, rb)
             if text and not _NOISE_TOKEN_RE.match(text):
                 buckets[i][name] = [text]
