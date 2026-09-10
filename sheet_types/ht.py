@@ -86,6 +86,13 @@ SIGNATURES = [
                                                           # checked against every SIGNATURES list in
                                                           # occm.py/ht.py/llp.py and every ht_variants
                                                           # module; no collision found.
+    "AIRCRAFT FULL INVENTORY",                           # air_france_ccinv_aircraft_inventory.py --
+                                                          # sibling report subtype of the same CCINV
+                                                          # export family as the REGLEMENTARY variant
+                                                          # above (same parser). Checked against every
+                                                          # SIGNATURES list in occm.py/ht.py/llp.py and
+                                                          # every ht_variants module; no collision
+                                                          # found.
     "Activity Life Expiry Report",                       # activity_life_expiry_report.py --
                                                           # checked against every SIGNATURES list in
                                                           # occm.py/ht.py/llp.py and every ht_variants

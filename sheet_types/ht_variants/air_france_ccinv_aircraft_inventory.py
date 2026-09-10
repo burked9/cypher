@@ -1,4 +1,12 @@
-"""Air France "CCINV" (Aircraft Reglementary Inventory) HT export.
+"""Air France "CCINV" Aircraft Inventory HT export.
+
+Two report subtypes share this exact template, differing only in the
+title phrase on the "ALL MOTHER SHOPS AIRCRAFT ... INVENTORY" line --
+"REGLEMENTARY INVENTORY" (a regulatory-scope subset) and "FULL INVENTORY"
+(every fitted position). Every other line -- column headers, per-component
+block shape, annotation phrases -- is identical between the two, confirmed
+directly against samples of both, so one parser covers both via two
+SIGNATURES entries rather than duplicating the module.
 
 Header, values genericized below but the shape is real::
 
@@ -83,6 +91,12 @@ from sheet_types.ht_variants._base import merged_rules
 NAME = "Air France CCINV Aircraft Inventory"
 SIGNATURES = [
     "AIRCRAFT REGLEMENTARY INVENTORY",
+    # "FULL INVENTORY" is the sibling report subtype -- same CCINV export
+    # family, identical column layout and per-component block shape, only
+    # the title phrase differs. Checked against every SIGNATURES list in
+    # occm.py/ht.py/llp.py and every variant module in this repo; no
+    # collision found.
+    "AIRCRAFT FULL INVENTORY",
 ]
 
 CANONICAL_COLUMNS = [
