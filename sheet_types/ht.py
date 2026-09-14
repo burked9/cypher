@@ -27,6 +27,7 @@ from sheet_types.ht_variants import (
     cognos_ht_listing,
     maintenance_due_report_porp96rr,
     ca004_hard_time_monitoring_sheet,
+    time_controlled_items_current_status,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -52,7 +53,8 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             remaining_potentials,
             cognos_ht_listing,
             maintenance_due_report_porp96rr,
-            ca004_hard_time_monitoring_sheet]
+            ca004_hard_time_monitoring_sheet,
+            time_controlled_items_current_status]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -139,6 +141,17 @@ SIGNATURES = [
                                                           # module; no collision found.
     "Hard Time Monitoring Sheet",                        # ca004_hard_time_monitoring_sheet.py --
                                                           # checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants
+                                                          # module; no collision found.
+    "Time Controlled Items Current Status",              # time_controlled_items_current_status.py --
+                                                          # deliberately includes "Current" so it can't
+                                                          # collide with this file's own
+                                                          # "TIME CONTROLLED ITEMS STATUS" or
+                                                          # "TIME CONTROLLED COMPONENTS STATUS" entries
+                                                          # above (neither phrase is a contiguous
+                                                          # substring of this one, in either direction).
+                                                          # Checked against every SIGNATURES list in
                                                           # occm.py/ht.py/llp.py and every
                                                           # occm_variants/ht_variants/llp_variants
                                                           # module; no collision found.

@@ -35,7 +35,7 @@ from sheet_types.occm_variants import (
     occm_component_list, occm_status_by_ata_chapter,
     occm_component_status_dual_basis, oc_component_status,
     occm_dual_description_list, occm_part_status,
-    occm_control_sheet, all_fitted_aircraft_component_log,
+    occm_control_sheet, occm_ata_section_tsn_csn, all_fitted_aircraft_component_log,
     occm_component_inventory, occm_listing,
     occm_component_status_facility_msn,
     occm_component_data_install_current,
@@ -146,6 +146,22 @@ VARIANTS = [
     oc_component_status,
     occm_dual_description_list,
     occm_control_sheet,
+    # OCCM (ATA Section Header, TSN/CSN) -- its own variant-level SIGNATURES
+    # entry is the report's own column-header line ("Description Part Number
+    # Serial Number Position Installation Date TSN CSN Comment"), a
+    # distinctive phrase unique to this module's own known source file.
+    # Placed alongside its sibling occm_control_sheet.py (same header
+    # boilerplate family, same "Aircraft Type / Reference Date / Registration
+    # / TSN / MSN / CSN" block and word-position-aware parsing technique, but
+    # a genuinely different title, column set, and ATA convention -- see this
+    # module's own docstring). Checked directly (grep across every SIGNATURES
+    # list in sheet_types/{occm,ht,llp}.py and every existing occm_variants/
+    # ht_variants/llp_variants file): the phrase appears nowhere else, and is
+    # not a substring of (nor contains) any other variant's own SIGNATURES
+    # entries -- in particular occm_control_sheet.py's own column-header
+    # SIGNATURES entry ends "... FH FC TSI CSI ATA" rather than "... TSN CSN
+    # Comment", so the two cannot collide.
+    occm_ata_section_tsn_csn,
     occm_listing,
     # occm_component_ac_corrected_at_install.py MUST precede
     # occm_component_data_install_current.py: both known source files share

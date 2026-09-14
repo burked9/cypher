@@ -151,6 +151,13 @@ SOURCES = [
     # ATA as the LAST column (DESCRIPTION/PN/SN/POSITION/INSTALL_DATE/FH/
     # FC/TSI/CSI/ATA) rather than first as in several sibling variants.
     "sheet_types/occm_variants/occm_control_sheet.py",
+    # OCCM variant added 2026-09-14 — "OCCM (ATA Section Header, TSN/CSN)".
+    # Sibling of occm_control_sheet.py just above: same header boilerplate
+    # family and word-position-aware parsing technique, but a genuinely
+    # different title/column set/ATA convention (ATA on its own
+    # section-heading row, forward-stamped onto rows, rather than a per-row
+    # column) — see that module's own docstring for the full detail.
+    "sheet_types/occm_variants/occm_ata_section_tsn_csn.py",
     # OCCM variant added 2026-09-05 — "All Fitted Aircraft Component LOG"
     # header block (AIRCRAFT <reg> / SINCE NEW HOUR / CYCLES / UNIT REMOVAL
     # BASED ON.../A/C at installation), real text layer, word x-position
@@ -531,6 +538,7 @@ SOURCES = [
     "sheet_types/ht_variants/cognos_ht_listing.py",
     "sheet_types/ht_variants/maintenance_due_report_porp96rr.py",
     "sheet_types/ht_variants/ca004_hard_time_monitoring_sheet.py",
+    "sheet_types/ht_variants/time_controlled_items_current_status.py",
     # LLP variants — original + 5 added this session
     "sheet_types/llp_variants/__init__.py",
     "sheet_types/llp_variants/_base.py",
