@@ -25,6 +25,8 @@ from sheet_types.ht_variants import (
     time_controlled_items_report,
     remaining_potentials,
     cognos_ht_listing,
+    maintenance_due_report_porp96rr,
+    ca004_hard_time_monitoring_sheet,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -48,7 +50,9 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             time_controlled_items_status,
             time_controlled_items_report,
             remaining_potentials,
-            cognos_ht_listing]
+            cognos_ht_listing,
+            maintenance_due_report_porp96rr,
+            ca004_hard_time_monitoring_sheet]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -128,6 +132,16 @@ SIGNATURES = [
                                                           # every SIGNATURES list in occm.py/ht.py/
                                                           # llp.py and every ht_variants module; no
                                                           # collision found.
+    "MAINTENANCE DUE REPORT",                            # maintenance_due_report_porp96rr.py --
+                                                          # checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants
+                                                          # module; no collision found.
+    "Hard Time Monitoring Sheet",                        # ca004_hard_time_monitoring_sheet.py --
+                                                          # checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants
+                                                          # module; no collision found.
 ]
 
 

@@ -529,6 +529,8 @@ SOURCES = [
     "sheet_types/ht_variants/time_controlled_items_report.py",
     "sheet_types/ht_variants/remaining_potentials.py",
     "sheet_types/ht_variants/cognos_ht_listing.py",
+    "sheet_types/ht_variants/maintenance_due_report_porp96rr.py",
+    "sheet_types/ht_variants/ca004_hard_time_monitoring_sheet.py",
     # LLP variants — original + 5 added this session
     "sheet_types/llp_variants/__init__.py",
     "sheet_types/llp_variants/_base.py",
