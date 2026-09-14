@@ -28,6 +28,8 @@ from sheet_types.ht_variants import (
     maintenance_due_report_porp96rr,
     ca004_hard_time_monitoring_sheet,
     time_controlled_items_current_status,
+    hard_time_component_list,
+    fit_ac_hr_cyc_bilingual_status,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -54,7 +56,9 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             cognos_ht_listing,
             maintenance_due_report_porp96rr,
             ca004_hard_time_monitoring_sheet,
-            time_controlled_items_current_status]
+            time_controlled_items_current_status,
+            hard_time_component_list,
+            fit_ac_hr_cyc_bilingual_status]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -155,6 +159,19 @@ SIGNATURES = [
                                                           # occm.py/ht.py/llp.py and every
                                                           # occm_variants/ht_variants/llp_variants
                                                           # module; no collision found.
+    "HARD TIME COMPONENT LIST",                          # hard_time_component_list.py --
+                                                          # checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants
+                                                          # module; no collision found.
+    "FIT A/C Hr FIT A/C Cyc",                            # fit_ac_hr_cyc_bilingual_status.py --
+                                                          # checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants
+                                                          # module; no collision found (nearest
+                                                          # look-alike, occm_variants/
+                                                          # assembly_configuration_status_report.py's
+                                                          # "Current A/C Times", is a different phrase).
 ]
 
 
