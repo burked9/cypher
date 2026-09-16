@@ -30,6 +30,8 @@ from sheet_types.ht_variants import (
     time_controlled_items_current_status,
     hard_time_component_list,
     fit_ac_hr_cyc_bilingual_status,
+    hard_time_components_bordered_table,
+    hard_time_status_ata_reference,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -58,7 +60,9 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             ca004_hard_time_monitoring_sheet,
             time_controlled_items_current_status,
             hard_time_component_list,
-            fit_ac_hr_cyc_bilingual_status]
+            fit_ac_hr_cyc_bilingual_status,
+            hard_time_components_bordered_table,
+            hard_time_status_ata_reference]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -172,6 +176,29 @@ SIGNATURES = [
                                                           # look-alike, occm_variants/
                                                           # assembly_configuration_status_report.py's
                                                           # "Current A/C Times", is a different phrase).
+    "TOTAL TIMES SINCE NEW",                             # hard_time_components_bordered_table.py --
+                                                          # checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants
+                                                          # module (including a plain grep for "SINCE
+                                                          # NEW"); no collision found -- nearest
+                                                          # look-alikes (config_slot_occm.py's "TIME
+                                                          # SINCE NEW ...", mm510.py's "Time Since New
+                                                          # : ...") use "TIME"/"Time" singular, not
+                                                          # "TOTAL TIMES".
+    "HARD TIME STATUS",                                  # hard_time_status_ata_reference.py --
+                                                          # checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants
+                                                          # module; no collision found. Not a
+                                                          # substring of, and does not contain as a
+                                                          # substring, any other variant's own
+                                                          # signature phrase (e.g. distinct from
+                                                          # georgian_airways_ht_components_status.py's
+                                                          # "HARD TIME COMPONENTS STATUS FOR
+                                                          # A/C-REGISTRATION" and
+                                                          # hard_time_component_list.py's "HARD TIME
+                                                          # COMPONENT LIST").
 ]
 
 

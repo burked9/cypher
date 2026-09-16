@@ -541,6 +541,8 @@ SOURCES = [
     "sheet_types/ht_variants/time_controlled_items_current_status.py",
     "sheet_types/ht_variants/hard_time_component_list.py",
     "sheet_types/ht_variants/fit_ac_hr_cyc_bilingual_status.py",
+    "sheet_types/ht_variants/hard_time_status_ata_reference.py",
+    "sheet_types/ht_variants/hard_time_components_bordered_table.py",
     # LLP variants — original + 5 added this session
     "sheet_types/llp_variants/__init__.py",
     "sheet_types/llp_variants/_base.py",
