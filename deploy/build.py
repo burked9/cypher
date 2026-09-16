@@ -551,6 +551,7 @@ SOURCES = [
     "sheet_types/ht_variants/tci_list.py",
     "sheet_types/ht_variants/hard_time_componets_status_mpd_ruled.py",
     "sheet_types/ht_variants/hard_time_snake_case_eo_listing.py",
+    "sheet_types/ht_variants/hard_time_limit_control_status.py",
     # LLP variants — original + 5 added this session
     "sheet_types/llp_variants/__init__.py",
     "sheet_types/llp_variants/_base.py",

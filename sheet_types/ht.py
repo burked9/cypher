@@ -39,6 +39,7 @@ from sheet_types.ht_variants import (
     tci_list,
     hard_time_componets_status_mpd_ruled,
     hard_time_snake_case_eo_listing,
+    hard_time_limit_control_status,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -76,7 +77,8 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             hard_time_status_mpd_cert_fin,
             tci_list,
             hard_time_componets_status_mpd_ruled,
-            hard_time_snake_case_eo_listing]
+            hard_time_snake_case_eo_listing,
+            hard_time_limit_control_status]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -294,6 +296,19 @@ SIGNATURES = [
                                                           # own (scanned-only, detected via its own
                                                           # ocr_detect() instead), so there is nothing
                                                           # to collide with there.
+    "LIMIT CONTROL NEXT DUE REMAINING NOTES",            # hard_time_limit_control_status.py -- this
+                                                          # file's own column-header line, verbatim.
+                                                          # Checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants
+                                                          # module (including a plain grep for "LIMIT
+                                                          # CONTROL", "NEXT DUE REMAINING" and "CONTROL
+                                                          # NEXT DUE"); no collision found. The nearest
+                                                          # look-alike, georgian_airways_ht_components_
+                                                          # status.py's own "... SPEC LIMIT NEXT DUE
+                                                          # REMAINING", is a different, shorter phrase
+                                                          # (no "CONTROL", no "NOTES") and not a
+                                                          # substring of this one in either direction.
 ]
 
 
