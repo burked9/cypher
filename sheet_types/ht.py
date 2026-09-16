@@ -37,6 +37,8 @@ from sheet_types.ht_variants import (
     ht_list_report,
     hard_time_status_mpd_cert_fin,
     tci_list,
+    hard_time_componets_status_mpd_ruled,
+    hard_time_snake_case_eo_listing,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -72,7 +74,9 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             emer_inventory_list,
             ht_list_report,
             hard_time_status_mpd_cert_fin,
-            tci_list]
+            tci_list,
+            hard_time_componets_status_mpd_ruled,
+            hard_time_snake_case_eo_listing]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -258,6 +262,38 @@ SIGNATURES = [
                                                           # aircraft_occm_list_hcd.py's unrelated
                                                           # "TSI TST TSO TSN TTR TCI Limit Limit Type
                                                           # ..." column-header phrase.
+    "HT COMPONETS STATUS",                               # hard_time_componets_status_mpd_ruled.py --
+                                                          # checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants
+                                                          # module; no collision found. Not a substring
+                                                          # of, and does not contain as a substring,
+                                                          # occm_variants/cca_a340_occm.py's own
+                                                          # "OCCM COMPONETS STATUS" (different sheet-type
+                                                          # prefix, "OCCM" vs "HT").
+    "EO ATA_CHAPTER PN SN PN_DESCRIPTION INSTALLED_POSITION INSTALLED_DATE "
+    "ACTUAL_HOURS ACTUAL_CYCLES TASK REQUIREMENT SCHEDULE_HOURS "
+    "SCHEDULE_CYCLES SCHEDULE_DAYS DUE_DATE DUE_AT_HOURS DUE_AT_CYCLES "
+    "REMAIN_HOURS REMAIN_MINUTES REMAIN_CYCLES REMAIN_DAYS NHA_PN NHA_SN",
+                                                          # hard_time_snake_case_eo_listing.py -- the
+                                                          # full column-header line, verbatim. Checked
+                                                          # against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants
+                                                          # module (including a plain grep for
+                                                          # "ata_chapter", "installed_position",
+                                                          # "pn_description", "nha_pn",
+                                                          # "schedule_hours" and "remain_minutes"); no
+                                                          # collision found. The nearest look-alike,
+                                                          # occm_variants/
+                                                          # occm_list_pn_description_rotated_scanned.py,
+                                                          # shares this same snake_case-header-label
+                                                          # convention (same source MIS vendor family)
+                                                          # but a different column set and a
+                                                          # deliberately empty SIGNATURES list of its
+                                                          # own (scanned-only, detected via its own
+                                                          # ocr_detect() instead), so there is nothing
+                                                          # to collide with there.
 ]
 
 
