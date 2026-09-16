@@ -35,6 +35,8 @@ from sheet_types.ht_variants import (
     fire_extinguisher_oxygen_status_list,
     emer_inventory_list,
     ht_list_report,
+    hard_time_status_mpd_cert_fin,
+    tci_list,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -68,7 +70,9 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             hard_time_status_ata_reference,
             fire_extinguisher_oxygen_status_list,
             emer_inventory_list,
-            ht_list_report]
+            ht_list_report,
+            hard_time_status_mpd_cert_fin,
+            tci_list]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -234,6 +238,26 @@ SIGNATURES = [
                                                           # found. Not a substring of, and does not
                                                           # contain as a substring, cognos_ht_listing.py's
                                                           # own "HT LISTING" in either direction.
+    "MPD Item #",                                        # hard_time_status_mpd_cert_fin.py --
+                                                          # checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants
+                                                          # module; no collision found.
+    "LAST INSP/OVH",                                     # hard_time_status_mpd_cert_fin.py -- sibling
+                                                          # anchor from the same template's own header,
+                                                          # same collision check as above.
+    "ATA OMP REF REQ PN SN DESCRIPTION POS INST DATE",   # tci_list.py -- the full column-header line
+                                                          # from this template's own ruled table.
+                                                          # Checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants
+                                                          # module (including a plain grep for "OMP REF"
+                                                          # and "TCI"); no collision found -- the only
+                                                          # existing "TCI" occurrence anywhere in the
+                                                          # project is occm_variants/
+                                                          # aircraft_occm_list_hcd.py's unrelated
+                                                          # "TSI TST TSO TSN TTR TCI Limit Limit Type
+                                                          # ..." column-header phrase.
 ]
 
 
