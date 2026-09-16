@@ -34,6 +34,7 @@ from sheet_types.ht_variants import (
     hard_time_status_ata_reference,
     fire_extinguisher_oxygen_status_list,
     emer_inventory_list,
+    ht_list_report,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -66,7 +67,8 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             hard_time_components_bordered_table,
             hard_time_status_ata_reference,
             fire_extinguisher_oxygen_status_list,
-            emer_inventory_list]
+            emer_inventory_list,
+            ht_list_report]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -225,6 +227,13 @@ SIGNATURES = [
                                                           # grep for "EMER INVENTORY" and each of this
                                                           # file's own eight section-title phrases);
                                                           # no collision found.
+    "HT LIST REPORT",                                    # ht_list_report.py -- checked against every
+                                                          # SIGNATURES list in occm.py/ht.py/llp.py and
+                                                          # every occm_variants/ht_variants/llp_variants
+                                                          # module's own SIGNATURES list; no collision
+                                                          # found. Not a substring of, and does not
+                                                          # contain as a substring, cognos_ht_listing.py's
+                                                          # own "HT LISTING" in either direction.
 ]
 
 
