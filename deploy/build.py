@@ -158,6 +158,7 @@ SOURCES = [
     # section-heading row, forward-stamped onto rows, rather than a per-row
     # column) — see that module's own docstring for the full detail.
     "sheet_types/occm_variants/occm_ata_section_tsn_csn.py",
+    "sheet_types/occm_variants/occm_status_listing_ata_zone_fin.py",
     # OCCM variant added 2026-09-05 — "All Fitted Aircraft Component LOG"
     # header block (AIRCRAFT <reg> / SINCE NEW HOUR / CYCLES / UNIT REMOVAL
     # BASED ON.../A/C at installation), real text layer, word x-position

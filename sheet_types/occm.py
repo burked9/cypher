@@ -35,7 +35,8 @@ from sheet_types.occm_variants import (
     occm_component_list, occm_status_by_ata_chapter,
     occm_component_status_dual_basis, oc_component_status,
     occm_dual_description_list, occm_part_status,
-    occm_control_sheet, occm_ata_section_tsn_csn, all_fitted_aircraft_component_log,
+    occm_control_sheet, occm_ata_section_tsn_csn, occm_status_listing_ata_zone_fin,
+    all_fitted_aircraft_component_log,
     occm_component_inventory, occm_listing,
     occm_component_status_facility_msn,
     occm_component_data_install_current,
@@ -118,6 +119,19 @@ VARIANTS = [
     occm_tah_tac_at_install,
     occm_list_msn_dotdate,
     occm_component_status_facility_msn,
+    # Must precede standard_occm.py (SIGNATURES "OCCM STATUS") and
+    # occm_status_list_type_model_header.py (SIGNATURES "OCCM STATUS
+    # LIST"): this template's own report-title text "OCCM STATUS LISTING"
+    # contains both of those as substrings (confirmed directly), so this
+    # module has to win the first-match race by sitting earlier in
+    # VARIANTS -- its own SIGNATURES list leads with a more specific
+    # column-header phrase anyway, so this ordering only matters as a
+    # safety net. Checked directly (grep across every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing occm_variants/
+    # ht_variants/llp_variants file, plus every variant preceding this slot
+    # in VARIANTS): no other module's own SIGNATURES entry collides with
+    # either of this module's own two entries.
+    occm_status_listing_ata_zone_fin,
     aeroflot, aircraft_inventory_report, aircraft_rotables_report, amos,
     cathay_occm, config_slot_occm, iberia_listado, oases,
     occm_list_as_at, occm_status_list, on_condition_components_report,
