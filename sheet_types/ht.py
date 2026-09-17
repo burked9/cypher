@@ -46,6 +46,7 @@ from sheet_types.ht_variants import (
     hard_time_aircraft_components_status_broken_font,
     trp_status_dual_layer_scanned,
     tci_status_broken_font,
+    tci_status_dense_broken_font,
     fl_compound_code_ht,
     maintenance_status_report_erm1,
     ht_components_status_ruled_grid,
@@ -99,6 +100,7 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             hard_time_aircraft_components_status_broken_font,
             trp_status_dual_layer_scanned,
             tci_status_broken_font,
+            tci_status_dense_broken_font,
             fl_compound_code_ht,
             maintenance_status_report_erm1,
             ht_components_status_ruled_grid,
@@ -489,6 +491,25 @@ SIGNATURES = [
                                                           # htll_status.py's own "HT-LL STATUS"/
                                                           # "HT&LLP STATUS" (different abbreviation,
                                                           # "HTC" not "HT", different punctuation).
+    "TIME CONTROLLED ITEMS (TCI)",                        # tci_status_dense_broken_font.py -- this
+                                                          # file's own page-1 title line, decodes
+                                                          # cleanly through this file's otherwise badly
+                                                          # broken text layer (see that module's own
+                                                          # docstring; the sibling tci_status_broken_
+                                                          # font.py's own real sample file has this exact
+                                                          # title scrambled instead, so no collision risk
+                                                          # there). Checked against every SIGNATURES list
+                                                          # in occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants
+                                                          # module (including a plain grep for
+                                                          # "controlled items" and "TCI"); no collision
+                                                          # found -- not a substring of, and does not
+                                                          # contain as a substring, any of this file's
+                                                          # own several other "TIME CONTROLLED ITEMS
+                                                          # ..."/"Time Controlled Items ..." entries
+                                                          # above (all use a different suffix -- STATUS,
+                                                          # REPORT, CURRENT STATUS -- never the bare
+                                                          # "(TCI)" parenthetical this template uses).
     "HARD TIME COMPONENTS STATUS REPORT",                # hard_time_day_fhr_cyc_matrix_scanned.py --
                                                           # this phrase decodes cleanly through the
                                                           # file's own otherwise badly scrambled
