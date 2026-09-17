@@ -567,6 +567,8 @@ SOURCES = [
     "sheet_types/ht_variants/ht_aircraft_component_log.py",
     "sheet_types/ht_variants/airframe_htc_llp_status.py",
     "sheet_types/ht_variants/hard_time_day_fhr_cyc_matrix_scanned.py",
+    "sheet_types/ht_variants/mm510_scanned.py",
+    "sheet_types/ht_variants/hard_time_components_semicolon_msn_header_scanned.py",
     # LLP variants — original + 5 added this session
     "sheet_types/llp_variants/__init__.py",
     "sheet_types/llp_variants/_base.py",

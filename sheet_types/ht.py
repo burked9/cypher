@@ -55,6 +55,8 @@ from sheet_types.ht_variants import (
     ht_aircraft_component_log,
     airframe_htc_llp_status,
     hard_time_day_fhr_cyc_matrix_scanned,
+    mm510_scanned,
+    hard_time_components_semicolon_msn_header_scanned,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -108,7 +110,9 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             oases_component_report_fitted_to_matrix,
             ht_aircraft_component_log,
             airframe_htc_llp_status,
-            hard_time_day_fhr_cyc_matrix_scanned]
+            hard_time_day_fhr_cyc_matrix_scanned,
+            mm510_scanned,
+            hard_time_components_semicolon_msn_header_scanned]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -540,13 +544,36 @@ def _read_head_text(pdf_path: str, n_pages: int = 3) -> str:
     return "\n".join(parts)
 
 
+def _text_layer_unusable(head: str) -> bool:
+    """True for both known shapes of "no usable text layer": genuinely
+    blank/near-blank text, and a non-blank but garbled decode (confirmed on
+    a real corpus file: `extract_text()` returns 100+ characters per page,
+    none of them a recognisable word -- a broken font/glyph-mapping decode
+    that comes out as stray non-ASCII/accented characters, not blank at
+    all, so the plain `len(head.strip()) < 50` check alone let this file
+    fall through with no OCR fallback attempted). A real, readable text
+    layer -- even a short header on an otherwise sparse page -- is
+    overwhelmingly ASCII letters; a garbled decode of the same page is
+    not, so the ASCII-letter fraction is used as the second signal rather
+    than raising the bare length cutoff (which would just move the same
+    edge case to a different, still-arbitrary number)."""
+    stripped = head.strip()
+    if len(stripped) < 50:
+        return True
+    non_space = [c for c in stripped if not c.isspace()]
+    if not non_space:
+        return True
+    ascii_letters = sum(1 for c in non_space if c.isalpha() and ord(c) < 128)
+    return (ascii_letters / len(non_space)) < 0.3
+
+
 async def detect_variant(pdf_path: str) -> str:
     head = _read_head_text(pdf_path).upper()
     for v in VARIANTS:
         for sig in v.SIGNATURES:
             if sig.upper() in head:
                 return v.NAME
-    if len(head.strip()) < 50:
+    if _text_layer_unusable(head):
         # No usable text layer -- likely a scanned PDF. Ask any OCR-capable
         # variant to confirm its own template via a cheap header OCR pass
         # rather than guessing (mirrors occm.py/llp.py). Without this block,
