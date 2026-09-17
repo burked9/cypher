@@ -50,6 +50,8 @@ from sheet_types.ht_variants import (
     maintenance_status_report_erm1,
     ht_components_status_ruled_grid,
     ht_components_list_limite_control,
+    oases_component_report_fitted_to_matrix,
+    ht_aircraft_component_log,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -98,7 +100,9 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             fl_compound_code_ht,
             maintenance_status_report_erm1,
             ht_components_status_ruled_grid,
-            ht_components_list_limite_control]
+            ht_components_list_limite_control,
+            oases_component_report_fitted_to_matrix,
+            ht_aircraft_component_log]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -441,6 +445,34 @@ SIGNATURES = [
                                                           # every occm_variants/ht_variants/llp_variants
                                                           # module (including a plain grep for "LIMITE
                                                           # CONTROL"); no collision found.
+    "Fitted to part Fitted to serial",                   # oases_component_report_fitted_to_matrix.py
+                                                          # -- this OASES export's own repeating
+                                                          # column-header line, checked directly
+                                                          # against every SIGNATURES list in
+                                                          # sheet_types/{occm,ht,llp}.py and every
+                                                          # existing occm_variants/ht_variants/
+                                                          # llp_variants module file; no collision
+                                                          # found. Used instead of the report's own
+                                                          # title line ("... Component Report") since
+                                                          # that shorter phrase is a substring of
+                                                          # oases_lifed_components.py's own anchor
+                                                          # ("Lifed Component Report") and would be
+                                                          # ambiguous as a sheet-type-level signature.
+    "HT Aircraft Component LOG",                         # ht_aircraft_component_log.py -- this
+                                                          # template's own title line, verbatim.
+                                                          # Checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants
+                                                          # module; no collision found. NOTE: this
+                                                          # phrase contains occm.py's own broader
+                                                          # generic "AIRCRAFT COMPONENT LOG" entry
+                                                          # (Georgian Airways variant) as a substring --
+                                                          # not a problem for sheet_types/router.py's
+                                                          # top-level dispatch, since DETECTION_ORDER
+                                                          # there checks HT before OCCM, so this
+                                                          # sheet-type's own SIGNATURES list (this one)
+                                                          # is matched first and OCCM's broader phrase
+                                                          # is never reached for this file.
 ]
 
 
