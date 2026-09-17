@@ -44,6 +44,8 @@ from sheet_types.ht_variants import (
     mpd_service_interval_status,
     amos_reference_equipment_list,
     hard_time_aircraft_components_status_broken_font,
+    trp_status_dual_layer_scanned,
+    tci_status_broken_font,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -86,7 +88,9 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             hard_time_limit_control_status,
             functional_location_ht_component,
             mpd_service_interval_status,
-            hard_time_aircraft_components_status_broken_font]
+            hard_time_aircraft_components_status_broken_font,
+            trp_status_dual_layer_scanned,
+            tci_status_broken_font]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -356,6 +360,16 @@ SIGNATURES = [
                                                           # collision found. The nearest look-alike,
                                                           # occm.py's own "AIRCRAFT REG. :", is a different
                                                           # phrase (neither a substring of the other).
+    "TRPSTATUS",                                         # trp_status_dual_layer_scanned.py -- this
+                                                          # file's own title, "TRP STATUS", decodes with
+                                                          # no space via plain extract_text() despite the
+                                                          # rest of the page's text layer being an
+                                                          # unusable doubled/garbled jumble (see that
+                                                          # module's own docstring). Checked against every
+                                                          # SIGNATURES list in occm.py/ht.py/llp.py and
+                                                          # every occm_variants/ht_variants/llp_variants
+                                                          # module (including a plain grep for "TRP
+                                                          # STATUS"/"TRPSTATUS"); no collision found.
 ]
 
 
