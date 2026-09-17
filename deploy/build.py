@@ -569,6 +569,7 @@ SOURCES = [
     "sheet_types/ht_variants/hard_time_day_fhr_cyc_matrix_scanned.py",
     "sheet_types/ht_variants/mm510_scanned.py",
     "sheet_types/ht_variants/hard_time_components_semicolon_msn_header_scanned.py",
+    "sheet_types/ht_variants/ht_component_status_dual_unit_grid_scanned.py",
     # LLP variants — original + 5 added this session
     "sheet_types/llp_variants/__init__.py",
     "sheet_types/llp_variants/_base.py",

@@ -57,6 +57,7 @@ from sheet_types.ht_variants import (
     hard_time_day_fhr_cyc_matrix_scanned,
     mm510_scanned,
     hard_time_components_semicolon_msn_header_scanned,
+    ht_component_status_dual_unit_grid_scanned,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -112,7 +113,8 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             airframe_htc_llp_status,
             hard_time_day_fhr_cyc_matrix_scanned,
             mm510_scanned,
-            hard_time_components_semicolon_msn_header_scanned]
+            hard_time_components_semicolon_msn_header_scanned,
+            ht_component_status_dual_unit_grid_scanned]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
