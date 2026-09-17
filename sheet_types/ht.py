@@ -46,6 +46,8 @@ from sheet_types.ht_variants import (
     hard_time_aircraft_components_status_broken_font,
     trp_status_dual_layer_scanned,
     tci_status_broken_font,
+    fl_compound_code_ht,
+    maintenance_status_report_erm1,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -90,7 +92,9 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             mpd_service_interval_status,
             hard_time_aircraft_components_status_broken_font,
             trp_status_dual_layer_scanned,
-            tci_status_broken_font]
+            tci_status_broken_font,
+            fl_compound_code_ht,
+            maintenance_status_report_erm1]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -370,6 +374,43 @@ SIGNATURES = [
                                                           # every occm_variants/ht_variants/llp_variants
                                                           # module (including a plain grep for "TRP
                                                           # STATUS"/"TRPSTATUS"); no collision found.
+    "Hard Time Components List",                         # fl_compound_code_ht.py -- this file's own
+                                                          # title-line phrase (plural "Components"),
+                                                          # deliberately not the shared column-header
+                                                          # line it has in common with its OCCM-flavored
+                                                          # sibling occm_variants/fl_compound_code_occm.py
+                                                          # (see that module's own SIGNATURES for why).
+                                                          # Checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants module
+                                                          # (including a plain grep for "hard time
+                                                          # components list", case-insensitive); no
+                                                          # collision found -- not a substring of, and
+                                                          # does not contain as a substring, this same
+                                                          # file's own singular "HARD TIME COMPONENT LIST"
+                                                          # entry above (hard_time_component_list.py).
+    "MAINTENANCE STATUS REPORT Report ERM1",             # maintenance_status_report_erm1.py -- this
+                                                          # file's own title line, verbatim, including
+                                                          # the report-ID suffix. Deliberately NOT the
+                                                          # bare "MAINTENANCE STATUS REPORT" phrase alone
+                                                          # -- that shorter phrase is already
+                                                          # occm.py's own (broader) top-level signature
+                                                          # for its sibling report ID, PR21
+                                                          # (occm_variants/maintenance_status_report_
+                                                          # pr21.py); this HT-flavored ERM1 report shares
+                                                          # the same "Aircraft Inventory and Maintenance
+                                                          # System" MIS boilerplate but a structurally
+                                                          # different (Hard-Time) row layout, so the full,
+                                                          # more specific phrase (with "Report ERM1") is
+                                                          # used here as the HT-side anchor -- since
+                                                          # DETECTION_ORDER in sheet_types/router.py
+                                                          # checks HT before OCCM, this specific phrase
+                                                          # matches first and the file is never misrouted
+                                                          # to occm.py's broader phrase. Checked against
+                                                          # every SIGNATURES list in occm.py/ht.py/llp.py
+                                                          # and every occm_variants/ht_variants/
+                                                          # llp_variants module (including a plain grep
+                                                          # for "ERM1"); no collision found.
 ]
 
 

@@ -558,6 +558,8 @@ SOURCES = [
     "sheet_types/ht_variants/hard_time_aircraft_components_status_broken_font.py",
     "sheet_types/ht_variants/trp_status_dual_layer_scanned.py",
     "sheet_types/ht_variants/tci_status_broken_font.py",
+    "sheet_types/ht_variants/fl_compound_code_ht.py",
+    "sheet_types/ht_variants/maintenance_status_report_erm1.py",
     # LLP variants — original + 5 added this session
     "sheet_types/llp_variants/__init__.py",
     "sheet_types/llp_variants/_base.py",
