@@ -52,6 +52,8 @@ from sheet_types.ht_variants import (
     ht_components_list_limite_control,
     oases_component_report_fitted_to_matrix,
     ht_aircraft_component_log,
+    airframe_htc_llp_status,
+    hard_time_day_fhr_cyc_matrix_scanned,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -102,7 +104,9 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             ht_components_status_ruled_grid,
             ht_components_list_limite_control,
             oases_component_report_fitted_to_matrix,
-            ht_aircraft_component_log]
+            ht_aircraft_component_log,
+            airframe_htc_llp_status,
+            hard_time_day_fhr_cyc_matrix_scanned]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -473,6 +477,34 @@ SIGNATURES = [
                                                           # sheet-type's own SIGNATURES list (this one)
                                                           # is matched first and OCCM's broader phrase
                                                           # is never reached for this file.
+    "AIRFRAME HTC/LLP STATUS",                           # airframe_htc_llp_status.py -- this
+                                                          # template's own title line, verbatim.
+                                                          # Checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants
+                                                          # module (including a plain grep for
+                                                          # "HTC/LLP", "HTC / LLP" and "HTC LLP"); no
+                                                          # collision found. Not a substring of, and
+                                                          # does not contain as a substring,
+                                                          # htll_status.py's own "HT-LL STATUS"/
+                                                          # "HT&LLP STATUS" (different abbreviation,
+                                                          # "HTC" not "HT", different punctuation).
+    "HARD TIME COMPONENTS STATUS REPORT",                # hard_time_day_fhr_cyc_matrix_scanned.py --
+                                                          # this phrase decodes cleanly through the
+                                                          # file's own otherwise badly scrambled
+                                                          # baked-in OCR text layer (see that module's
+                                                          # own docstring for why the rest of the page
+                                                          # isn't trustworthy). Checked against every
+                                                          # SIGNATURES list in occm.py/ht.py/llp.py and
+                                                          # every occm_variants/ht_variants/llp_variants
+                                                          # module (including a plain grep for
+                                                          # "COMPONENTS STATUS REPORT" and "HARD TIME
+                                                          # COMPONENTS"); no collision found -- not a
+                                                          # substring of, and does not contain as a
+                                                          # substring, georgian_airways_ht_components_
+                                                          # status.py's own "HARD TIME COMPONENTS STATUS
+                                                          # FOR A/C-REGISTRATION" (diverges right after
+                                                          # "STATUS").
 ]
 
 
