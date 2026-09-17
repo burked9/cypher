@@ -48,6 +48,8 @@ from sheet_types.ht_variants import (
     tci_status_broken_font,
     fl_compound_code_ht,
     maintenance_status_report_erm1,
+    ht_components_status_ruled_grid,
+    ht_components_list_limite_control,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -94,7 +96,9 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             trp_status_dual_layer_scanned,
             tci_status_broken_font,
             fl_compound_code_ht,
-            maintenance_status_report_erm1]
+            maintenance_status_report_erm1,
+            ht_components_status_ruled_grid,
+            ht_components_list_limite_control]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -411,6 +415,32 @@ SIGNATURES = [
                                                           # and every occm_variants/ht_variants/
                                                           # llp_variants module (including a plain grep
                                                           # for "ERM1"); no collision found.
+    "HT COMPONENTS STATUS",                              # ht_components_status_ruled_grid.py --
+                                                          # this template's own bare title line
+                                                          # (plural COMPONENTS, singular STATUS, no
+                                                          # "HARD TIME"/"FOR A/C-REGISTRATION"/"LIST"/
+                                                          # "REPORT" suffix). Checked against every
+                                                          # SIGNATURES list in occm.py/ht.py/llp.py and
+                                                          # every occm_variants/ht_variants/llp_variants
+                                                          # module (including a plain grep for "HT
+                                                          # COMPONENTS STATUS"); no collision found --
+                                                          # not a substring of, and does not contain as
+                                                          # a substring, georgian_airways_ht_components_
+                                                          # status.py's own "HARD TIME COMPONENTS STATUS
+                                                          # FOR A/C-REGISTRATION" or hard_time_status_
+                                                          # mpd_cert_fin.py's own "HARD TIME COMPONENTS
+                                                          # STATUS" (both start with "HARD TIME", not the
+                                                          # bare "HT" this template uses).
+    "LIMITE CONTROL CHECK",                              # ht_components_list_limite_control.py --
+                                                          # this template's own header-row phrase,
+                                                          # verbatim, present on every page of the
+                                                          # sample file (unlike its "HT COMPONENTS
+                                                          # LIST" title line, which the sample's own
+                                                          # first page omits). Checked against every
+                                                          # SIGNATURES list in occm.py/ht.py/llp.py and
+                                                          # every occm_variants/ht_variants/llp_variants
+                                                          # module (including a plain grep for "LIMITE
+                                                          # CONTROL"); no collision found.
 ]
 
 
