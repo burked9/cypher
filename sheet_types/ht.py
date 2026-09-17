@@ -40,6 +40,8 @@ from sheet_types.ht_variants import (
     hard_time_componets_status_mpd_ruled,
     hard_time_snake_case_eo_listing,
     hard_time_limit_control_status,
+    functional_location_ht_component,
+    mpd_service_interval_status,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -78,7 +80,9 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             tci_list,
             hard_time_componets_status_mpd_ruled,
             hard_time_snake_case_eo_listing,
-            hard_time_limit_control_status]
+            hard_time_limit_control_status,
+            functional_location_ht_component,
+            mpd_service_interval_status]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -309,6 +313,35 @@ SIGNATURES = [
                                                           # REMAINING", is a different, shorter phrase
                                                           # (no "CONTROL", no "NOTES") and not a
                                                           # substring of this one in either direction.
+    "HT-COMPONENT",                                      # functional_location_ht_component.py --
+                                                          # checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants
+                                                          # module (including a plain grep for
+                                                          # "HT-COMPONENT"); no collision found.
+    "HT ‐ COMPONENT STATUS",                             # mpd_service_interval_status.py -- this
+                                                          # file's own title line, verbatim (the
+                                                          # character between "HT" and "COMPONENT" is
+                                                          # U+2010 HYPHEN, not ASCII hyphen-minus).
+                                                          # Checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants
+                                                          # module (including a plain grep for "HT" +
+                                                          # "COMPONENT STATUS" combinations); no
+                                                          # collision found -- not a substring of, and
+                                                          # does not contain as a substring, any other
+                                                          # variant's own signature phrase, including
+                                                          # this same file's own "HT-COMPONENT" entry
+                                                          # just above (ASCII hyphen, no spaces, no
+                                                          # "STATUS").
+    "MPD PART SERIAL INSTALLED SERVICE INTERVAL NEXT DUE REMAINING REMARKS",
+                                                          # mpd_service_interval_status.py -- backup
+                                                          # anchor, this file's own ruled-table header
+                                                          # row, verbatim. Checked against every
+                                                          # SIGNATURES list in occm.py/ht.py/llp.py and
+                                                          # every occm_variants/ht_variants/llp_variants
+                                                          # module (including a plain grep for "MPD PART
+                                                          # SERIAL"); no collision found.
 ]
 
 
