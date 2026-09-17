@@ -42,6 +42,8 @@ from sheet_types.ht_variants import (
     hard_time_limit_control_status,
     functional_location_ht_component,
     mpd_service_interval_status,
+    amos_reference_equipment_list,
+    hard_time_aircraft_components_status_broken_font,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -50,6 +52,7 @@ from shared.ocr_bridge import maybe_await
 # Variants with distinctive headers sit before the AMOS catch-all.
 VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             oases_lifed_components, stars_trax, aircraft_rotables_ht, amos,
+            amos_reference_equipment_list,
             georgian_airways_ht_components_status, mpd_hard_time_list, htll_status,
             hard_time_component_status_mpd_task,
             aercap_hard_time_component_status, aercap_oxygen_generator_status,
@@ -82,7 +85,8 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             hard_time_snake_case_eo_listing,
             hard_time_limit_control_status,
             functional_location_ht_component,
-            mpd_service_interval_status]
+            mpd_service_interval_status,
+            hard_time_aircraft_components_status_broken_font]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -342,6 +346,16 @@ SIGNATURES = [
                                                           # every occm_variants/ht_variants/llp_variants
                                                           # module (including a plain grep for "MPD PART
                                                           # SERIAL"); no collision found.
+    "ACRF REG. :",                                       # hard_time_aircraft_components_status_broken_font.py --
+                                                          # see that module's own docstring for why this
+                                                          # short fragment survives its file's otherwise
+                                                          # broken text-layer decode. Checked against every
+                                                          # SIGNATURES list in occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants module
+                                                          # (including a plain grep for "ACRF"); no
+                                                          # collision found. The nearest look-alike,
+                                                          # occm.py's own "AIRCRAFT REG. :", is a different
+                                                          # phrase (neither a substring of the other).
 ]
 
 

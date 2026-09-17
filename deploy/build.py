@@ -508,6 +508,7 @@ SOURCES = [
     "sheet_types/ht_variants/_base.py",
     "sheet_types/ht_variants/vietnam_airlines.py",
     "sheet_types/ht_variants/amos.py",
+    "sheet_types/ht_variants/amos_reference_equipment_list.py",
     "sheet_types/ht_variants/mm510.py",
     "sheet_types/ht_variants/tap.py",
     "sheet_types/ht_variants/iberia.py",
@@ -554,6 +555,7 @@ SOURCES = [
     "sheet_types/ht_variants/hard_time_limit_control_status.py",
     "sheet_types/ht_variants/functional_location_ht_component.py",
     "sheet_types/ht_variants/mpd_service_interval_status.py",
+    "sheet_types/ht_variants/hard_time_aircraft_components_status_broken_font.py",
     # LLP variants — original + 5 added this session
     "sheet_types/llp_variants/__init__.py",
     "sheet_types/llp_variants/_base.py",
