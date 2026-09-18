@@ -573,6 +573,7 @@ SOURCES = [
     "sheet_types/ht_variants/ht_component_status_dual_unit_grid_scanned.py",
     "sheet_types/ht_variants/aircraft_specification_file_htc_status_scanned.py",
     "sheet_types/ht_variants/hard_time_components_status_mpd_or_requirement_scanned.py",
+    "sheet_types/ht_variants/ht_ruled_grid_time_limit_columns_scanned.py",
     # LLP variants — original + 5 added this session
     "sheet_types/llp_variants/__init__.py",
     "sheet_types/llp_variants/_base.py",
