@@ -60,6 +60,7 @@ from sheet_types.ht_variants import (
     hard_time_components_semicolon_msn_header_scanned,
     ht_component_status_dual_unit_grid_scanned,
     aircraft_specification_file_htc_status_scanned,
+    hard_time_components_status_mpd_or_requirement_scanned,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -76,6 +77,7 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             xiamen_time_controlled_components, aircraft_rotables_ht_scanned,
             amos_scanned, aircraft_inspection_report_scanned,
             georgian_airways_ht_components_status_scanned,
+            hard_time_components_status_mpd_or_requirement_scanned,
             hard_time_report_config_slot,
             al_development_controlled_items_list,
             time_controlled_components_status,
