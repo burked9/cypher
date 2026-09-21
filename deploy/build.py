@@ -527,6 +527,7 @@ SOURCES = [
     "sheet_types/ht_variants/xiamen_time_controlled_components.py",
     "sheet_types/ht_variants/aircraft_rotables_ht_scanned.py",
     "sheet_types/ht_variants/amos_scanned.py",
+    "sheet_types/ht_variants/aircraft_ext_equipment_list_scanned.py",
     "sheet_types/ht_variants/aircraft_inspection_report_scanned.py",
     "sheet_types/ht_variants/georgian_airways_ht_components_status_scanned.py",
     "sheet_types/ht_variants/hard_time_report_config_slot.py",
