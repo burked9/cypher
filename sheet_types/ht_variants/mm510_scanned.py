@@ -262,9 +262,12 @@ _FILLABLE = ("ATA", "POSITION", "PART_NUMBER", "SERIAL_NUMBER",
 _HEADER_FIELDS = ["TAIL_NUMBER", "OPERATOR", "TSN_TOTAL", "CSN_TOTAL",
                   "LAST_FLIGHT_DATE"]
 
-# OCR reliably reads "Tail" as "Tall" on this cluster's own scans (a font/
-# scan artifact, confirmed directly), so both spellings are accepted.
-_TAIL_RE = re.compile(r"Ta[ui]l\s+Number\s*:\s*(\S+)\s*\(([^)]+)\)", re.IGNORECASE)
+# OCR reliably reads "Tail" as "Tall" (or occasionally "Taul") on this
+# cluster's own scans (a font/scan artifact, confirmed directly), so all
+# three spellings are accepted -- "Ta[uil]l" covers "Tail"/"Taul" (real
+# letter + l) as well as the doubled-l "Tall" misread (no i/u glyph at
+# all, just "l" read twice).
+_TAIL_RE = re.compile(r"Ta[uil]l\s+Number\s*:\s*(\S+)\s*\(([^)]+)\)", re.IGNORECASE)
 _TSN_RE = re.compile(r"Time\s+Since\s+New\s*:\s*(\S+)", re.IGNORECASE)
 _CSN_RE = re.compile(r"Cycle\s+Since\s+New\s*:\s*(\S+)", re.IGNORECASE)
 _LFD_RE = re.compile(r"Last\s+Flight\s+Date\s*:\s*(\S+)", re.IGNORECASE)
