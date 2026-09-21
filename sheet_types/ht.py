@@ -66,6 +66,7 @@ from sheet_types.ht_variants import (
     service_life_limited_components_status_scanned,
     ht_ruled_grid_mpd_interval_remaining_scanned,
     component_inventory_ht_llp_scanned,
+    al_development_controlled_items_list_scanned,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -130,7 +131,8 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             functional_location_ht_component_scanned,
             service_life_limited_components_status_scanned,
             ht_ruled_grid_mpd_interval_remaining_scanned,
-            component_inventory_ht_llp_scanned]
+            component_inventory_ht_llp_scanned,
+            al_development_controlled_items_list_scanned]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
