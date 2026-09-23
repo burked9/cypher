@@ -3,11 +3,11 @@
 Header::
 
     Aircraft
-    AIRBUS A321-231 HOURS 49,740
+    AIRBUS A321-231 HOURS <hrs>
     Hard Time Component Status
-    MSN <MSN> CYCLES 43,630
-    REG <tail no.> DATE 2019-09-30
-    DOM 02-May-00
+    MSN <MSN> CYCLES <cyc>
+    REG <tail no.> DATE <date>
+    DOM <dom>
     MPD INTERVAL AMP INTERVAL LAST DONE NEXT DUE REMAIN
     ATA MPD TASK NO PART NUMBER SERIAL NUMBER PART DESCRIPTION POS TASK TYPE
     DY FH FC DY FH FC DATE FH FC DATE FH FC DY FH FC
@@ -109,8 +109,19 @@ _OVERRIDES = {
 }
 RULES = merged_rules(_OVERRIDES)
 
-# x0 column bounds, read off the header word positions (fixed across every
-# page checked in both text-layer files).
+# x0 column bounds. These were originally read, once, off the header word
+# positions of a single calibration file and hardcoded here -- but the x0
+# scale is NOT constant across the corpus: two other real files in the same
+# cluster (single-line-header, same SIGNATURES phrase) print the identical
+# column labels at completely different x0 positions (one compressed to
+# roughly half the page-width scale of the other), so fixed pixel bounds
+# silently misassign nearly every column on those files (PN sliding into
+# ATA's bucket, DESCRIPTION's first word into SERIAL NUMBER's, etc.) while
+# still finding "an" anchor line per row, so it fails quietly rather than
+# raising -- the failure only shows up downstream as near-100% validation
+# flags. _derive_layout() below re-measures the column x0 bounds from each
+# page's own header line instead of trusting a hardcoded scale, and falls
+# back to these original values only if that header line can't be found.
 _ATA_COL = (40, 80)
 _TASK_COL = (80, 168)
 _PN_COL = (168, 280)
@@ -118,14 +129,78 @@ _SN_COL = (280, 390)
 _DESC_COL = (390, 525)
 _POS_COL = (525, 715)
 _TYPE_COL = (715, 793)
+_HEADER_BOTTOM = 169
 
 _TASK_RE = re.compile(r"^\d{6}-[A-Z0-9]{1,3}-\d{1,2}$")
-# Last header sub-row ("DY FH FC ...") bottoms out at 167.5 on every page
-# checked; data rows start at 172+. Filtering here also removes the
-# repeated "ATA MPD TASK NO PART NUMBER SERIAL NUMBER ..." column-header
-# line itself, which would otherwise false-positive as an anchor (its
-# "SERIAL"/"NUMBER" words sit inside the SERIAL NUMBER column's x0 range).
-_HEADER_BOTTOM = 169
+
+# Word sequence of the one-line column header this variant's SIGNATURES
+# phrase is built from, used both to detect the header line and to read its
+# per-column x0 positions directly off that page.
+_HEADER_WORDS = [
+    "ATA", "MPD", "TASK", "NO", "PART", "NUMBER", "SERIAL", "NUMBER",
+    "PART", "DESCRIPTION", "POS", "TASK", "TYPE",
+]
+
+
+def _derive_layout(words: list[dict]) -> tuple[dict[str, tuple[float, float]], float]:
+    """Re-measure column x0 bounds and the header/data cutoff from this
+    page's own header words, instead of the hardcoded scale above.
+
+    Returns (columns, header_bottom). Falls back to the hardcoded module
+    constants -- unchanged -- when the header line can't be located on this
+    page, so a page/file that doesn't carry the header (or carries it in a
+    shape this can't parse) behaves exactly as before.
+    """
+    lines = _group_lines(words)
+    header = None
+    header_idx = None
+    for i, ln in enumerate(lines):
+        ordered = sorted(ln, key=lambda w: w["x0"])
+        texts = [w["text"] for w in ordered]
+        if texts[:len(_HEADER_WORDS)] == _HEADER_WORDS:
+            header, header_idx = ordered, i
+            break
+    if header is None:
+        return {
+            "ATA": _ATA_COL, "TASK": _TASK_COL, "PN": _PN_COL, "SN": _SN_COL,
+            "DESC": _DESC_COL, "POS": _POS_COL, "TYPE": _TYPE_COL,
+        }, _HEADER_BOTTOM
+
+    ata_x = header[0]["x0"]
+    task_x = header[1]["x0"]        # "MPD" (of "MPD TASK NO")
+    pn_x = header[4]["x0"]          # "PART" (of "PART NUMBER")
+    sn_x = header[6]["x0"]          # "SERIAL"
+    desc_x = header[8]["x0"]        # "PART" (of "PART DESCRIPTION")
+    pos_x = header[10]["x0"]        # "POS"
+    type_x = header[11]["x0"]       # "TASK" (of "TASK TYPE")
+
+    # The next physical line ("DY FH FC ...") gives both the header/data
+    # cutoff and the x0 where the first trailing DY/FH/FC cell starts, which
+    # bounds TASK TYPE's own column on the right. It's found by sequence
+    # position, not a bottom/top pixel threshold: this sub-header row sits
+    # close enough to the header's own line that their bounding boxes can
+    # slightly overlap, which a "top > header's bottom" cutoff can miss.
+    dy_line = None
+    if header_idx + 1 < len(lines):
+        ordered = sorted(lines[header_idx + 1], key=lambda w: w["x0"])
+        if ordered and ordered[0]["text"] == "DY":
+            dy_line = ordered
+    trail_x = dy_line[0]["x0"] if dy_line else type_x + 80
+    header_bottom = (max(w["bottom"] for w in dy_line) if dy_line
+                      else max(w["bottom"] for w in header)) + 2.0
+
+    bounds = [ata_x - 10, ata_x, task_x, pn_x, sn_x, desc_x, pos_x, type_x, trail_x]
+    mids = [(bounds[i] + bounds[i + 1]) / 2 for i in range(len(bounds) - 1)]
+    columns = {
+        "ATA": (mids[0], mids[1]),
+        "TASK": (mids[1], mids[2]),
+        "PN": (mids[2], mids[3]),
+        "SN": (mids[3], mids[4]),
+        "DESC": (mids[4], mids[5]),
+        "POS": (mids[5], mids[6]),
+        "TYPE": (mids[6], mids[7]),
+    }
+    return columns, header_bottom
 
 
 def _group_lines(words: list[dict], y_tol: float = 2.0) -> list[list[dict]]:
@@ -144,8 +219,8 @@ def _col_text(line: list[dict], col: tuple[int, int]) -> str:
     return " ".join(w["text"] for w in line if lo <= w["x0"] < hi)
 
 
-def _is_anchor(line: list[dict]) -> bool:
-    lo, hi = _SN_COL
+def _is_anchor(line: list[dict], sn_col: tuple[float, float]) -> bool:
+    lo, hi = sn_col
     return any(lo <= w["x0"] < hi for w in line)
 
 
@@ -170,9 +245,14 @@ def _split_gap(lines: list[list[dict]], a: int | None, b: int | None,
 
 
 def _parse_page(words: list[dict], page_num: int) -> list[dict]:
-    words = [w for w in words if w["top"] >= _HEADER_BOTTOM]
+    columns, header_bottom = _derive_layout(words)
+    ata_col, task_col = columns["ATA"], columns["TASK"]
+    pn_col, sn_col = columns["PN"], columns["SN"]
+    desc_col, pos_col, type_col = columns["DESC"], columns["POS"], columns["TYPE"]
+
+    words = [w for w in words if w["top"] >= header_bottom]
     lines = _group_lines(words)
-    anchors = [i for i, ln in enumerate(lines) if _is_anchor(ln)]
+    anchors = [i for i, ln in enumerate(lines) if _is_anchor(ln, sn_col)]
     if not anchors:
         return []
     above: dict[int, list[int]] = {i: [] for i in anchors}
@@ -184,29 +264,29 @@ def _parse_page(words: list[dict], page_num: int) -> list[dict]:
     records = []
     for idx in anchors:
         line = lines[idx]
-        part_number = _col_text(line, _PN_COL).strip()
+        part_number = _col_text(line, pn_col).strip()
         if not part_number:
             continue    # every real row carries a PN; nothing to anchor on otherwise
-        mpd_task_no = _col_text(line, _TASK_COL).strip()
+        mpd_task_no = _col_text(line, task_col).strip()
         if mpd_task_no == "-":
             mpd_task_no = ""
-        ata = _col_text(line, _ATA_COL).strip()
+        ata = _col_text(line, ata_col).strip()
         if not ata and _TASK_RE.match(mpd_task_no):
             ata = mpd_task_no[:2]
         wrap_lines = [*above[idx], idx, *below[idx]]
         description = " ".join(
-            t for t in (_col_text(lines[i], _DESC_COL).strip() for i in wrap_lines) if t)
+            t for t in (_col_text(lines[i], desc_col).strip() for i in wrap_lines) if t)
         task_type = " ".join(
-            t for t in (_col_text(lines[i], _TYPE_COL).strip() for i in wrap_lines) if t)
+            t for t in (_col_text(lines[i], type_col).strip() for i in wrap_lines) if t)
         records.append({
             "ATA": ata,
             "MPD_TASK_NO": mpd_task_no,
             "PART_NUMBER": part_number,
-            "SERIAL_NUMBER": _col_text(line, _SN_COL).strip(),
+            "SERIAL_NUMBER": _col_text(line, sn_col).strip(),
             "DESCRIPTION": description,
-            "POSITION": _col_text(line, _POS_COL).strip(),
+            "POSITION": _col_text(line, pos_col).strip(),
             "TASK_TYPE": task_type,
-            "STATUS_TRAIL": " ".join(w["text"] for w in line if w["x0"] >= _TYPE_COL[1]),
+            "STATUS_TRAIL": " ".join(w["text"] for w in line if w["x0"] >= type_col[1]),
             "_page": page_num,
         })
     return records
