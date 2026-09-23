@@ -72,6 +72,7 @@ from sheet_types.ht_variants import (
     ht_llp_status_report_scanned,
     aircraft_component_log_boxed_register_scanned,
     hard_time_component_status_mpd_task_scanned,
+    hard_time_components_status_pt_ruled_scanned,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -142,7 +143,8 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             hard_time_component_listing_scanned,
             ht_llp_status_report_scanned,
             aircraft_component_log_boxed_register_scanned,
-            hard_time_component_status_mpd_task_scanned]
+            hard_time_component_status_mpd_task_scanned,
+            hard_time_components_status_pt_ruled_scanned]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
