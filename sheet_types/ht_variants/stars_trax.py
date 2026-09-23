@@ -89,12 +89,47 @@ def extract(pdf_path: str) -> list[dict]:
             if len(text) < 80:
                 continue
             lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-            # Learn column order from header if present on this page.
+            # Parallel per-token x0 coordinates, consumed in lockstep with
+            # `lines`/`toks` (confirmed on the real corpus: extract_words()
+            # token order/count matches extract_text()'s line-split tokens
+            # 1:1 on every page of the file that motivated this). Used only
+            # to disambiguate the specific PN-vs-SN ambiguity below --
+            # never to re-tokenize -- so a page where the two disagree just
+            # falls back to the old shape-only heuristic (anchors stay
+            # None).
+            words = page.extract_words()
+            line_x0s: list[list[float]] = []
+            _wi = 0
+            _lockstep_ok = True
+            for _ln in lines:
+                _n = len(_ln.split())
+                _chunk = words[_wi:_wi + _n]
+                if len(_chunk) != _n or any(
+                        w["text"] != t for w, t in zip(_chunk, _ln.split())):
+                    _lockstep_ok = False
+                    break
+                line_x0s.append([w["x0"] for w in _chunk])
+                _wi += _n
+            if not _lockstep_ok:
+                line_x0s = [[] for _ in lines]
+            # Learn column order -- and, for the PN/SN disambiguation, the
+            # P/N and S/N column x0 anchors -- from the header line if
+            # present on this page.
             pos_first = True  # default to style A's column order
-            for ln in lines[:20]:
+            pn_col_x0 = None
+            sn_col_x0 = None
+            for _li, ln in enumerate(lines[:20]):
                 m = _HEADER_COLS.search(ln)
                 if m:
                     pos_first = (m.group(1).lower() == "position")
+                    hdr_toks = ln.split()
+                    hdr_x0 = line_x0s[_li] if _li < len(line_x0s) else []
+                    if len(hdr_x0) == len(hdr_toks):
+                        for _t, _x in zip(hdr_toks, hdr_x0):
+                            if _t == "P/N" and pn_col_x0 is None:
+                                pn_col_x0 = _x
+                            elif _t == "S/N" and sn_col_x0 is None:
+                                sn_col_x0 = _x
                     break
             cur_ata = ""
             cur_pn = ""
@@ -106,6 +141,7 @@ def extract(pdf_path: str) -> list[dict]:
                 toks = ln.split()
                 if not toks:
                     i += 1; continue
+                x0s = line_x0s[i] if i < len(line_x0s) else []
                 # Skip the column-header itself.
                 if toks[0].upper() == "ATA" and "P/N" in ln:
                     i += 1; continue
@@ -117,7 +153,25 @@ def extract(pdf_path: str) -> list[dict]:
                 if ti >= len(toks):
                     i += 1; continue
                 # PN-shape leading token? (after ATA)
-                if _PN_LIKELY.match(toks[ti]) or _PN_LIKELY_NUMERIC.match(toks[ti]):
+                pn_shape = bool(_PN_LIKELY.match(toks[ti]) or _PN_LIKELY_NUMERIC.match(toks[ti]))
+                # Disambiguation: a continuation record (no ATA-dash token
+                # on this line, ti == 0) can start with a plain digit-run
+                # that is actually this line's SERIAL_NUMBER for the PN
+                # already forward-filled, not a new PN -- confirmed on the
+                # real corpus file that motivated this fix, where such a
+                # token sits exactly at the S/N column's x0, not the P/N
+                # column's. Only overridden when both column anchors were
+                # learned from this page's own header AND we have a
+                # trustworthy x0 for this exact token (lockstep intact);
+                # otherwise keep the original shape-only heuristic as-is so
+                # every previously-covered page/style is unaffected.
+                if (pn_shape and ti == 0 and pn_col_x0 is not None
+                        and sn_col_x0 is not None and cur_pn
+                        and ti < len(x0s)):
+                    mid = (pn_col_x0 + sn_col_x0) / 2
+                    if x0s[ti] >= mid:
+                        pn_shape = False
+                if pn_shape:
                     cur_pn = toks[ti]
                     ti += 1
                 if ti + 2 >= len(toks):
