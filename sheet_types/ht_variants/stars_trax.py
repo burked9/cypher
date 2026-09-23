@@ -57,6 +57,14 @@ _ATA_RE = re.compile(r"^\d{1,2}-\d{1,3}-\d{1,2}$")
 # out FIN tokens like `6HL` (no internal dash and shorter than 4 chars
 # in some forms) — but also accepts `9024-15704-2`, `VFT210A1`, etc.
 _PN_LIKELY = re.compile(r"^(?=[A-Z0-9/_-]*[A-Z])(?=[A-Z0-9/_-]*\d)[A-Z0-9/_-]{5,}$")
+# All-digit PN shape (no letters): plain runs like `2758`/`20499005`, or
+# dash-delimited groups like `9024-15704-2`/`802300-14`/`980-6022-001`.
+# This only fires on the leading token position (right after an optional
+# ATA-dash token) — the same position the letter+digit branch above uses
+# — which in this report's layout is always where the record's PN sits,
+# never a bare S/N. Length/segment bounds keep it from over-matching
+# arbitrary short numeric fragments.
+_PN_LIKELY_NUMERIC = re.compile(r"^\d{3,10}$|^\d{2,10}(?:-\d{1,6}){1,2}$")
 _DATE_RE = re.compile(r"\b(\d{1,2}[\./]\d{1,2}[\./]\d{2,4})\b")
 _HEADER_SKIP = re.compile(
     r"Print Date|A/C Detail|^Page:|^A/C:\s|Type/Series|Scheduled\s+Actuals|"
@@ -82,7 +90,7 @@ def extract(pdf_path: str) -> list[dict]:
                 continue
             lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
             # Learn column order from header if present on this page.
-            pos_first = True  # default Air Astana / Sunwing style
+            pos_first = True  # default to style A's column order
             for ln in lines[:20]:
                 m = _HEADER_COLS.search(ln)
                 if m:
@@ -109,7 +117,7 @@ def extract(pdf_path: str) -> list[dict]:
                 if ti >= len(toks):
                     i += 1; continue
                 # PN-shape leading token? (after ATA)
-                if _PN_LIKELY.match(toks[ti]):
+                if _PN_LIKELY.match(toks[ti]) or _PN_LIKELY_NUMERIC.match(toks[ti]):
                     cur_pn = toks[ti]
                     ti += 1
                 if ti + 2 >= len(toks):
@@ -143,7 +151,8 @@ def extract(pdf_path: str) -> list[dict]:
                         # Plain description line (no "Install Date:" label)
                         nt = next_ln.split()
                         looks_like_anchor = (
-                            (nt and (_ATA_RE.match(nt[0]) or _PN_LIKELY.match(nt[0])))
+                            (nt and (_ATA_RE.match(nt[0]) or _PN_LIKELY.match(nt[0])
+                                     or _PN_LIKELY_NUMERIC.match(nt[0])))
                             or _HEADER_SKIP.search(next_ln)
                         )
                         if not looks_like_anchor:
