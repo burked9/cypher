@@ -520,6 +520,7 @@ SOURCES = [
     "sheet_types/ht_variants/mpd_hard_time_list.py",
     "sheet_types/ht_variants/htll_status.py",
     "sheet_types/ht_variants/hard_time_component_status_mpd_task.py",
+    "sheet_types/ht_variants/hard_time_component_status_task_pos_wrapped.py",
     "sheet_types/ht_variants/aercap_hard_time_component_status.py",
     "sheet_types/ht_variants/aercap_oxygen_generator_status.py",
     "sheet_types/ht_variants/emes_hard_time_component_status.py",

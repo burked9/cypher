@@ -11,6 +11,7 @@ from sheet_types.ht_variants import (
     stars_trax, aircraft_rotables_ht,
     georgian_airways_ht_components_status, mpd_hard_time_list, htll_status,
     hard_time_component_status_mpd_task,
+    hard_time_component_status_task_pos_wrapped,
     aercap_hard_time_component_status, aercap_oxygen_generator_status,
     emes_hard_time_component_status,
     xiamen_time_controlled_components, aircraft_rotables_ht_scanned,
@@ -88,6 +89,7 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             amos_reference_equipment_list,
             georgian_airways_ht_components_status, mpd_hard_time_list, htll_status,
             hard_time_component_status_mpd_task,
+            hard_time_component_status_task_pos_wrapped,
             aercap_hard_time_component_status, aercap_oxygen_generator_status,
             emes_hard_time_component_status,
             xiamen_time_controlled_components, aircraft_rotables_ht_scanned,
@@ -162,7 +164,33 @@ SIGNATURES = [
     "HARD TIME LIST AS AT",                              # mpd_hard_time_list.py
     "HT-LL STATUS",                                      # htll_status.py
     "HT&LLP STATUS",                                     # htll_status.py, other sub-format
-    "MPD TASK NO",                                       # hard_time_component_status_mpd_task.py
+    "ATA MPD TASK NO PART NUMBER SERIAL NUMBER PART DESCRIPTION POS TASK TYPE",
+                                                          # hard_time_component_status_mpd_task.py --
+                                                          # this file's own single-line middle header
+                                                          # row, verbatim. Deliberately NOT the shorter
+                                                          # "MPD TASK NO" / "MPD INTERVAL AMP INTERVAL"
+                                                          # phrases this entry used to be (see that
+                                                          # module's own docstring): both also occur in
+                                                          # hard_time_component_status_task_pos_wrapped.py's
+                                                          # own header, whose middle row is split
+                                                          # differently and whose column x-positions
+                                                          # this variant's parser cannot handle. Checked
+                                                          # against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants
+                                                          # module; no other collision found.
+    "MPD TASK TASK MPD INTERVAL",                        # hard_time_component_status_task_pos_wrapped.py
+                                                          # -- this file's own top header-line phrase,
+                                                          # verbatim. Mutually exclusive with the sibling
+                                                          # entry just above (different word order/
+                                                          # adjacency -- that file's own header never has
+                                                          # "TASK" immediately followed by "TASK MPD").
+                                                          # Checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants
+                                                          # module (including a plain grep for "MPD TASK
+                                                          # TASK" and "TASK MPD INTERVAL"); no collision
+                                                          # found.
     "COMP.TIMELINE",                                     # aercap_hard_time_component_status.py
     "OXYGEN GENERATOR STATUS",                           # aercap_oxygen_generator_status.py
     # NOT "FROM E.MES" -- that phrase is also emes_airframe_llp_status.py's

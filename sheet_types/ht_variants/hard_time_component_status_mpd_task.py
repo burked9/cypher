@@ -61,6 +61,23 @@ byte-identical (same report, filed under two different tail numbers/MSNs)
 — that shared layout is what this parser targets. The third file is a
 ScanSnap-style scan: 0 chars on every one of its 8 pages under
 pdfplumber. It needs OCR, not this parser.
+
+SIGNATURES note: this file's own header packs "ATA", "MPD TASK NO",
+"PART NUMBER", "SERIAL NUMBER", "PART DESCRIPTION", "POS" and "TASK TYPE"
+all onto ONE physical middle line (see the header block above), so the
+single verbatim phrase below anchors on that whole-line shape. Two shorter
+phrases used to live here instead ("MPD INTERVAL AMP INTERVAL" and
+"MPD TASK NO" alone) but both also appear, coincidentally, in the header of
+a structurally different sibling file whose middle line reads only
+"ATA PART NUMBER SERIAL NUMBER PART DESCRIPTION POS" (with "MPD"/"TASK"
+split onto the line above and "NO"/"TYPE" split onto the line below) --
+this variant's own fixed column bounds cannot parse that file's different
+x-positions, so the two files must not detect as the same variant. See
+hard_time_component_status_task_pos_wrapped.py's own docstring for that
+file's layout and for the mutually-exclusive signature phrase it uses
+instead. Checked against every SIGNATURES list in occm.py/ht.py/llp.py and
+every occm_variants/ht_variants/llp_variants module's own SIGNATURES list
+(including a plain grep for "ATA MPD TASK NO"); no other collision found.
 """
 from __future__ import annotations
 import re
@@ -70,8 +87,7 @@ from sheet_types.ht_variants._base import merged_rules
 
 NAME = "Hard Time Component Status (MPD Task No)"
 SIGNATURES = [
-    "MPD INTERVAL AMP INTERVAL",
-    "MPD TASK NO",
+    "ATA MPD TASK NO PART NUMBER SERIAL NUMBER PART DESCRIPTION POS TASK TYPE",
 ]
 CANONICAL_COLUMNS = [
     "ATA",
