@@ -378,10 +378,15 @@ async def _ocr_action_column(img, y0: int, y1: int, scale: int = 2
     Tesseract line-segmentation limit on a very tall, narrow, mostly
     single-word-per-line image, not a resolution/contrast problem this
     project's usual fixes address). The overlap keeps a row that lands on
-    a chunk boundary from being cut in half in both chunks; duplicate
-    detections of the same row across overlapping chunks are harmless
-    here since row anchors are deduplicated by y-proximity right after
-    this returns."""
+    a chunk boundary from being cut in half in both chunks. The psm sweep
+    and the chunk overlap both also routinely re-detect the same real word
+    a second (or third) time at (almost) the exact same position -- fine
+    for the row-anchor list itself (deduplicated by y-proximity once this
+    returns) but confirmed directly to otherwise leak straight through
+    into the joined ACTION text as a visible "Restoration Restoration"-
+    style doubling, since nothing downstream of this function was
+    deduplicating the raw tokens themselves; `_dedupe_ocr_items` below
+    fixes that before returning."""
     lo, hi = _col_bounds(img.width, "ACTION")
     x0 = max(0, int(lo) - _COL_PAD_PX)
     x1 = min(img.width, int(hi) + _COL_PAD_PX)
@@ -402,6 +407,40 @@ async def _ocr_action_column(img, y0: int, y1: int, scale: int = 2
                 left = float(wd["left"]) / scale
                 out.append((top, left, text))
         y += _ACTION_CHUNK_PX - _ACTION_CHUNK_OVERLAP_PX
+    # The psm sweep and the overlapping chunks both routinely re-detect the
+    # exact same word at (almost) the same position -- see
+    # `_dedupe_ocr_items` docstring for why this is fixed here rather than
+    # left to downstream bucketing/joining.
+    return _dedupe_ocr_items(out)
+
+
+def _dedupe_ocr_items(
+    items: list[tuple[float, float, str]], tol: float = 3.0
+) -> list[tuple[float, float, str]]:
+    """Drop near-duplicate (top, left, text) triples -- the same physical
+    word detected more than once at (almost) the same position. Confirmed
+    directly against the real sample: `_ocr_action_column`'s own psm sweep
+    (3 and 6 run over the same crop) and its overlapping-chunk boundaries
+    routinely both recognize the exact same word at literally identical
+    (top, left) coordinates, which downstream `_nearest_anchor_buckets` /
+    `_clean_field` then join into a visibly doubled/tripled value (e.g.
+    "Restoration Restoration") -- confirmed this is a distinct failure
+    from genuine row content, not deduplicated anywhere else in the
+    pipeline (the module docstring's claim that "duplicate detections...
+    are harmless... deduplicated by y-proximity" only actually applies to
+    the anchor list itself, not to the text tokens that get bucketed and
+    joined). A small tolerance (a few source pixels) catches the sub-pixel
+    jitter between an unscaled-vs-2x-scaled-then-downscaled coordinate
+    without merging two genuinely distinct words that happen to sit close
+    together."""
+    out: list[tuple[float, float, str]] = []
+    for top, left, text in items:
+        if any(
+            t2 == text and abs(o_top - top) <= tol and abs(o_left - left) <= tol
+            for o_top, o_left, t2 in out
+        ):
+            continue
+        out.append((top, left, text))
     return out
 
 
