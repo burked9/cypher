@@ -140,7 +140,7 @@ def extract(pdf_path: str) -> list[dict]:
                         desc = next_ln[:idx].strip()
                         i += 2
                     else:
-                        # Plain description line (XA-/2666 style)
+                        # Plain description line (no "Install Date:" label)
                         nt = next_ln.split()
                         looks_like_anchor = (
                             (nt and (_ATA_RE.match(nt[0]) or _PN_LIKELY.match(nt[0])))
