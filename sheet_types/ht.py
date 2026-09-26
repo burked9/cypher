@@ -78,6 +78,8 @@ from sheet_types.ht_variants import (
     hard_time_components_status_pt_ruled_scanned,
     hard_time_component_status_amp_interval_ruled_scanned,
     installed_rotables_since_delivery_scanned,
+    hard_time_component_status_two_tier_ata_header,
+    hard_time_llp_report_component_task_matrix,
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
@@ -154,7 +156,9 @@ VARIANTS = [vietnam_airlines, mm510, tap, iberia,
             hard_time_component_status_mpd_task_scanned,
             hard_time_components_status_pt_ruled_scanned,
             hard_time_component_status_amp_interval_ruled_scanned,
-            installed_rotables_since_delivery_scanned]
+            installed_rotables_since_delivery_scanned,
+            hard_time_component_status_two_tier_ata_header,
+            hard_time_llp_report_component_task_matrix]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 
 # Sheet-type level signatures (used by the top-level router)
@@ -598,6 +602,39 @@ SIGNATURES = [
                                                           # status.py's own "HARD TIME COMPONENTS STATUS
                                                           # FOR A/C-REGISTRATION" (diverges right after
                                                           # "STATUS").
+    "ATA LAST DATE INSTALLED DATE LAST TIME TIME SINCE INSTALL ALOW TIME "
+    "INTERVAL REMAIN FOR OH",
+                                                          # hard_time_component_status_two_tier_ata_header.py
+                                                          # -- this template's own full tier-1 column-header
+                                                          # line, verbatim. The bare title line this template
+                                                          # also prints, "HARD TIME COMPONENT STATUS"
+                                                          # (singular COMPONENT), already recurs verbatim in
+                                                          # aercap_hard_time_component_status.py and
+                                                          # hard_time_limit_control_status.py's own header
+                                                          # blocks (both checked directly), so it cannot be
+                                                          # used as this file's own anchor; this full
+                                                          # header-line phrase is unique to this template
+                                                          # instead. Checked against every SIGNATURES list in
+                                                          # occm.py/ht.py/llp.py and every
+                                                          # occm_variants/ht_variants/llp_variants module
+                                                          # (including a plain grep for "TIME SINCE INSTALL",
+                                                          # "ALOW TIME", "FOR OH" and "OF FORM1"); no
+                                                          # collision found.
+    "PN SN DESCRIPTION POS Inst Date TSN CSN TASK DESCRIPTION",
+                                                          # hard_time_llp_report_component_task_matrix.py --
+                                                          # this template's own column-header line, verbatim.
+                                                          # Not "HARD TIME/LLP REPORT" (the template's own
+                                                          # page title) since that phrase is close to, but
+                                                          # distinct from, mm510.py's own "HARD TIME/LLP
+                                                          # COMPONENTS" (shared "HARD TIME/LLP " prefix, but
+                                                          # neither "REPORT" nor "COMPONENTS" is a substring
+                                                          # of the other) -- the column-header line used here
+                                                          # instead has no such near-miss anywhere. Checked
+                                                          # against every SIGNATURES list in occm.py/ht.py/
+                                                          # llp.py and every occm_variants/ht_variants/
+                                                          # llp_variants module (including a plain grep for
+                                                          # "PN SN DESCRIPTION POS" and "TASK DESCRIPTION FH
+                                                          # FC Days"); no collision found.
 ]
 
 
