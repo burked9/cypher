@@ -594,6 +594,7 @@ SOURCES = [
     "sheet_types/ht_variants/hard_time_llp_report_component_task_matrix.py",
     "sheet_types/ht_variants/ht_list_report_scanned.py",
     "sheet_types/ht_variants/time_controlled_component_status_task_block_grid_scanned.py",
+    "sheet_types/ht_variants/hard_time_components_status_requirement_grouped_scanned.py",
     # LLP variants — original + 5 added this session
     "sheet_types/llp_variants/__init__.py",
     "sheet_types/llp_variants/_base.py",
