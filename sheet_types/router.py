@@ -20,6 +20,7 @@ import pdfplumber
 from sheet_types import occm, ht, llp
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
+from shared.text_layer import text_layer_unusable
 
 
 SHEET_TYPES = {
@@ -59,7 +60,17 @@ async def detect_sheet_type(pdf_path: str, has_text_layer: bool | None = None) -
             for sig in mod.SIGNATURES:
                 if sig.upper() in head:
                     return st
-        return "Unknown"
+        # A non-blank `head` isn't necessarily a USABLE one -- a broken
+        # font/glyph-mapping decode (confirmed on a real corpus file) comes
+        # back as 100+ stray non-ASCII characters, sails past the bare
+        # `head.strip()` check above, fails every signature, and used to
+        # return "Unknown" here even though an OCR-capable variant already
+        # handles this exact file. `has_text_layer is False` still skips
+        # this (and the OCR loop's caller already knows the answer, so
+        # there's nothing to re-derive) to preserve the fast-path this
+        # parameter exists for.
+        if has_text_layer is False or not text_layer_unusable(pdf_path, head=head):
+            return "Unknown"
     # No text layer at all -- ask any OCR-capable variant, across every
     # sheet type, to confirm its own template via a cheap header OCR pass.
     # This used to default blind to "OCCM" (only Aeroflot fit that when it
