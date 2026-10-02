@@ -33,6 +33,7 @@ SOURCES = [
     "shared/cleanup.py",
     "shared/pairing.py",   # OCCM+HT combined-mode link_pair() (Phase 2)
     "shared/ocr_bridge.py",  # async render_page()/ocr_text()/ocr_words() primitives
+    "shared/text_layer.py",
     # tools.extract_file_metadata + tools.build_positions_db are pure-Python
     # modules that pairing.py imports for the header-parse + filename-key
     # helpers. Mirrored here so the in-browser combined mode can pair PDFs.

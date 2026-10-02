@@ -1,6 +1,5 @@
 """LLP (Life Limited Parts) sheet-type router. Mirrors HT/OCCM routers."""
 from __future__ import annotations
-import pdfplumber
 
 from sheet_types.llp_variants import (
     vietnam_airlines, amos, lan_engine_llp, pro_rata_engine_llp,
@@ -26,6 +25,7 @@ from sheet_types.llp_variants import (
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
+from shared.text_layer import read_head_text, text_layer_unusable
 
 VARIANTS = [
     vietnam_airlines, amos, lan_engine_llp, pro_rata_engine_llp,
@@ -167,24 +167,13 @@ SIGNATURES = [
 ]
 
 
-def _read_head_text(pdf_path: str, n_pages: int = 3) -> str:
-    parts = []
-    try:
-        with pdfplumber.open(pdf_path) as pdf:
-            for p in pdf.pages[:n_pages]:
-                parts.append(p.extract_text() or "")
-    except Exception:
-        pass
-    return "\n".join(parts)
-
-
 async def detect_variant(pdf_path: str) -> str:
-    head = _read_head_text(pdf_path).upper()
+    head = read_head_text(pdf_path).upper()
     for v in VARIANTS:
         for sig in v.SIGNATURES:
             if sig.upper() in head:
                 return v.NAME
-    if len(head.strip()) < 50:
+    if text_layer_unusable(pdf_path, head=head):
         # No usable text layer -- likely a scanned PDF. Ask any OCR-capable
         # variants to confirm their own template via a cheap header OCR pass
         # rather than guessing; each must self-check, there's no blind

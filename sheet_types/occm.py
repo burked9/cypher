@@ -9,8 +9,6 @@ Public functions:
     normalize_and_validate(records, variant)   — apply per-variant rules
 """
 from __future__ import annotations
-import re
-import pdfplumber
 
 from sheet_types.occm_variants import (
     a330_engineering_planning, aegean_erj_occm, avianca_occm,
@@ -94,6 +92,7 @@ from sheet_types.occm_variants import (
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
+from shared.text_layer import read_head_text, text_layer_unusable
 
 # Specific-format variants must precede generic ones: detection returns the
 # first match. Specific airframe/operator variants are listed first.
@@ -789,9 +788,8 @@ VARIANTS = [
     # failure mode as this package's other scanned variants (whose own
     # known source files return truly blank/near-zero text), so neither of
     # the router's two existing OCR-fallback checks below would have
-    # caught it on its own -- see `_is_cid_garbled()` just below, added
-    # specifically for this case, and used as an additional `or` in the
-    # trigger condition (never replacing the existing checks). SIGNATURES
+    # caught it on its own -- `shared.text_layer.text_layer_unusable()`
+    # now catches this case (its `is_cid_garbled()` check). SIGNATURES
     # is deliberately empty (see module docstring); only ever reached via
     # `ocr_detect()`. Checked directly (grep across every SIGNATURES list
     # in sheet_types/{occm,ht,llp}.py and every existing occm_variants/
@@ -1113,92 +1111,13 @@ _BY_NAME = {v.NAME: v for v in VARIANTS}
 CANONICAL_COLUMNS = aeroflot.CANONICAL_COLUMNS
 
 
-def _read_head_text(pdf_path: str, n_pages: int = 3) -> str:
-    """Read the first n_pages of text. Uses pdfplumber so the deploy needs
-    only one PDF library (avoids the pymupdf binary dependency)."""
-    parts = []
-    try:
-        with pdfplumber.open(pdf_path) as pdf:
-            for p in pdf.pages[:n_pages]:
-                parts.append(p.extract_text() or "")
-    except Exception:
-        pass
-    return "\n".join(parts)
-
-
-def _read_page1_text(pdf_path: str) -> str:
-    """Text of page 1 alone (vs. `_read_head_text`'s 3-page aggregate) --
-    see its one caller in `detect_variant()` for why this is checked
-    separately."""
-    try:
-        with pdfplumber.open(pdf_path) as pdf:
-            if pdf.pages:
-                return pdf.pages[0].extract_text() or ""
-    except Exception:
-        pass
-    return ""
-
-
-_CID_GARBLE_RE = re.compile(r"\(cid:\d+\)", re.IGNORECASE)
-
-
-def _is_cid_garbled(text: str) -> bool:
-    """True when `text` (pdfplumber's own `extract_text()` output) is
-    dominated by "(cid:<n>)" placeholder tokens -- the literal string
-    pdfplumber emits for a glyph it cannot map through the embedded font's
-    (missing/broken) ToUnicode table, rather than raising or returning
-    blank text. Confirmed directly on
-    `aircraft_kardex_status_broken_font_scanned.py`'s own known source
-    file: every page's `extract_text()` comes back non-blank (thousands of
-    characters), so neither of `detect_variant()`'s two existing
-    blank-text checks below catches it -- they only look at recovered
-    LENGTH, never at what the recovered text actually says. A real,
-    otherwise-working text layer occasionally embeds one or two truly
-    unmapped glyphs (an unusual symbol/ligature) without being globally
-    broken, so only text where these placeholders make up the bulk of the
-    recovered characters (checked directly against the real broken file:
-    "(cid:<n>)" tokens account for ~98% of every page's own recovered
-    text) is treated as unusable here -- a low, incidental rate is left
-    alone. Measured by total matched-character coverage rather than a
-    bare token count: "(cid:9)" and "(cid:123456)" cover very different
-    shares of a short head-text sample, and a count-only ratio was
-    confirmed directly to under-count this real file's own ~8-characters-
-    per-token average and miss it entirely at a naive per-token threshold."""
-    if not text:
-        return False
-    matches = _CID_GARBLE_RE.findall(text)
-    covered = sum(len(m) for m in matches)
-    return covered * 2 >= len(text)
-
-
 async def detect_variant(pdf_path: str) -> str:
-    head = _read_head_text(pdf_path).upper()
+    head = read_head_text(pdf_path).upper()
     for v in VARIANTS:
         for sig in v.SIGNATURES:
             if sig.upper() in head:
                 return v.NAME
-    # OCR-fallback trigger: either the whole 3-page aggregate has no usable
-    # text (the original, wholly-scanned case), OR page 1 alone is blank
-    # even though later pages carry a real text layer -- confirmed on a
-    # real sample (occm_status_list_type_model_header.py's known source
-    # file): its title/header page (page 1) is a flat scanned image with
-    # 0 chars, but pages 2+ are born-digital with ~2.5-2.9k chars each, so
-    # the 3-page aggregate alone sails past the 50-char floor and this
-    # loop was never reached even though the header (and hence every
-    # SIGNATURES phrase) is only ever visible via OCR. Checking page 1
-    # alone catches that case without weakening the existing aggregate
-    # check for any variant that already relied on it (this is an
-    # additional `or`, not a replacement).
-    #
-    # A third case, also an additional `or`: the recovered text is
-    # non-blank (sails past both length checks above) but dominated by
-    # pdfplumber's own "(cid:<n>)" placeholder tokens -- a broken font
-    # ToUnicode table, not a scan, but just as unusable as either blank
-    # case above for SIGNATURES matching. See `_is_cid_garbled()` and
-    # `aircraft_kardex_status_broken_font_scanned.py`'s own module
-    # docstring for the real confirmed case this catches.
-    if (len(head.strip()) < 50 or len(_read_page1_text(pdf_path).strip()) < 50
-            or _is_cid_garbled(head)):
+    if text_layer_unusable(pdf_path, head=head):
         # No usable text layer -- ask any OCR-capable variant to confirm its
         # own template via a cheap header OCR pass rather than guessing.
         # This used to default blind to "Aeroflot" (the only OCR variant

@@ -4,7 +4,6 @@ Mirrors `sheet_types/occm.py`. Detects which HT variant a PDF is and
 dispatches to the variant's `extract()`.
 """
 from __future__ import annotations
-import pdfplumber
 
 from sheet_types.ht_variants import (
     vietnam_airlines, amos, mm510, tap, iberia, oases_lifed_components,
@@ -86,6 +85,7 @@ from sheet_types.ht_variants import (
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
+from shared.text_layer import read_head_text, text_layer_unusable
 
 # Order matters: more-specific signatures must precede generic ones.
 # Variants with distinctive headers sit before the AMOS catch-all.
@@ -644,47 +644,13 @@ SIGNATURES = [
 ]
 
 
-def _read_head_text(pdf_path: str, n_pages: int = 3) -> str:
-    parts = []
-    try:
-        with pdfplumber.open(pdf_path) as pdf:
-            for p in pdf.pages[:n_pages]:
-                parts.append(p.extract_text() or "")
-    except Exception:
-        pass
-    return "\n".join(parts)
-
-
-def _text_layer_unusable(head: str) -> bool:
-    """True for both known shapes of "no usable text layer": genuinely
-    blank/near-blank text, and a non-blank but garbled decode (confirmed on
-    a real corpus file: `extract_text()` returns 100+ characters per page,
-    none of them a recognisable word -- a broken font/glyph-mapping decode
-    that comes out as stray non-ASCII/accented characters, not blank at
-    all, so the plain `len(head.strip()) < 50` check alone let this file
-    fall through with no OCR fallback attempted). A real, readable text
-    layer -- even a short header on an otherwise sparse page -- is
-    overwhelmingly ASCII letters; a garbled decode of the same page is
-    not, so the ASCII-letter fraction is used as the second signal rather
-    than raising the bare length cutoff (which would just move the same
-    edge case to a different, still-arbitrary number)."""
-    stripped = head.strip()
-    if len(stripped) < 50:
-        return True
-    non_space = [c for c in stripped if not c.isspace()]
-    if not non_space:
-        return True
-    ascii_letters = sum(1 for c in non_space if c.isalpha() and ord(c) < 128)
-    return (ascii_letters / len(non_space)) < 0.3
-
-
 async def detect_variant(pdf_path: str) -> str:
-    head = _read_head_text(pdf_path).upper()
+    head = read_head_text(pdf_path).upper()
     for v in VARIANTS:
         for sig in v.SIGNATURES:
             if sig.upper() in head:
                 return v.NAME
-    if _text_layer_unusable(head):
+    if text_layer_unusable(pdf_path, head=head):
         # No usable text layer -- likely a scanned PDF. Ask any OCR-capable
         # variant to confirm its own template via a cheap header OCR pass
         # rather than guessing (mirrors occm.py/llp.py). Without this block,
