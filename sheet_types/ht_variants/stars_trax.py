@@ -72,6 +72,10 @@ _HEADER_SKIP = re.compile(
 # Column-header line tells us the position/category column order.
 _HEADER_COLS = re.compile(r"ATA\s+P/N.*S/N\s+(Position|Category)\s+(Position|Category)",
                           re.I)
+# AD reference pattern: 4-digit year prefix distinguishes from ATA's
+# 1-2 digit chapter prefix.  Seen on ATA-25 equipment rows carrying an
+# EASA/FAA AD requirement (e.g. "2018-23-12 AIRBUS").
+_AD_REF_RE = re.compile(r"^\d{4}-\d{1,4}-\d{1,4}$")
 # Known CATEGORY tokens we see in the corpus (used to disambiguate when
 # the header line wasn't captured).
 _CATEGORY_TOKENS = {
@@ -177,32 +181,44 @@ def extract(pdf_path: str) -> list[dict]:
                 if ti + 2 >= len(toks):
                     i += 1; continue
                 sn = toks[ti]
-                # Next two tokens are Position + Category in column-header order.
-                t1 = toks[ti + 1]
-                t2 = toks[ti + 2]
-                if pos_first:
-                    position, category = t1, t2
+                # Find the "HT" Mnt/Ctl anchor to delimit Position/Category
+                # tokens — AD-reference rows (ATA-25) insert extra tokens
+                # (e.g. "2018-23-12 AIRBUS") between Position and HT.
+                ht_idx = None
+                for j in range(ti + 1, len(toks)):
+                    if toks[j] == "HT":
+                        ht_idx = j
+                        break
+                between = toks[ti + 1:ht_idx] if ht_idx is not None else toks[ti + 1:ti + 3]
+                if len(between) < 2:
+                    i += 1; continue
+                has_ad = any(_AD_REF_RE.match(t) for t in between[1:])
+                if has_ad:
+                    position = between[0]
+                    category = next((t for t in between[1:] if _AD_REF_RE.match(t)), "")
                 else:
-                    position, category = t2, t1
-                # Heuristic correction: if t1/t2 layout disagrees with what
-                # CATEGORY_TOKENS knows, prefer the dictionary signal.
-                if t1.upper() in _CATEGORY_TOKENS and t2.upper() not in _CATEGORY_TOKENS:
-                    category, position = t1, t2
-                elif t2.upper() in _CATEGORY_TOKENS and t1.upper() not in _CATEGORY_TOKENS:
-                    position, category = t1, t2
-                # Description: next non-skip line that isn't another record.
+                    t1, t2 = between[0], between[1]
+                    if pos_first:
+                        position, category = t1, t2
+                    else:
+                        position, category = t2, t1
+                    if t1.upper() in _CATEGORY_TOKENS and t2.upper() not in _CATEGORY_TOKENS:
+                        category, position = t1, t2
+                    elif t2.upper() in _CATEGORY_TOKENS and t1.upper() not in _CATEGORY_TOKENS:
+                        position, category = t1, t2
+                # Description: next non-skip line(s) that aren't another record.
                 desc = ""
                 install_date = ""
-                if i + 1 < len(lines):
-                    next_ln = lines[i + 1]
+                ni = i + 1
+                if ni < len(lines):
+                    next_ln = lines[ni]
                     if "Install Date:" in next_ln:
                         m = _DATE_RE.search(next_ln)
                         if m: install_date = m.group(1)
                         idx = next_ln.find("Install Date:")
                         desc = next_ln[:idx].strip()
-                        i += 2
+                        ni += 1
                     else:
-                        # Plain description line (no "Install Date:" label)
                         nt = next_ln.split()
                         looks_like_anchor = (
                             (nt and (_ATA_RE.match(nt[0]) or _PN_LIKELY.match(nt[0])
@@ -211,11 +227,24 @@ def extract(pdf_path: str) -> list[dict]:
                         )
                         if not looks_like_anchor:
                             desc = next_ln
-                            i += 2
-                        else:
-                            i += 1
-                else:
-                    i += 1
+                            ni += 1
+                # Consume continuation lines (e.g. "ASSEMBLY" after
+                # "RESERVOR AND VALVE Install Date: ...")
+                while ni < len(lines):
+                    cont = lines[ni]
+                    ct = cont.split()
+                    if (ct
+                            and not _ATA_RE.match(ct[0])
+                            and not _PN_LIKELY.match(ct[0])
+                            and not _PN_LIKELY_NUMERIC.match(ct[0])
+                            and not _HEADER_SKIP.search(cont)
+                            and "Install Date:" not in cont
+                            and "HT" not in ct):
+                        desc = f"{desc} {cont}".strip()
+                        ni += 1
+                    else:
+                        break
+                i = ni
                 if not (cur_pn and sn):
                     continue
                 records.append({

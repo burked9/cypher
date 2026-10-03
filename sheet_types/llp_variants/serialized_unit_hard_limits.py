@@ -172,6 +172,23 @@ def _parse_meta(text: str) -> dict:
     return meta
 
 
+def _words_to_lines(words: list[dict], y_tol: float = 3.0) -> list[str]:
+    """Cluster words by y-position, sort clusters top-to-bottom,
+    sort words within each cluster left-to-right, join into lines."""
+    ws = sorted(words, key=lambda w: (w["top"], w["x0"]))
+    clusters: list[list[dict]] = []
+    for w in ws:
+        if clusters and abs(w["top"] - clusters[-1][-1]["top"]) <= y_tol:
+            clusters[-1].append(w)
+        else:
+            clusters.append([w])
+    lines = []
+    for cluster in clusters:
+        cluster.sort(key=lambda w: w["x0"])
+        lines.append(" ".join(w["text"] for w in cluster))
+    return lines
+
+
 def extract(pdf_path: str) -> list[dict]:
     records: list[dict] = []
     all_lines: list[tuple[int, str]] = []
@@ -179,9 +196,9 @@ def extract(pdf_path: str) -> list[dict]:
         full_text = "\n".join((p.extract_text() or "") for p in pdf.pages)
         meta = _parse_meta(full_text)
         for page_num, page in enumerate(pdf.pages, start=1):
-            text = page.extract_text() or ""
-            for raw in text.splitlines():
-                s = raw.strip()
+            words = page.extract_words(use_text_flow=False)
+            for line in _words_to_lines(words):
+                s = line.strip()
                 if s:
                     all_lines.append((page_num, s))
 
