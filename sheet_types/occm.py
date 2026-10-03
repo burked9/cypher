@@ -92,6 +92,7 @@ from sheet_types.occm_variants import (
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
+from shared.quality_checks import flag_description_pn_groups
 from shared.text_layer import read_head_text, text_layer_unusable
 
 # Specific-format variants must precede generic ones: detection returns the
@@ -1145,8 +1146,7 @@ async def extract(pdf_path: str, variant_name: str | None = None) -> dict:
 def normalize_and_validate(records: list[dict], variant_name: str = "Aeroflot") -> list[dict]:
     v = _BY_NAME.get(variant_name, aeroflot)
     cleaned = [clean_record(dict(r), v.RULES) for r in records]
-    # Generic post-process: forward-fill ATA chapters across rows. Cheap safety
-    # net for variants where ATA only appears on section headings.
     if "ATA" in v.CANONICAL_COLUMNS:
         forward_fill_ata(cleaned)
+    flag_description_pn_groups(cleaned)
     return cleaned

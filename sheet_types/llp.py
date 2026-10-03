@@ -25,6 +25,7 @@ from sheet_types.llp_variants import (
 )
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
+from shared.quality_checks import flag_description_pn_groups
 from shared.text_layer import read_head_text, text_layer_unusable
 
 VARIANTS = [
@@ -199,7 +200,9 @@ async def extract(pdf_path: str, variant_name: str | None = None) -> dict:
 
 def normalize_and_validate(records: list[dict], variant_name: str = "Vietnam Airlines") -> list[dict]:
     v = _BY_NAME.get(variant_name, vietnam_airlines)
-    return [clean_record(dict(r), v.RULES) for r in records]
+    cleaned = [clean_record(dict(r), v.RULES) for r in records]
+    flag_description_pn_groups(cleaned)
+    return cleaned
 
 
 # Expose CANONICAL_COLUMNS for legacy callers (single-variant convenience).
