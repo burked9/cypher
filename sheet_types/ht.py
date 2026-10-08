@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from sheet_types.ht_variants import (
     vietnam_airlines, amos, mm510, tap, iberia, oases_lifed_components,
-    stars_trax, aircraft_rotables_ht,
+    stars_trax, aircraft_rotables_ht, cca_a340_ht,
     georgian_airways_ht_components_status, mpd_hard_time_list, htll_status,
     hard_time_component_status_mpd_task,
     hard_time_component_status_task_pos_wrapped,
@@ -91,7 +91,8 @@ from shared.text_layer import read_head_text, text_layer_unusable, extract_aircr
 # Order matters: more-specific signatures must precede generic ones.
 # Variants with distinctive headers sit before the AMOS catch-all.
 VARIANTS = [vietnam_airlines, mm510, tap, iberia,
-            oases_lifed_components, stars_trax, aircraft_rotables_ht, amos,
+            oases_lifed_components, stars_trax, cca_a340_ht,
+            aircraft_rotables_ht, amos,
             amos_reference_equipment_list,
             georgian_airways_ht_components_status, mpd_hard_time_list, htll_status,
             hard_time_component_status_mpd_task,
@@ -660,6 +661,14 @@ async def detect_variant(pdf_path: str) -> str:
     for v in VARIANTS:
         for sig in v.SIGNATURES:
             if sig.upper() in head:
+                if _aircraft_filter_ok(v, head):
+                    return v.NAME
+                break
+    head_nospace = "".join(head.split())
+    for v in VARIANTS:
+        for sig in v.SIGNATURES:
+            sig_ns = "".join(sig.upper().split())
+            if len(sig_ns) >= 8 and sig_ns in head_nospace:
                 if _aircraft_filter_ok(v, head):
                     return v.NAME
                 break

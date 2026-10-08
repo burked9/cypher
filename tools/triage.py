@@ -225,6 +225,17 @@ def _detect(text: str, hint_sheet_type: str | None) -> tuple[str, str]:
                     break
             if sheet_type != "Unknown":
                 break
+        if sheet_type == "Unknown":
+            head_nospace = "".join(head.split())
+            for st in ("LLP", "HT", "OCCM"):
+                mod = SHEET_TYPE_MODULES[st]
+                for sig in mod.SIGNATURES:
+                    sig_ns = "".join(sig.upper().split())
+                    if len(sig_ns) >= 8 and sig_ns in head_nospace:
+                        sheet_type = st
+                        break
+                if sheet_type != "Unknown":
+                    break
 
     if sheet_type == "Unknown":
         return "Unknown", "Unknown"
@@ -238,6 +249,16 @@ def _detect(text: str, hint_sheet_type: str | None) -> tuple[str, str]:
                 break
         if variant != "Unknown":
             break
+    if variant == "Unknown":
+        head_nospace = "".join(head.split())
+        for v in mod.VARIANTS:
+            for sig in v.SIGNATURES:
+                sig_ns = "".join(sig.upper().split())
+                if len(sig_ns) >= 8 and sig_ns in head_nospace:
+                    variant = v.NAME
+                    break
+            if variant != "Unknown":
+                break
     return sheet_type, variant
 
 

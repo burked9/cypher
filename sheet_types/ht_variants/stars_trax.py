@@ -31,6 +31,8 @@ from sheet_types.occm_variants._base import merged_rules
 NAME = "STARS Trax HT"
 SIGNATURES = [
     "A/C Detail Items Print",
+    "A/C Status Audit Print",
+    "A/C Status Report",
 ]
 CANONICAL_COLUMNS = [
     "ATA",

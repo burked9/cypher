@@ -516,6 +516,7 @@ SOURCES = [
     "sheet_types/ht_variants/iberia.py",
     "sheet_types/ht_variants/oases_lifed_components.py",
     "sheet_types/ht_variants/stars_trax.py",
+    "sheet_types/ht_variants/cca_a340_ht.py",
     "sheet_types/ht_variants/aircraft_rotables_ht.py",
     # HT variants added from the 2026-08-22 triage-driven build
     "sheet_types/ht_variants/georgian_airways_ht_components_status.py",

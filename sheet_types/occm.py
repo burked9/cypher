@@ -1131,6 +1131,14 @@ async def detect_variant(pdf_path: str) -> str:
                 if _aircraft_filter_ok(v, head):
                     return v.NAME
                 break
+    head_nospace = "".join(head.split())
+    for v in VARIANTS:
+        for sig in v.SIGNATURES:
+            sig_ns = "".join(sig.upper().split())
+            if len(sig_ns) >= 8 and sig_ns in head_nospace:
+                if _aircraft_filter_ok(v, head):
+                    return v.NAME
+                break
     if text_layer_unusable(pdf_path, head=head):
         # No usable text layer -- ask any OCR-capable variant to confirm its
         # own template via a cheap header OCR pass rather than guessing.

@@ -59,6 +59,8 @@ NAME = "STARS Trax OCCM"
 SIGNATURES = [
     "A/C Detail Items Print",
     "A/C Status Audit Print",
+    "A/C Status Report",
+    "A/C ON CONDITION REPORT",
 ]
 
 CANONICAL_COLUMNS = [
