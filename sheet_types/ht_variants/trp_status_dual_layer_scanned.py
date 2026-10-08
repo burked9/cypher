@@ -104,7 +104,6 @@ construction; no name from it is extracted into any field.
 from __future__ import annotations
 import re
 
-from PIL import Image
 
 from sheet_types.ht_variants._base import merged_rules
 from shared.ocr_bridge import render_page, ocr_text, ocr_words, page_count

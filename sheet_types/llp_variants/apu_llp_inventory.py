@@ -1,4 +1,4 @@
-"""APU "LIFE LIMITED PARTS STATUS" sheet -- a per-APU life-limited-parts
+r"""APU "LIFE LIMITED PARTS STATUS" sheet -- a per-APU life-limited-parts
 inventory for a GTCP131-9B-family APU, referencing an Engine Manual chapter
 (e.g. "Engine Manual <chapter> / Revision <n> - <date>"). Confirmed on one
 known real source file: single page, landscape, 0-char text layer (a clean

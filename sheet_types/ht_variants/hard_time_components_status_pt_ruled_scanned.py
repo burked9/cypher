@@ -1,4 +1,4 @@
-"""Latin-American-operator "Hard Time Components Status" report -- born-
+r"""Latin-American-operator "Hard Time Components Status" report -- born-
 scanned, full-page raster PDF, no usable text layer at all (confirmed
 directly: `page.get_text()` returns 0 characters on every page of the
 sample file, and it is otherwise a clean, sharp, ordinary machine-printed

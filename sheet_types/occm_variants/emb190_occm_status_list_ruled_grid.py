@@ -124,7 +124,6 @@ ones -- forcing a strict pattern on fields this noisy would flag OCR noise
 rather than signal.
 """
 from __future__ import annotations
-import re
 
 import numpy as np
 from PIL import Image

@@ -1,4 +1,4 @@
-"""Component Fit List -- born-digital, full text layer, coordinate-bucketed
+r"""Component Fit List -- born-digital, full text layer, coordinate-bucketed
 columns. Confirmed via a direct pdfplumber pass over every page of one real
 sample file (no OCR needed; extract() is synchronous).
 

@@ -134,7 +134,6 @@ def _ocr_page_text(pdf_path: str, page_index: int) -> str:
         import fitz  # pymupdf
         import pytesseract
         from PIL import Image
-        import pandas as pd
     except Exception:
         return ""
 

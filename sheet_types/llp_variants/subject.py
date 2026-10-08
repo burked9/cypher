@@ -21,7 +21,6 @@ The function takes the file's full text + extracted records and returns a
 """
 from __future__ import annotations
 import re
-from typing import Iterable
 
 _ENGINE_MODEL_RE = re.compile(
     r"\b(CFM56|CFM-56|CF34|CF6|GE9X|GEnx|LEAP[\- ]?1[AB]|V2500|V2527|V2533|"

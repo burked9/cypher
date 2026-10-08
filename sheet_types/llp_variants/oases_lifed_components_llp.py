@@ -1,4 +1,4 @@
-"""OASES "Lifed Component Report" -- LLP side.
+r"""OASES "Lifed Component Report" -- LLP side.
 
 Sibling of `ht_variants/oases_lifed_components.py`, which handles this same
 OASES MIS export (`OASES Option : TR42`) for the Hard Time side. Sample

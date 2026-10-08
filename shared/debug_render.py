@@ -9,15 +9,14 @@ Usage from the notebook:
 """
 from __future__ import annotations
 from pathlib import Path
-from typing import Optional
 
 import fitz  # pymupdf
 import pytesseract
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 from levels.L3_ocr.extract import (
     _ocr_page, _cluster_rows, _find_data_rows, _find_right_anchors,
-    FIN_PATTERN, DEFAULT_COLUMNS,
+    FIN_PATTERN,
 )
 
 # One distinct colour per column

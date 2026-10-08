@@ -124,7 +124,7 @@ import re
 import numpy as np
 
 from sheet_types.llp_variants._base import merged_rules
-from shared.ocr_bridge import render_page, ocr_text, ocr_words
+from shared.ocr_bridge import render_page, ocr_text
 
 NAME = "Engine Current Installation Data LLP Status"
 

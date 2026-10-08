@@ -1,4 +1,4 @@
-"""OASES "Lifed Component Report" — HT side.
+r"""OASES "Lifed Component Report" — HT side.
 
 Output of the OASES MIS (`OASES Option : TR42`). Sample header::
 

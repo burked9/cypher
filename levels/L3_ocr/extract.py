@@ -15,7 +15,6 @@ Sheet-type-specific normalization happens in `sheet_types/<type>.py`.
 from __future__ import annotations
 import re
 from typing import Iterator, Optional
-from pathlib import Path
 
 import numpy as np
 import pandas as pd

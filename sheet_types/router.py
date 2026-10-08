@@ -30,7 +30,6 @@ that happen to contain words like "AIRCRAFT REGISTRATION:".
 from __future__ import annotations
 
 from sheet_types import occm, ht, llp
-from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
 from shared.text_layer import read_head_text, text_layer_unusable
 

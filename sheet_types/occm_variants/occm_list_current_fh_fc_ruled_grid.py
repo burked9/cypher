@@ -118,7 +118,6 @@ convention (see `shared/aviation_rules.py`) -- they are left to surface as
 flagged rows for manual review instead.
 """
 from __future__ import annotations
-import re
 
 import numpy as np
 from PIL import Image

@@ -93,8 +93,7 @@ import re
 
 from sheet_types.ht_variants._base import merged_rules
 from sheet_types.ht_variants.mm510_scanned import (
-    _get_page_image, _col_bounds as _sibling_col_bounds,
-    _clean_field as _sibling_clean_field,
+    _get_page_image, _clean_field as _sibling_clean_field,
     _parse_header, _ANCHOR_RE, _FILLABLE,
     _HEADER_FIELDS, _YEN_RE, _CODE_STRIP_CHARS,
 )

@@ -1,4 +1,4 @@
-"""HARD TIME COMPONENTS STATUS REPORT -- scanned "sandwich" PDF (a raster
+r"""HARD TIME COMPONENTS STATUS REPORT -- scanned "sandwich" PDF (a raster
 page image with an old, low-quality OCR text layer baked in underneath),
 needs a fresh per-column-strip OCR pass end to end; the file's own baked-in
 text layer is unusable for row data.
