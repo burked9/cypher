@@ -57,14 +57,7 @@ _ATA_RE = re.compile(r"^\d{1,2}-\d{1,3}-\d{1,2}$")
 # out FIN tokens like `6HL` (no internal dash and shorter than 4 chars
 # in some forms) — but also accepts `9024-15704-2`, `VFT210A1`, etc.
 _PN_LIKELY = re.compile(r"^(?=[A-Z0-9/_-]*[A-Z])(?=[A-Z0-9/_-]*\d)[A-Z0-9/_-]{5,}$")
-# All-digit PN shape (no letters): plain runs like `2758`/`20499005`, or
-# dash-delimited groups like `9024-15704-2`/`802300-14`/`980-6022-001`.
-# This only fires on the leading token position (right after an optional
-# ATA-dash token) — the same position the letter+digit branch above uses
-# — which in this report's layout is always where the record's PN sits,
-# never a bare S/N. Length/segment bounds keep it from over-matching
-# arbitrary short numeric fragments.
-_PN_LIKELY_NUMERIC = re.compile(r"^\d{3,10}$|^\d{2,10}(?:-\d{1,6}){1,2}$")
+_PN_LIKELY_NUMERIC = re.compile(r"^\d{3,10}$|^\d{2,10}(?:-\d{1,6}){1,3}$")
 _DATE_RE = re.compile(r"\b(\d{1,2}[\./]\d{1,2}[\./]\d{2,4})\b")
 _HEADER_SKIP = re.compile(
     r"Print Date|A/C Detail|^Page:|^A/C:\s|Type/Series|Scheduled\s+Actuals|"
@@ -76,6 +69,7 @@ _HEADER_COLS = re.compile(r"ATA\s+P/N.*S/N\s+(Position|Category)\s+(Position|Cat
 # 1-2 digit chapter prefix.  Seen on ATA-25 equipment rows carrying an
 # EASA/FAA AD requirement (e.g. "2018-23-12 AIRBUS").
 _AD_REF_RE = re.compile(r"^\d{4}-\d{1,4}-\d{1,4}$")
+_PN_DASHED_NUMERIC_RESCUE = re.compile(r"^\d{4,10}(?:-\d{1,6}){1,3}$")
 # Known CATEGORY tokens we see in the corpus (used to disambiguate when
 # the header line wasn't captured).
 _CATEGORY_TOKENS = {
@@ -190,6 +184,16 @@ def extract(pdf_path: str) -> list[dict]:
                         ht_idx = j
                         break
                 between = toks[ti + 1:ht_idx] if ht_idx is not None else toks[ti + 1:ti + 3]
+                if len(between) < 2:
+                    i += 1; continue
+                if not pn_shape:
+                    for bi, bt in enumerate(between):
+                        if _PN_DASHED_NUMERIC_RESCUE.match(bt) and not _AD_REF_RE.match(bt):
+                            cur_pn = bt
+                            if bi > 0:
+                                sn = f"{sn} {' '.join(between[:bi])}"
+                            between = between[bi + 1:]
+                            break
                 if len(between) < 2:
                     i += 1; continue
                 has_ad = any(_AD_REF_RE.match(t) for t in between[1:])
