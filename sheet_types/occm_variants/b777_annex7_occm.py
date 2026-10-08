@@ -38,6 +38,7 @@ import pdfplumber
 from sheet_types.occm_variants._base import merged_rules
 
 NAME = "B777 Annex 7 OCCM"
+AIRCRAFT_FILTER = re.compile(r"B777", re.I)
 SIGNATURES = [
     "ANNEX 6:",                  # the document-author typo, very specific
     "B777-300ER Airframe OCCM",

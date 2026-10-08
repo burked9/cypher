@@ -64,6 +64,53 @@ def is_ascii_garbled(text: str) -> bool:
     return (ascii_letters / len(non_space)) < 0.3
 
 
+_TYPE_STOP = (
+    r"(?:\s+(?:Reference|A/C\s+T[TC]|MSN|Registration|TSN|CSN|"
+    r"Serial\s+N|Date|Reg\b)|\s{2,}|\s*$)"
+)
+_AIRCRAFT_TYPE_PATTERNS = [
+    re.compile(r"Aircraft\s+Type:\s*(.+?)" + _TYPE_STOP, re.I | re.M),
+    re.compile(r"A/C\s+Type\s*:\s*(.+?)" + _TYPE_STOP, re.I | re.M),
+    re.compile(r"Type/Series\s*:\s*(.+?)" + _TYPE_STOP, re.I | re.M),
+    re.compile(r"Aircraft\s+Model\s*:\s*(.+?)" + _TYPE_STOP, re.I | re.M),
+    re.compile(r"AIRPLANE\s+MODEL\s*:\s*(.+?)" + _TYPE_STOP, re.I | re.M),
+]
+_FAMILY_RE = re.compile(
+    r"(A3[012345]\d|A2[28]0|B7[0-9]{2}|EMB[\s-]?\d{3}|ERJ[\s-]?\d{3}|"
+    r"CRJ[\s-]?\d{3}|ATR[\s-]?\d{2}|MD[\s-]?\d{2}|DC[\s-]?\d+|"
+    r"737|747|757|767|777|787)",
+    re.I,
+)
+
+
+def extract_aircraft_type(head: str) -> str:
+    """Best-effort aircraft type from PDF header text.  Returns '' if none found."""
+    for pat in _AIRCRAFT_TYPE_PATTERNS:
+        m = pat.search(head)
+        if m:
+            return m.group(1).strip()
+    return ""
+
+
+def extract_aircraft_family(head: str) -> str:
+    """Normalised airframe family (e.g. 'A320', 'B737') from header text."""
+    raw = extract_aircraft_type(head)
+    if raw:
+        m = _FAMILY_RE.search(raw)
+        if m:
+            fam = m.group(1).upper().replace(" ", "").replace("-", "")
+            if fam.isdigit():
+                fam = "B" + fam
+            return fam
+    m = _FAMILY_RE.search(head)
+    if m:
+        fam = m.group(1).upper().replace(" ", "").replace("-", "")
+        if fam.isdigit():
+            fam = "B" + fam
+        return fam
+    return ""
+
+
 def text_layer_unusable(pdf_path: str, head: str | None = None) -> bool:
     """True when the text layer can't be trusted for SIGNATURES matching,
     across every shape of "unusable" confirmed on the real corpus so far."""

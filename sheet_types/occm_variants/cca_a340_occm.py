@@ -28,6 +28,7 @@ SIGNATURES = [
     "OCCM COMPONETS STATUS",       # the distinctive misspelling
     "ITEM ATA DESCRIPTION P/N S/N LOCATION",
 ]
+AIRCRAFT_FILTER = re.compile(r"A340", re.I)
 
 CANONICAL_COLUMNS = [
     "ITEM",

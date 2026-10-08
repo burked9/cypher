@@ -26,7 +26,7 @@ from sheet_types.llp_variants import (
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
 from shared.quality_checks import flag_description_pn_groups
-from shared.text_layer import read_head_text, text_layer_unusable
+from shared.text_layer import read_head_text, text_layer_unusable, extract_aircraft_family
 
 VARIANTS = [
     vietnam_airlines, amos, lan_engine_llp, pro_rata_engine_llp,
@@ -168,12 +168,24 @@ SIGNATURES = [
 ]
 
 
+def _aircraft_filter_ok(variant, head: str) -> bool:
+    filt = getattr(variant, "AIRCRAFT_FILTER", None)
+    if filt is None:
+        return True
+    family = extract_aircraft_family(head)
+    if not family:
+        return True
+    return bool(filt.search(family))
+
+
 async def detect_variant(pdf_path: str) -> str:
     head = read_head_text(pdf_path).upper()
     for v in VARIANTS:
         for sig in v.SIGNATURES:
             if sig.upper() in head:
-                return v.NAME
+                if _aircraft_filter_ok(v, head):
+                    return v.NAME
+                break
     if text_layer_unusable(pdf_path, head=head):
         # No usable text layer -- likely a scanned PDF. Ask any OCR-capable
         # variants to confirm their own template via a cheap header OCR pass

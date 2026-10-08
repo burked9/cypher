@@ -31,7 +31,7 @@ from __future__ import annotations
 
 from sheet_types import occm, ht, llp
 from shared.ocr_bridge import maybe_await
-from shared.text_layer import read_head_text, text_layer_unusable
+from shared.text_layer import read_head_text, text_layer_unusable, extract_aircraft_type, extract_aircraft_family
 
 
 SHEET_TYPES = {
@@ -96,7 +96,7 @@ async def detect_sheet_type(pdf_path: str, has_text_layer: bool | None = None) -
     return "Unknown"
 
 
-async def extract(pdf_path: str) -> dict:
+async def extract(pdf_path: str, has_text_layer: bool | None = None) -> dict:
     """Detect sheet type + variant, run the right parser, return validated rows.
 
     Return shape:
@@ -106,12 +106,18 @@ async def extract(pdf_path: str) -> dict:
           "variant":    "<variant name>",
           "columns":    [...],
           "records":    [{...}, ...],   # cleaned + validated
+          "aircraft_type":   "<raw type string from header>",
+          "aircraft_family": "<normalised family, e.g. A320, B737>",
         }
     """
-    sheet_type = await detect_sheet_type(pdf_path)
+    head = "" if has_text_layer is False else read_head_text(pdf_path)
+    sheet_type = await detect_sheet_type(pdf_path, has_text_layer=has_text_layer)
+    aircraft_type = extract_aircraft_type(head)
+    aircraft_family = extract_aircraft_family(head)
     if sheet_type == "Unknown":
         return {"ok": False, "sheet_type": "Unknown", "variant": "Unknown",
                 "columns": [], "records": [],
+                "aircraft_type": aircraft_type, "aircraft_family": aircraft_family,
                 "error": "Sheet type not recognized — extend signatures in sheet_types/"}
 
     mod = SHEET_TYPES[sheet_type]
@@ -124,4 +130,6 @@ async def extract(pdf_path: str) -> dict:
         "variant": raw["variant"],
         "columns": raw["columns"],
         "records": cleaned,
+        "aircraft_type": aircraft_type,
+        "aircraft_family": aircraft_family,
     }

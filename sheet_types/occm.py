@@ -93,7 +93,7 @@ from sheet_types.occm_variants import (
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
 from shared.quality_checks import flag_description_pn_groups
-from shared.text_layer import read_head_text, text_layer_unusable
+from shared.text_layer import read_head_text, text_layer_unusable, extract_aircraft_family
 
 # Specific-format variants must precede generic ones: detection returns the
 # first match. Specific airframe/operator variants are listed first.
@@ -1112,12 +1112,25 @@ _BY_NAME = {v.NAME: v for v in VARIANTS}
 CANONICAL_COLUMNS = aeroflot.CANONICAL_COLUMNS
 
 
+def _aircraft_filter_ok(variant, head: str) -> bool:
+    """Check variant's optional AIRCRAFT_FILTER against extracted family."""
+    filt = getattr(variant, "AIRCRAFT_FILTER", None)
+    if filt is None:
+        return True
+    family = extract_aircraft_family(head)
+    if not family:
+        return True
+    return bool(filt.search(family))
+
+
 async def detect_variant(pdf_path: str) -> str:
     head = read_head_text(pdf_path).upper()
     for v in VARIANTS:
         for sig in v.SIGNATURES:
             if sig.upper() in head:
-                return v.NAME
+                if _aircraft_filter_ok(v, head):
+                    return v.NAME
+                break
     if text_layer_unusable(pdf_path, head=head):
         # No usable text layer -- ask any OCR-capable variant to confirm its
         # own template via a cheap header OCR pass rather than guessing.
