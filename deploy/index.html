@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <title>Cypher · in-browser PDF table extractor</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Extract structured tables from aviation maintenance PDFs (OCCM, Avionic Inventory, Aircraft Equipment List). Runs in your browser — files never leave your device.">
+  <meta name="description" content="Extract structured tables from aviation maintenance PDFs (OCCM, HT, LLP). Runs in your browser — files never leave your device.">
   <!-- Word-of-mouth distribution: keep this URL out of public search indexes.
        Visitors arriving via a direct link still see the page normally;
        crawlers (Google, Bing, etc.) are asked to skip it. -->
@@ -20,7 +20,7 @@
     </div>
     <h1>Extract tables from aviation maintenance PDFs.</h1>
     <p class="lede">
-      OCCM &middot; Avionic Inventory Listing &middot; Aircraft Equipment List Report.
+      OCCM &middot; HT &middot; LLP &middot; Combined OCCM+HT.
       Auto-detects the format. Validates against aviation-domain rules.
       <strong>Runs entirely in your browser</strong> — your files never leave your device.
     </p>
@@ -78,7 +78,7 @@
       </article>
       <article class="card">
         <h3>Variant-aware</h3>
-        <p>Different operators and MIS systems produce different OCCM layouts. Cypher detects the format from page-1 text and dispatches to a parser tuned for it.</p>
+        <p>Different operators and MIS systems produce different layouts across OCCM, HT, and LLP documents. Cypher detects the format from page-1 text and dispatches to a parser tuned for it.</p>
       </article>
       <article class="card">
         <h3>Soft validation</h3>
@@ -106,7 +106,7 @@
         <strong>Privacy.</strong> No upload, no telemetry, no cookies.
       </div>
       <div>
-        <strong>Built with.</strong> Pyodide, pdfplumber, pdfminer.six.
+        <strong>Built with.</strong> Pyodide, pdfplumber, pdfminer.six, Tesseract.js.
       </div>
     </div>
     <p class="footer-note">Cypher is for component-list extraction from aviation maintenance documents. Generated rows should always be verified by a qualified analyst before any operational use.</p>
