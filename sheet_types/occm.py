@@ -1121,11 +1121,6 @@ async def detect_variant(pdf_path: str) -> str:
     if text_layer_unusable(pdf_path, head=head):
         # No usable text layer -- ask any OCR-capable variant to confirm its
         # own template via a cheap header OCR pass rather than guessing.
-        # This used to default blind to "Aeroflot" (the only OCR variant
-        # when that line was written), which meant ANY blank-text PDF got
-        # confidently mislabeled "Aeroflot" -- including, in practice, a
-        # scanned document that wasn't OCCM at all. Mirrors the same
-        # pattern in sheet_types/llp.py and sheet_types/router.py.
         for v in VARIANTS:
             ocr_check = getattr(v, "ocr_detect", None)
             if ocr_check and await maybe_await(ocr_check(pdf_path)):

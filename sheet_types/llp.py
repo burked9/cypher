@@ -177,10 +177,7 @@ async def detect_variant(pdf_path: str) -> str:
     if text_layer_unusable(pdf_path, head=head):
         # No usable text layer -- likely a scanned PDF. Ask any OCR-capable
         # variants to confirm their own template via a cheap header OCR pass
-        # rather than guessing; each must self-check, there's no blind
-        # default here (unlike occm.py's Aeroflot fallback, which defaults
-        # ANY blank-text PDF to one specific variant -- exactly the mislabel
-        # that sent a real LLP document through as "OCCM . Aeroflot").
+        # rather than guessing.
         for v in VARIANTS:
             ocr_check = getattr(v, "ocr_detect", None)
             if ocr_check and await maybe_await(ocr_check(pdf_path)):

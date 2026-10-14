@@ -39,5 +39,5 @@ CANONICAL_COLUMNS = _remaining_potentials_occm.CANONICAL_COLUMNS
 RULES = _remaining_potentials_occm.RULES
 
 
-def extract(pdf_path: str):
+def extract(pdf_path: str) -> list[dict]:
     return _remaining_potentials_occm.extract(pdf_path)

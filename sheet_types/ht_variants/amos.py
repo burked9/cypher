@@ -40,5 +40,5 @@ CANONICAL_COLUMNS = _amos_occm.CANONICAL_COLUMNS
 RULES = _amos_occm.RULES
 
 
-def extract(pdf_path: str):
+def extract(pdf_path: str) -> list[dict]:
     return _amos_occm.extract(pdf_path)

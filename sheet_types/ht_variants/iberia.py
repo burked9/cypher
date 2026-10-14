@@ -20,5 +20,5 @@ CANONICAL_COLUMNS = _iberia_occm.CANONICAL_COLUMNS
 RULES = _iberia_occm.RULES
 
 
-def extract(pdf_path: str):
+def extract(pdf_path: str) -> list[dict]:
     return _iberia_occm.extract(pdf_path)
