@@ -1,7 +1,7 @@
 """Sample 10 LLP PDFs and run cypher's LLP pipeline. Save CSV/XLSX outputs
 to research/results/llp_sample/."""
 from __future__ import annotations
-import sys, time, random, pathlib, traceback
+import sys, time, random, pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 

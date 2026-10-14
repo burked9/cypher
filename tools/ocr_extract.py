@@ -22,7 +22,6 @@ damage — never silent loss.
 from __future__ import annotations
 import contextlib
 import re
-from pathlib import Path
 
 import pymupdf
 import pytesseract

@@ -18,7 +18,7 @@ def main():
         sys.exit(2)
     path = sys.argv[1]
     try:
-        import fitz   # noqa: import inside function so the import cost is per-process
+        import fitz
         doc = fitz.open(path)
         total = len(doc)
         parts = []

@@ -683,8 +683,6 @@ SKIP_DEPLOY = {
     "shared/io.py",
     "shared/journey.py",
     "shared/pdf_utils.py",
-    "sheet_types/llp_variants/part_m_engine_disk_sheet.py",
-    "sheet_types/llp_variants/subject.py",
 }
 
 

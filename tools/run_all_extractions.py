@@ -11,7 +11,7 @@ Output:
   research/results/extraction_samples.json      { variant: {files: [...], sample: {file, rows} } }
 """
 from __future__ import annotations
-import csv, json, sys, time, pathlib, traceback
+import csv, json, sys, time, pathlib
 from collections import defaultdict
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent

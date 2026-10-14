@@ -198,11 +198,9 @@ $("run").addEventListener("click", async () => {
   hide("empty-state");
 
   try {
-    // Fast pre-check in pdf.js, BEFORE ever touching Pyodide -- avoids a
-    // confirmed multi-minute pdfplumber-under-Pyodide hang on a genuinely
-    // scanned PDF (root cause unidentified). main.run() takes the answer
-    // as `has_text_layer` so it never has to redundantly re-derive it via
-    // the slow path itself.
+    // Fast pre-check via pdf.js — cheaper than pdfplumber under Pyodide
+    // and lets us show an "OCR in progress" status immediately. main.run()
+    // takes the answer as `has_text_layer` to skip its own re-check.
     let hasText = true;
     try {
       const checkBuf = await f.arrayBuffer();
@@ -360,11 +358,8 @@ if (runCombinedBtn) runCombinedBtn.addEventListener("click", async () => {
   hide("empty-state");
 
   try {
-    // Same fast pre-check as the single-PDF path (see its comment for why):
-    // catch a scanned PDF here in under a second rather than let Pyodide
-    // hang on it for minutes, and pass the answer through as a hint --
-    // main.run_combined() still tries in-browser OCR on each file, this
-    // just saves it from re-deriving what JS already knows.
+    // Same fast pdf.js pre-check as the single-PDF path — pass the answer
+    // through so main.run_combined() skips its own re-check.
     let occmHasText = true, htHasText = true;
     try {
       occmHasText = await hasTextLayer(new Uint8Array(await occmFile.arrayBuffer()));
