@@ -60,13 +60,8 @@ async def detect_sheet_type(pdf_path: str, has_text_layer: bool | None = None) -
 
         if has_text_layer is False or not text_layer_unusable(pdf_path, head=head):
             return "Unknown"
-    # No text layer at all -- ask any OCR-capable variant, across every
+    # No usable text layer — ask any OCR-capable variant, across every
     # sheet type, to confirm its own template via a cheap header OCR pass.
-    # This used to default blind to "OCCM" (only Aeroflot fit that when it
-    # was written), which meant a blank-text PDF got labeled OCCM before
-    # variant detection even ran -- exactly what mislabeled a scanned LLP
-    # engine sheet as "OCCM . Aeroflot" in practice. No sheet type is a safe
-    # default for "no text at all"; each variant must self-confirm.
     for st in DETECTION_ORDER:
         mod = SHEET_TYPES[st]
         for variant in getattr(mod, "VARIANTS", []):

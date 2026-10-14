@@ -253,7 +253,8 @@ function render(data, fname) {
   const variant = data.variant || "Unknown";
   const sheetType = data.sheet_type || "Unknown";
   const tagCls = ({ "AMOS": "tag-amos", "Aeroflot": "tag-aero",
-                    "China Eastern": "tag-ce", "Vietnam Airlines": "tag-vie" }[variant]) || "tag-unk";
+                    "CCA A340 OCCM": "tag-cca", "CCA A340 HT": "tag-cca",
+                    "Vietnam Airlines": "tag-vie" }[variant]) || "tag-unk";
   $("variant-info").hidden = false;
   const acType = data.aircraft_type || "";
   const acFamily = data.aircraft_family || "";
