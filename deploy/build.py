@@ -677,6 +677,31 @@ SOURCES = [
     "levels/L3_ocr/extract.py",
 ]
 
+DEPLOY_DIRS = ["shared", "sheet_types", "levels/L1_text", "levels/L3_ocr"]
+SKIP_DEPLOY = {
+    "shared/debug_render.py",
+    "shared/io.py",
+    "shared/journey.py",
+    "shared/pdf_utils.py",
+    "sheet_types/llp_variants/part_m_engine_disk_sheet.py",
+    "sheet_types/llp_variants/subject.py",
+}
+
+
+def _check_completeness(sources_set: set[str]) -> None:
+    """Warn about .py files under deployable dirs not listed in SOURCES."""
+    unlisted: list[str] = []
+    for d in DEPLOY_DIRS:
+        for py in sorted((ROOT / d).rglob("*.py")):
+            rel = str(py.relative_to(ROOT))
+            if rel not in sources_set and rel not in SKIP_DEPLOY:
+                unlisted.append(rel)
+    if unlisted:
+        print(f"\nWARN: {len(unlisted)} .py files under deployable dirs "
+              f"not in SOURCES (add to SOURCES or SKIP_DEPLOY):")
+        for u in unlisted:
+            print(f"  - {u}")
+
 
 def main():
     if TARGET.exists():
@@ -684,16 +709,23 @@ def main():
     TARGET.mkdir(parents=True)
 
     copied: list[str] = []
+    missing: list[str] = []
     for rel in SOURCES:
         src = ROOT / rel
         if not src.exists():
             print(f"  WARN: {rel} missing")
+            missing.append(rel)
             continue
         dst = TARGET / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(src, dst)
         copied.append(rel)
         print(f"  copied {rel}")
+    if missing:
+        print(f"\nERROR: {len(missing)} SOURCES entries not found:")
+        for m in missing:
+            print(f"  - {m}")
+        raise SystemExit(1)
 
     # Optional bundled assets — only copied if present
     optional = [
@@ -724,6 +756,8 @@ def main():
     manifest_path.write_text(json.dumps(manifest, indent=2))
     print(f"\nDone. Mirrored {len(copied)} files into {TARGET.relative_to(ROOT)}/")
     print(f"Manifest: {manifest_path.relative_to(ROOT)} ({len(py_only)} Python modules)")
+
+    _check_completeness(set(SOURCES))
 
 
 if __name__ == "__main__":
