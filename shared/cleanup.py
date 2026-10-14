@@ -18,7 +18,6 @@ sees that the value came from inference, not the source PDF.
 """
 from __future__ import annotations
 import re
-from typing import Tuple, List
 
 
 # Unicode dash variants that PDF writers occasionally emit instead of the
@@ -86,8 +85,8 @@ def get_normalize_counters() -> dict[str, int]:
     return dict(_NORMALIZE_COUNTERS)
 
 
-def clean_cell(value: str, rule: dict | None) -> Tuple[str, List[str]]:
-    issues: List[str] = []
+def clean_cell(value: str, rule: dict | None) -> tuple[str, list[str]]:
+    issues: list[str] = []
     if value is None:
         value = ""
     s = value.strip()
@@ -236,7 +235,7 @@ def forward_fill_ata(records: list[dict], lo: int = 20, hi: int = 83,
     return records
 
 
-def _maybe_check_pn_master(record: dict, issue_bits: List[str]) -> None:
+def _maybe_check_pn_master(record: dict, issue_bits: list[str]) -> None:
     """If a PN master Bloom filter is loaded, add `_pn_known` to the record
     and append `PART_NUMBER:unknown_pn` to issues when the PN isn't recognised.
     Silently no-op when no master is bundled."""
@@ -265,7 +264,7 @@ def clean_record(record: dict, column_rules: dict) -> dict:
     record additionally gets a `_pn_known: True/False` field; PNs that aren't
     in the master appear as `PART_NUMBER:unknown_pn` in `_issues`. With no
     master loaded, this is a silent no-op."""
-    issue_bits: List[str] = []
+    issue_bits: list[str] = []
     for col, val in list(record.items()):
         if col.startswith("_"):
             continue

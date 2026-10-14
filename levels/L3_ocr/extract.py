@@ -14,7 +14,7 @@ Sheet-type-specific normalization happens in `sheet_types/<type>.py`.
 """
 from __future__ import annotations
 import re
-from typing import Iterator, Optional
+from collections.abc import Iterator
 
 import numpy as np
 import pandas as pd
@@ -95,7 +95,7 @@ def _gap_cluster_left(xs: list[int], n_bins: int) -> list[int]:
     return [int(np.median(c)) for c in clusters]
 
 
-def _discover_anchors(all_data_rows: list, columns: list[str]) -> list[Optional[int]]:
+def _discover_anchors(all_data_rows: list, columns: list[str]) -> list[int | None]:
     """
     Strategy:
       - Right-side cols (VENDOR_CODE, PART_NUMBER, SERIAL_NUMBER) come from

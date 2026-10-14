@@ -8,7 +8,7 @@ Returns the same record shape as L3 so the deploy layer can render either.
 """
 from __future__ import annotations
 import re
-from typing import Iterator
+from collections.abc import Iterator
 from io import BytesIO
 
 import pdfplumber

@@ -35,7 +35,6 @@ must surface to the user. The last three are "ask before combining."
 """
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Optional
 import pathlib
 import re
 import sys
@@ -70,8 +69,8 @@ class PairResult:
     status: str                       # see ladder above
     aircraft_key: str = ""            # the agreed key (empty on hard mismatch)
     confidence: str = ""              # 'high' | 'medium' | 'manual_required'
-    occm: Optional[SideInfo] = None
-    ht: Optional[SideInfo] = None
+    occm: SideInfo | None = None
+    ht: SideInfo | None = None
     warnings: list[str] = field(default_factory=list)
 
     @property
@@ -142,7 +141,7 @@ def inspect_side(pdf_path: str) -> SideInfo:
 
 
 def link_pair(occm_pdf: str, ht_pdf: str,
-              manual_override: Optional[str] = None) -> PairResult:
+              manual_override: str | None = None) -> PairResult:
     """Pair the two PDFs. Returns a PairResult describing link status."""
     if manual_override:
         # Caller-supplied key wins unconditionally — still inspect both

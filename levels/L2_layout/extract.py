@@ -5,7 +5,7 @@ when ruled lines are missing or columns are detected by whitespace.
 """
 from __future__ import annotations
 
-from typing import Iterator
+from collections.abc import Iterator
 
 
 def extract_tables(pdf_path: str, page_range: tuple[int, int] | None = None) -> Iterator[list[list[str]]]:

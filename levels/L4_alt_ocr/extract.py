@@ -30,7 +30,7 @@ Rows produced by L4 carry `_source: "L4_paddle"` (or `_source: "L4_easyocr"`)
 so the analyst can filter them in the report.
 """
 from __future__ import annotations
-from typing import Iterator
+from collections.abc import Iterator
 
 
 HOWTO_NOTE = (

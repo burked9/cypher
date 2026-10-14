@@ -47,7 +47,7 @@ import hashlib
 import math
 import struct
 from pathlib import Path
-from typing import Iterable
+from collections.abc import Iterable
 
 MAGIC = b"CYPM"
 VERSION = 1
