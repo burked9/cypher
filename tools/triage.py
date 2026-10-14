@@ -108,6 +108,7 @@ def _is_materialized(path: Path) -> bool:
 
 
 SHEET_TYPE_MODULES = {"OCCM": occm, "HT": ht, "LLP": llp}
+DETECTION_ORDER = ["LLP", "HT", "OCCM"]
 
 
 # ---------------------------------------------------------------------------
@@ -210,15 +211,13 @@ def _detect(text: str, hint_sheet_type: str | None) -> tuple[str, str]:
     uses fitz for speed; both should agree on detection."""
     head = " ".join(text.upper().split()) if text else ""
 
-    _DETECTION_ORDER = ["LLP", "HT", "OCCM"]
-
     if hint_sheet_type and hint_sheet_type in SHEET_TYPE_MODULES:
         sheet_type = hint_sheet_type
     elif not head.strip():
         sheet_type = "Unknown"
     else:
         sheet_type = detect_sheet_type_from_text(
-            head, SHEET_TYPE_MODULES, _DETECTION_ORDER)
+            head, SHEET_TYPE_MODULES, DETECTION_ORDER)
 
     if sheet_type == "Unknown":
         return "Unknown", "Unknown"

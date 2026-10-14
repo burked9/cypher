@@ -106,6 +106,8 @@ async def run(pdf_bytes: bytes, level: str = "auto", has_text_layer: bool | None
             "ok": True,
             "sheet_type": result["sheet_type"],
             "variant": result["variant"],
+            "aircraft_type": result.get("aircraft_type", ""),
+            "aircraft_family": result.get("aircraft_family", ""),
             "columns": result["columns"],
             "rows": [],
             "warning": ("No rows extracted. The document may be an unfamiliar "
