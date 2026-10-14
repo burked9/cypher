@@ -249,9 +249,14 @@ function render(data, fname) {
   const tagCls = ({ "AMOS": "tag-amos", "Aeroflot": "tag-aero",
                     "China Eastern": "tag-ce", "Vietnam Airlines": "tag-vie" }[variant]) || "tag-unk";
   $("variant-info").hidden = false;
+  const acType = data.aircraft_type || "";
+  const acFamily = data.aircraft_family || "";
+  const acLabel = acType ? ` &middot; Aircraft: <strong>${escapeHtml(acType)}</strong>` +
+    (acFamily && acFamily !== acType ? ` (${escapeHtml(acFamily)})` : "") : "";
   $("variant-info").innerHTML =
     `Sheet type: <strong>${escapeHtml(sheetType)}</strong> &middot; ` +
-    `Variant: <span class="tag ${tagCls}">${escapeHtml(variant)}</span>`;
+    `Variant: <span class="tag ${tagCls}">${escapeHtml(variant)}</span>` +
+    acLabel;
 
   // Warning case — usually "unsupported/unrecognized format" or "zero rows",
   // which for the user is functionally the same as "it didn't run".

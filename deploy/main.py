@@ -13,11 +13,9 @@ pytesseract can run there). Non-OCR variants are untouched, plain sync
 functions underneath — router.py awaits either kind transparently.
 
 `has_text_layer`, when app.js has already run its own fast pdf.js-based
-check (see ocr_bridge.js's hasTextLayer()), lets this skip redoing that
-check via pdfplumber — which is the one confirmed-slow operation on a
-genuinely scanned PDF (2.5+ minutes observed on files as small as 89KB,
-root cause not identified). Pass None (the default) to have this run its
-own check, for callers that haven't already done it.
+check (see ocr_bridge.js's hasTextLayer()), lets this skip the redundant
+pdfplumber-based text-layer check. Pass None (the default) to have this
+run its own check, for callers that haven't already done it.
 
 L4 (PaddleOCR) is intentionally not in the deploy — too heavy. The user
 runs `research/colab_L4_paddleocr.ipynb` on demand for fringe cases.
@@ -52,12 +50,9 @@ def _save_temp(pdf_bytes: bytes, original_name: str | None = None) -> str:
 
 
 def _has_no_text_layer(pdf_path: str, n_pages: int = 3, threshold: int = 50) -> bool:
-    """Backup check only. app.js already runs a fast pdf.js-based check
-    (see hasTextLayer() in ocr_bridge.js) before ever calling into Pyodide,
-    specifically because THIS check can itself take minutes under Pyodide
-    on a genuinely scanned PDF (root cause not identified). This still
-    exists for callers that reach main.run() without going through that
-    JS pre-check, or if it ever fails open."""
+    """Backup check for callers that reach run() without going through
+    app.js's fast pdf.js-based pre-check (hasTextLayer() in ocr_bridge.js),
+    or if that check fails open."""
     try:
         with pdfplumber.open(pdf_path) as pdf:
             n_chars = sum(len(p.chars) for p in pdf.pages[:n_pages])
@@ -130,6 +125,8 @@ async def run(pdf_bytes: bytes, level: str = "auto", has_text_layer: bool | None
         "ok": True,
         "sheet_type": result["sheet_type"],
         "variant": result["variant"],
+        "aircraft_type": result.get("aircraft_type", ""),
+        "aircraft_family": result.get("aircraft_family", ""),
         "columns": columns,
         "rows": rows,
         "summary": {
@@ -185,25 +182,25 @@ async def _extract_one(pdf_bytes: bytes, expected_sheet: str, filename: str | No
         cleaned = mod.normalize_and_validate(raw["records"], variant_name=variant)
     except Exception as e:
         return {"ok": False, "error": f"Extraction failed: {e}", "path": path}
-    result = {
-        "ok": True, "sheet_type": expected_sheet, "variant": variant,
-        "columns": raw["columns"], "records": cleaned,
-    }
-    if not result.get("ok"):
-        return {"ok": False, "error": result.get("error", "Unknown error"),
-                "path": path}
-    rows_in = result.get("records") or []
-    columns = list(result["columns"]) + ["_issues", "_page"]
+    rows_in = cleaned or []
+    columns = list(raw["columns"]) + ["_issues", "_page"]
     rows = [{c: ("" if r.get(c) is None else str(r.get(c, "")))
              for c in columns} for r in rows_in]
     return {
         "ok": True,
         "path": path,
-        "sheet_type": result["sheet_type"],
-        "variant": result["variant"],
+        "sheet_type": expected_sheet,
+        "variant": variant,
         "columns": columns,
         "rows": rows,
     }
+
+
+COMBINED_COLUMNS = [
+    "aircraft_key", "family", "ata", "position", "slot_coverage",
+    "occm_part_number", "occm_serial_number", "occm_description",
+    "ht_part_number", "ht_serial_number", "ht_description",
+]
 
 
 def _build_combined_slots(occm_rows: list[dict], ht_rows: list[dict],
@@ -329,11 +326,7 @@ async def run_combined(occm_bytes: bytes, ht_bytes: bytes,
         "ht":   {"variant": ht["variant"],   "columns": ht["columns"],
                  "rows": ht["rows"]},
         "combined": {
-            "columns": ["aircraft_key", "family", "ata", "position",
-                        "slot_coverage", "occm_part_number",
-                        "occm_serial_number", "occm_description",
-                        "ht_part_number", "ht_serial_number",
-                        "ht_description"],
+            "columns": COMBINED_COLUMNS,
             "rows": combined,
             "coverage": coverage_counts,
         },
