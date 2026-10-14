@@ -28,7 +28,7 @@ from __future__ import annotations
 # sqlite3 module, and shared/pairing.py imports `derive_aircraft_key`
 # from here — a top-level sqlite3 import would break the in-browser
 # combined mode even though it never runs build().
-import csv, re, pathlib, sys
+import csv, re, pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 BY_PDF = ROOT / "research/results/by_pdf"

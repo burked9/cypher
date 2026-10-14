@@ -13,7 +13,7 @@ Output:
     header_snippet so they can be reviewed/matched by hand.
 """
 from __future__ import annotations
-import csv, io, re, os, pathlib, sys
+import csv, io, re, pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 EVALSP = pathlib.Path("research/test_pdfs/evalsp")
