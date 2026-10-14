@@ -32,6 +32,7 @@ from __future__ import annotations
 from sheet_types import occm, ht, llp
 from shared.ocr_bridge import maybe_await
 from shared.text_layer import read_head_text, text_layer_unusable, extract_aircraft_type, extract_aircraft_family
+from shared.variant_detection import detect_sheet_type_from_text
 
 
 SHEET_TYPES = {
@@ -46,57 +47,16 @@ DETECTION_ORDER = ["LLP", "HT", "OCCM"]
 async def detect_sheet_type(pdf_path: str, has_text_layer: bool | None = None) -> str:
     """Return 'OCCM' / 'HT' / 'LLP' / 'Unknown' based on first-pages text.
 
-    `has_text_layer=False` skips the pdfplumber-based head-text read below
-    entirely — that read is the confirmed-slow operation on a genuinely
-    scanned PDF under Pyodide (minutes, root cause unidentified), and a
-    caller that already knows the answer (deploy/main.py, via app.js's own
-    fast pdf.js-based check) shouldn't pay that cost redundantly just to
-    re-derive "no text layer" a second time before falling through to the
-    exact same OCR loop below anyway."""
+    `has_text_layer=False` skips the pdfplumber-based head-text read
+    entirely — a caller that already knows the answer (deploy/main.py,
+    via app.js's own fast pdf.js-based check) shouldn't pay that cost
+    redundantly just to re-derive "no text layer" a second time before
+    falling through to the exact same OCR loop below anyway."""
     head = "" if has_text_layer is False else read_head_text(pdf_path).upper()
     if head.strip():
-        for st in DETECTION_ORDER:
-            mod = SHEET_TYPES[st]
-            for sig in mod.SIGNATURES:
-                if sig.upper() in head:
-                    return st
-        head_nospace = "".join(head.split())
-        for st in DETECTION_ORDER:
-            mod = SHEET_TYPES[st]
-            for sig in mod.SIGNATURES:
-                sig_ns = "".join(sig.upper().split())
-                if len(sig_ns) >= 8 and sig_ns in head_nospace:
-                    return st
-        # Variant-level SIGNATURES fallback: some MIS tools (MM_510,
-        # STARS/Trax, OASES) produce headers that match variant SIGNATURES
-        # across multiple sheet types — those phrases are deliberately
-        # excluded from the top-level lists to avoid false positives there.
-        # Before giving up, check every variant's own SIGNATURES.
-        matched_types = set()
-        for st in DETECTION_ORDER:
-            mod = SHEET_TYPES[st]
-            for variant in getattr(mod, "VARIANTS", []):
-                for sig in variant.SIGNATURES:
-                    if sig.upper() in head:
-                        matched_types.add(st)
-                        break
-                if st in matched_types:
-                    break
-        if not matched_types:
-            for st in DETECTION_ORDER:
-                mod = SHEET_TYPES[st]
-                for variant in getattr(mod, "VARIANTS", []):
-                    for sig in variant.SIGNATURES:
-                        sig_ns = "".join(sig.upper().split())
-                        if len(sig_ns) >= 8 and sig_ns in head_nospace:
-                            matched_types.add(st)
-                            break
-                    if st in matched_types:
-                        break
-        if matched_types:
-            for st in DETECTION_ORDER:
-                if st in matched_types:
-                    return st
+        st = detect_sheet_type_from_text(head, SHEET_TYPES, DETECTION_ORDER)
+        if st != "Unknown":
+            return st
 
         if has_text_layer is False or not text_layer_unusable(pdf_path, head=head):
             return "Unknown"

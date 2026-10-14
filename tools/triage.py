@@ -70,8 +70,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 import fitz  # pymupdf — fast for first-page text + page count
-from sheet_types import router, occm, ht, llp
-from shared.variant_detection import match_variant_by_signatures
+from sheet_types import occm, ht, llp
+from shared.variant_detection import match_variant_by_signatures, detect_sheet_type_from_text
 from levels.L1_text.extract import _is_data_row
 
 
@@ -210,33 +210,15 @@ def _detect(text: str, hint_sheet_type: str | None) -> tuple[str, str]:
     uses fitz for speed; both should agree on detection."""
     head = " ".join(text.upper().split()) if text else ""
 
-    # Sheet type: explicit hint wins; else fall back to signature matching;
-    # else default OCCM (matches the existing router default).
+    _DETECTION_ORDER = ["LLP", "HT", "OCCM"]
+
     if hint_sheet_type and hint_sheet_type in SHEET_TYPE_MODULES:
         sheet_type = hint_sheet_type
     elif not head.strip():
-        sheet_type = "OCCM"   # likely Aeroflot-style scanned
-    else:
         sheet_type = "Unknown"
-        for st in ("LLP", "HT", "OCCM"):
-            mod = SHEET_TYPE_MODULES[st]
-            for sig in mod.SIGNATURES:
-                if sig.upper() in head:
-                    sheet_type = st
-                    break
-            if sheet_type != "Unknown":
-                break
-        if sheet_type == "Unknown":
-            head_nospace = "".join(head.split())
-            for st in ("LLP", "HT", "OCCM"):
-                mod = SHEET_TYPE_MODULES[st]
-                for sig in mod.SIGNATURES:
-                    sig_ns = "".join(sig.upper().split())
-                    if len(sig_ns) >= 8 and sig_ns in head_nospace:
-                        sheet_type = st
-                        break
-                if sheet_type != "Unknown":
-                    break
+    else:
+        sheet_type = detect_sheet_type_from_text(
+            head, SHEET_TYPE_MODULES, _DETECTION_ORDER)
 
     if sheet_type == "Unknown":
         return "Unknown", "Unknown"
