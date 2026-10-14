@@ -86,15 +86,23 @@ await micropip.install(["pdfplumber==0.9.0"])
   const manifest = await manifestResp.json();
   PY_FILES = [...manifest.files, manifest.main_entry];
 
-  for (const entry of PY_FILES) {
-    const content = await fetchText(entry.fetch);
+  // Fetch all modules in parallel (batched) then mount them.
+  const BATCH = 30;
+  const fetched = new Array(PY_FILES.length);
+  for (let start = 0; start < PY_FILES.length; start += BATCH) {
+    const batch = PY_FILES.slice(start, start + BATCH);
+    const results = await Promise.all(batch.map((e) => fetchText(e.fetch)));
+    for (let i = 0; i < results.length; i++) fetched[start + i] = results[i];
+  }
+  for (let i = 0; i < PY_FILES.length; i++) {
+    const entry = PY_FILES[i];
     const parts = entry.mount.split("/");
     let dir = "/home/pyodide";
-    for (let i = 0; i < parts.length - 1; i++) {
-      dir += "/" + parts[i];
+    for (let j = 0; j < parts.length - 1; j++) {
+      dir += "/" + parts[j];
       try { pyodide.FS.mkdir(dir); } catch (_) { /* exists */ }
     }
-    pyodide.FS.writeFile(`/home/pyodide/${entry.mount}`, content);
+    pyodide.FS.writeFile(`/home/pyodide/${entry.mount}`, fetched[i]);
   }
 
   // If a Bloom filter binary is shipped, copy it into Pyodide's filesystem
