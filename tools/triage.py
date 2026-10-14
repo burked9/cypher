@@ -71,7 +71,7 @@ sys.path.insert(0, str(ROOT))
 
 import fitz  # pymupdf — fast for first-page text + page count
 from sheet_types import router, occm, ht, llp
-from shared.text_layer import extract_aircraft_family
+from shared.variant_detection import match_variant_by_signatures
 from levels.L1_text.extract import _is_data_row
 
 
@@ -108,16 +108,6 @@ def _is_materialized(path: Path) -> bool:
 
 
 SHEET_TYPE_MODULES = {"OCCM": occm, "HT": ht, "LLP": llp}
-
-
-def _aircraft_filter_ok(variant, head: str) -> bool:
-    filt = getattr(variant, "AIRCRAFT_FILTER", None)
-    if filt is None:
-        return True
-    family = extract_aircraft_family(head)
-    if not family:
-        return True
-    return bool(filt.search(family))
 
 
 # ---------------------------------------------------------------------------
@@ -252,26 +242,8 @@ def _detect(text: str, hint_sheet_type: str | None) -> tuple[str, str]:
         return "Unknown", "Unknown"
 
     mod = SHEET_TYPE_MODULES[sheet_type]
-    variant = "Unknown"
-    for v in mod.VARIANTS:
-        for sig in v.SIGNATURES:
-            if sig.upper() in head:
-                if _aircraft_filter_ok(v, head):
-                    variant = v.NAME
-                break
-        if variant != "Unknown":
-            break
-    if variant == "Unknown":
-        head_nospace = "".join(head.split())
-        for v in mod.VARIANTS:
-            for sig in v.SIGNATURES:
-                sig_ns = "".join(sig.upper().split())
-                if len(sig_ns) >= 8 and sig_ns in head_nospace:
-                    if _aircraft_filter_ok(v, head):
-                        variant = v.NAME
-                    break
-            if variant != "Unknown":
-                break
+    matched = match_variant_by_signatures(mod.VARIANTS, head)
+    variant = matched.NAME if matched else "Unknown"
     return sheet_type, variant
 
 

@@ -26,7 +26,8 @@ from sheet_types.llp_variants import (
 from shared.cleanup import clean_record
 from shared.ocr_bridge import maybe_await
 from shared.quality_checks import flag_description_pn_groups
-from shared.text_layer import read_head_text, text_layer_unusable, extract_aircraft_family
+from shared.text_layer import read_head_text, text_layer_unusable
+from shared.variant_detection import match_variant_by_signatures
 
 VARIANTS = [
     vietnam_airlines, amos, lan_engine_llp, pro_rata_engine_llp,
@@ -168,32 +169,11 @@ SIGNATURES = [
 ]
 
 
-def _aircraft_filter_ok(variant, head: str) -> bool:
-    filt = getattr(variant, "AIRCRAFT_FILTER", None)
-    if filt is None:
-        return True
-    family = extract_aircraft_family(head)
-    if not family:
-        return True
-    return bool(filt.search(family))
-
-
 async def detect_variant(pdf_path: str) -> str:
     head = read_head_text(pdf_path).upper()
-    for v in VARIANTS:
-        for sig in v.SIGNATURES:
-            if sig.upper() in head:
-                if _aircraft_filter_ok(v, head):
-                    return v.NAME
-                break
-    head_nospace = "".join(head.split())
-    for v in VARIANTS:
-        for sig in v.SIGNATURES:
-            sig_ns = "".join(sig.upper().split())
-            if len(sig_ns) >= 8 and sig_ns in head_nospace:
-                if _aircraft_filter_ok(v, head):
-                    return v.NAME
-                break
+    matched = match_variant_by_signatures(VARIANTS, head)
+    if matched:
+        return matched.NAME
     if text_layer_unusable(pdf_path, head=head):
         # No usable text layer -- likely a scanned PDF. Ask any OCR-capable
         # variants to confirm their own template via a cheap header OCR pass

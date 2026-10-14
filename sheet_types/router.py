@@ -60,6 +60,13 @@ async def detect_sheet_type(pdf_path: str, has_text_layer: bool | None = None) -
             for sig in mod.SIGNATURES:
                 if sig.upper() in head:
                     return st
+        head_nospace = "".join(head.split())
+        for st in DETECTION_ORDER:
+            mod = SHEET_TYPES[st]
+            for sig in mod.SIGNATURES:
+                sig_ns = "".join(sig.upper().split())
+                if len(sig_ns) >= 8 and sig_ns in head_nospace:
+                    return st
         # Variant-level SIGNATURES fallback: some MIS tools (MM_510,
         # STARS/Trax, OASES) produce headers that match variant SIGNATURES
         # across multiple sheet types — those phrases are deliberately
@@ -72,6 +79,19 @@ async def detect_sheet_type(pdf_path: str, has_text_layer: bool | None = None) -
                 for sig in variant.SIGNATURES:
                     if sig.upper() in head:
                         matched_types.add(st)
+                        break
+                if st in matched_types:
+                    break
+        if not matched_types:
+            for st in DETECTION_ORDER:
+                mod = SHEET_TYPES[st]
+                for variant in getattr(mod, "VARIANTS", []):
+                    for sig in variant.SIGNATURES:
+                        sig_ns = "".join(sig.upper().split())
+                        if len(sig_ns) >= 8 and sig_ns in head_nospace:
+                            matched_types.add(st)
+                            break
+                    if st in matched_types:
                         break
         if matched_types:
             for st in DETECTION_ORDER:
