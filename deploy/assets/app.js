@@ -1,8 +1,8 @@
 // Cypher — Pyodide bootstrap and UI wiring.
 //
-// Loads Pyodide, installs pdfplumber + pymupdf via micropip, mounts our Python
-// modules into the Pyodide virtual filesystem, then routes PDF bytes through
-// main.run() which auto-detects the OCCM variant and dispatches.
+// Loads Pyodide, installs pdfplumber via micropip, mounts our Python modules
+// into the Pyodide virtual filesystem, then routes PDF bytes through
+// main.run() which auto-detects the sheet type and variant and dispatches.
 
 import { hasTextLayer } from "./ocr_bridge.js?__CACHE_BUST__";
 
