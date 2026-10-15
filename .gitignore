@@ -41,10 +41,11 @@ env/
 # Jupyter
 .ipynb_checkpoints/
 
-# Editor / OS
+# Editor / OS / AI tooling
 .DS_Store
 .vscode/
 .idea/
+.claude/
 *.swp
 *~
 
