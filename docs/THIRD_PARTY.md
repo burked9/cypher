@@ -26,8 +26,12 @@ PyMuPDF is AGPL-3.0 and is therefore used **only in local research tooling** (th
 |---------|---------|-------|
 | [Pyodide](https://github.com/pyodide/pyodide) | MPL-2.0 | Python-in-WASM runtime |
 | pdfplumber 0.9.0 | MIT | Pinned: 0.10+ requires `pypdfium2`, which has no Pyodide-compatible wheel |
-| pdfminer.six | MIT | Transitive |
+| pdfminer.six | MIT | Transitive (via pdfplumber) |
 | Pillow | MIT-CMU | Bundled in Pyodide |
+| numpy | BSD-3-Clause | Bundled in Pyodide; used by L3 OCR column-projection |
+| pandas | BSD-3-Clause | Bundled in Pyodide |
+| [pdf.js](https://github.com/nicbarker/pdfjs-dist) | Apache-2.0 | PDF rendering for text-layer checks and OCR page rendering |
+| [Tesseract.js](https://github.com/naptha/tesseract.js) | Apache-2.0 | In-browser OCR engine; loaded on demand for scanned PDFs |
 
 ## L4 (Colab notebook) — optional
 
