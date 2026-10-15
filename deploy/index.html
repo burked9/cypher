@@ -63,11 +63,12 @@
           <span id="ht-picker-label">Choose HT PDF</span>
         </label>
         <input type="text" id="manual-key" class="manual-key"
-               placeholder="(optional) aircraft_key override">
+               placeholder="(optional) aircraft_key override"
+               aria-label="Aircraft key override">
         <button id="run-combined" disabled>Pair &amp; Extract</button>
       </div>
 
-      <p class="status" id="status">Loading the runtime…</p>
+      <p class="status" id="status" aria-live="polite">Loading the runtime…</p>
     </section>
 
     <!-- Empty state — three info cards (replaced when a result lands) -->
@@ -88,7 +89,7 @@
 
     <!-- Result panels — hidden until extraction completes -->
     <section id="variant-info" class="panel info-panel" hidden></section>
-    <section id="summary"      class="panel info-panel" hidden></section>
+    <section id="summary"      class="panel info-panel" hidden aria-live="polite"></section>
     <section id="downloads"    class="panel downloads"  hidden>
       <a id="download-csv" download="cypher_extract.csv">↓ Download CSV</a>
     </section>

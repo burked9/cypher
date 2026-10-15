@@ -290,11 +290,11 @@ function render(data, fname) {
   const rows = data.rows;
   const tableId = "results-table";
   let html = `<div class="table-controls">
-    <input type="text" class="search-box" placeholder="Filter rows…" oninput="filterTable(this.value)">
+    <input type="text" class="search-box" placeholder="Filter rows…" aria-label="Filter table rows" oninput="filterTable(this.value)">
     <label><input type="checkbox" onchange="toggleFlagged(this.checked)"> Flagged only</label>
     <span class="row-count" id="row-count">${rows.length} rows shown</span>
   </div><div class="table-scroll"><table id="${tableId}"><thead><tr>`;
-  for (const c of cols) html += `<th>${escapeHtml(c)}</th>`;
+  for (const c of cols) html += `<th scope="col">${escapeHtml(c)}</th>`;
   html += "</tr></thead><tbody>";
   for (const r of rows) {
     const flagged = r._issues ? "flagged" : "";
@@ -485,7 +485,7 @@ function _renderPerSheetTabs(data) {
 
 function _buildResultsTable(cols, rows, id) {
   let html = `<div class="table-scroll"><table id="${id}"><thead><tr>`;
-  for (const c of cols) html += `<th>${escapeHtml(c)}</th>`;
+  for (const c of cols) html += `<th scope="col">${escapeHtml(c)}</th>`;
   html += "</tr></thead><tbody>";
   for (const r of rows) {
     const flagged = r._issues ? "flagged" : "";
