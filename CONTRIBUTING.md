@@ -1,10 +1,10 @@
 # Contributing
 
-Cypher is open source under the MIT license. Contributions are welcome — particularly new OCCM variants and rule refinements driven by real documents.
+Cypher is open source under the MIT license. Contributions are welcome — particularly new variants and rule refinements driven by real documents.
 
-## How OCCMs vary
+## How documents vary
 
-OCCMs are produced by different MIS software (AMOS, AMASIS, TRAX, in-house tools) and differ between operators and airframe manufacturers. A single hard-coded column schema does not generalize. Cypher's design treats each format as a **variant**, with one file per variant under `sheet_types/occm_variants/`.
+Aviation maintenance documents (OCCM, HT, LLP) are produced by different MIS software (AMOS, AMASIS, TRAX, OASES, in-house tools) and differ between operators and airframe manufacturers. A single hard-coded column schema does not generalize. Cypher's design treats each format as a **variant**, with one file per variant under `sheet_types/<type>_variants/` (where `<type>` is `occm`, `ht`, or `llp`).
 
 ## Adding a variant — quick recipe
 
@@ -13,7 +13,7 @@ OCCMs are produced by different MIS software (AMOS, AMASIS, TRAX, in-house tools
 3. Inspect what the text layer or OCR returns, then create a new module:
 
 ```python
-# sheet_types/occm_variants/example.py
+# sheet_types/occm_variants/example.py  (or ht_variants/ or llp_variants/)
 from sheet_types.occm_variants._base import merged_rules
 
 NAME = "Example Operator"
@@ -29,7 +29,7 @@ def extract(pdf_path: str) -> list[dict]:
     ...
 ```
 
-4. Register it in `sheet_types/occm.py:VARIANTS`.
+4. Register it in the matching router's `VARIANTS` list (e.g. `sheet_types/occm.py:VARIANTS`).
 5. Run `research/workbook.ipynb` to verify.
 6. Run `python deploy/build.py` to mirror your new variant into the static deploy.
 

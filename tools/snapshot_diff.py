@@ -40,7 +40,7 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
-from typing import Iterable
+from collections.abc import Iterable
 
 # Allow running from project root with `python tools/snapshot_diff.py`
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))

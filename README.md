@@ -1,6 +1,6 @@
 # Cypher
 
-In-browser PDF table extractor for aviation maintenance documents (OCCM and adjacent inventory listings such as Aircraft Equipment List Reports and Avionic Inventory Listings).
+In-browser PDF table extractor for aviation maintenance documents — OCCM (On Condition / Condition Monitored), HT (Hard Time), and LLP (Life Limited Parts) sheets.
 
 PDFs are processed entirely client-side via [Pyodide](https://pyodide.org/) — nothing is uploaded to a server. The deployed page is a single static site suitable for GitHub Pages.
 
@@ -17,7 +17,7 @@ exposing `NAME`, `SIGNATURES`, `CANONICAL_COLUMNS`, `RULES`, and `extract(pdf_pa
 |-------|----------|---------|--------|
 | L1 | Text-layer line parsing | [`pdfplumber`](https://github.com/jsvine/pdfplumber) | ✅ |
 | L2 | Layout-aware (word coordinates) | `pdfplumber` word boxes | ⏳ reserved |
-| L3 | OCR | [Tesseract](https://github.com/tesseract-ocr/tesseract) (locally) | ✅ local · 🚧 in-browser TODO |
+| L3 | OCR | [Tesseract](https://github.com/tesseract-ocr/tesseract) (locally), [Tesseract.js](https://github.com/naptha/tesseract.js) (in-browser) | ✅ local · ✅ in-browser (Aeroflot) |
 | L4 | Alternative OCR | [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) `PP-Structure` | 🔬 Colab notebook |
 | L5 | Layout-aware structured extraction | [docling](https://github.com/docling-project/docling) (TableFormer + layout-analysis ML) | 🔬 Colab notebook — recon in progress |
 
@@ -34,8 +34,11 @@ cypher/
 │   └── decisions.md           detailed design and decisions log
 ├── shared/                    rules, validation, journey tracking
 ├── sheet_types/
-│   ├── occm.py                variant router
-│   └── occm_variants/         one file per OCCM variant
+│   ├── router.py              top-level sheet-type dispatcher
+│   ├── occm.py / ht.py / llp.py   per-type variant routers
+│   ├── occm_variants/         one file per OCCM variant
+│   ├── ht_variants/           one file per HT variant
+│   └── llp_variants/          one file per LLP variant
 ├── levels/                    L1 / L2 / L3 / L4 extractors
 ├── research/
 │   ├── workbook.ipynb         analyst notebook
@@ -71,21 +74,18 @@ Tesseract must be installed at the OS level for L3 (`brew install tesseract` on 
 ### Process a PDF
 
 ```bash
-.venv/bin/python -c "
-import sys, pathlib, pandas as pd, fitz
+~/.venvs/cypher/bin/python -c "
+import asyncio, sys, pathlib, pandas as pd
 sys.path.insert(0, str(pathlib.Path.cwd()))
-from sheet_types import occm
-from shared.journey import record_run
+from sheet_types.router import extract
 
 pdf = 'research/test_pdfs/your_file.pdf'
-variant = occm.detect_variant(pdf)
-result = occm.extract(pdf, variant_name=variant)
-cleaned = occm.normalize_and_validate(result['records'], variant_name=variant)
-df = pd.DataFrame(cleaned)
-df.to_csv(f'research/results/by_pdf/{pathlib.Path(pdf).stem}_L1.csv', index=False)
-df.to_excel(f'research/results/by_pdf/{pathlib.Path(pdf).stem}_L1.xlsx', index=False)
-record_run(pdf, variant, df, len(fitz.open(pdf)))
-print(f'{variant}: {len(df)} rows')
+result = asyncio.run(extract(pdf))
+df = pd.DataFrame(result['records'])
+stem = pathlib.Path(pdf).stem
+df.to_csv(f'research/results/by_pdf/{stem}_L1.csv', index=False)
+df.to_excel(f'research/results/by_pdf/{stem}_L1.xlsx', index=False)
+print(f'{result[\"sheet_type\"]} · {result[\"variant\"]}: {len(df)} rows')
 "
 ```
 
@@ -107,8 +107,9 @@ python3 -m http.server 8765
 ## Deploy to GitHub Pages
 
 1. Push the repository to GitHub.
-2. **Settings → Pages**: select the branch, set folder to `/deploy`.
-3. The site is live at `https://<user>.github.io/<repo>/` within a minute.
+2. **Settings → Pages → Source**: select **GitHub Actions** (not the branch-based option).
+3. The `.github/workflows/pages.yml` workflow runs `python3 deploy/build.py` on every push to main, mirrors source modules into `deploy/_pymods/`, and deploys the `deploy/` directory.
+4. The site is live at `https://<user>.github.io/<repo>/` within a minute.
 
 The deploy uses Pyodide; first load installs `pdfplumber==0.9.0` (last release before `pypdfium2` became required — Pyodide can't resolve `pypdfium2`'s C extensions). All subsequent visits use the cached install.
 
@@ -160,9 +161,10 @@ individual airframes without touching code.
 
 Cypher's downstream output is a SQLite database keyed on extracted rows:
 
-- `positions` — base fact table (one row per component-instance per source file)
+- `positions` — base fact table (one row per component-instance per source file, `sheet_type` column tags OCCM/HT/LLP)
 - `distinct_positions` view — `(aircraft_key, position)` deduplication; the "slot skeleton"
 - `current_fit` view — latest snapshot per `(aircraft_key, position)` ordered by `report_date_iso DESC`
+- `cross_sheet_slot` view — OCCM+HT side-by-side per slot (input contract for combined mode / Sextant)
 - `position_history` view — full occupancy timeline per slot
 
 Schema is documented in `docs/positions_schema.md`.
@@ -170,8 +172,8 @@ Schema is documented in `docs/positions_schema.md`.
 ## Adding a variant
 
 1. Drop a representative PDF in `research/test_pdfs/`.
-2. Add `sheet_types/occm_variants/<name>.py` exposing `NAME`, `SIGNATURES`, `CANONICAL_COLUMNS`, `RULES`, and `extract()`.
-3. Register it in `sheet_types/occm.py:VARIANTS`.
+2. Add `sheet_types/<type>_variants/<name>.py` (where `<type>` is `occm`, `ht`, or `llp`) exposing `NAME`, `SIGNATURES`, `CANONICAL_COLUMNS`, `RULES`, and `extract()`.
+3. Register it in `sheet_types/<type>.py:VARIANTS`.
 4. Run the workbook to verify, then `python deploy/build.py` to mirror into the static deploy.
 
 See `CONTRIBUTING.md` and `docs/decisions.md` for details.

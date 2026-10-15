@@ -50,7 +50,6 @@ import argparse
 import pathlib
 import sqlite3
 import sys
-from typing import Optional
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 # Make sibling packages (`shared`, `tools` itself) importable when invoked
@@ -159,7 +158,7 @@ def export_airframe(conn: sqlite3.Connection, aircraft_key: str,
 
 
 def _resolve_pair_mode(occm_pdf: str, ht_pdf: str,
-                       manual_key: Optional[str]) -> Optional[str]:
+                       manual_key: str | None) -> str | None:
     """Run link_pair() on the two PDFs; return the agreed aircraft_key
     (or None to abort). Prints a short summary so the analyst sees the
     pairing decision before the export runs."""
