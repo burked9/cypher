@@ -48,7 +48,7 @@ When adding a rule, also update `docs/decisions.md` so the rationale is preserve
 ## Style
 
 - Python ≥ 3.9.
-- Type hints encouraged; `__future__ annotations` is fine.
+- Type hints encouraged; all source files use `from __future__ import annotations`.
 - Docstrings explain the *why*, not the *what*.
 - Unit-test rule changes via the test cases at the bottom of `shared/cleanup.py` style.
 
