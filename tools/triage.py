@@ -70,6 +70,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 import fitz  # pymupdf — fast for first-page text + page count
+import pdfplumber
 from sheet_types import occm, ht, llp
 from shared.variant_detection import match_variant_by_signatures, detect_sheet_type_from_text
 from levels.L1_text.extract import _is_data_row
@@ -114,18 +115,13 @@ DETECTION_ORDER = ["LLP", "HT", "OCCM"]
 # ---------------------------------------------------------------------------
 # Per-PDF fingerprint
 # ---------------------------------------------------------------------------
-def _read_first_pages_text(path: str, n_pages: int = 3) -> tuple[str, int, int, int]:
-    """Return (concatenated_text, total_pages, text_pages, scanned_pages).
-    Threshold: a page is `text` if >1000 chars, `mixed` if >200, else scanned.
-
-    In-process fitz.open. Fast (<100 ms typically) once the venv is outside
-    OneDrive and the corpus is locally hydrated. Armed with a SIGALRM
-    timeout (see PER_FILE_TIMEOUT_SECONDS) as a second line of defense
-    behind the st_blocks pre-check -- for anything that looks materialized
-    but still stalls on read. If you hit hangs even with both, the
-    subprocess-per-file fallback lives in tools/_inspect_pdf.py."""
+def _read_first_pages_text(path: str, n_pages: int = 3) -> tuple[str, int, int, int, str]:
+    """Return (concatenated_text, total_pages, text_pages, scanned_pages, text_source).
+    text_source is 'fitz' or 'pdfplumber_fallback'.
+    Threshold: a page is `text` if >1000 chars, `mixed` if >200, else scanned."""
     text_parts: list[str] = []
     total = text_pages = scanned = 0
+    source = "fitz"
     old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
     signal.alarm(PER_FILE_TIMEOUT_SECONDS)
     try:
@@ -145,7 +141,33 @@ def _read_first_pages_text(path: str, n_pages: int = 3) -> tuple[str, int, int, 
     finally:
         signal.alarm(0)
         signal.signal(signal.SIGALRM, old_handler)
-    return "\n".join(text_parts), total, text_pages, scanned
+    return "\n".join(text_parts), total, text_pages, scanned, source
+
+
+def _pdfplumber_fallback(path: str, total: int, n_pages: int = 3) -> tuple[str, int, int]:
+    """When fitz finds no usable text, try pdfplumber which handles
+    some PDF encodings that fitz can't decode (garbled fonts, CID maps)."""
+    text_parts: list[str] = []
+    text_pages = scanned = 0
+    old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
+    signal.alarm(PER_FILE_TIMEOUT_SECONDS)
+    try:
+        with pdfplumber.open(path) as pdf:
+            for i, page in enumerate(pdf.pages):
+                t = page.extract_text() or ""
+                n = len(t)
+                if n > 1000:
+                    text_pages += 1
+                elif n < 200:
+                    scanned += 1
+                if i < n_pages:
+                    text_parts.append(t)
+    except Exception:
+        pass
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old_handler)
+    return "\n".join(text_parts), text_pages, total - text_pages
 
 
 # ---------------------------------------------------------------------------
@@ -360,7 +382,7 @@ def main():
                     not_downloaded += 1
                     continue
 
-                text, pages, tp, sp = _read_first_pages_text(str(pdf))
+                text, pages, tp, sp, text_source = _read_first_pages_text(str(pdf))
                 if pages == 0 and not text:
                     print(f"  TIMEOUT/ERR: {pdf.name} — recording as 'Timeout'", flush=True)
                     writer.writerow([str(pdf), pdf.name, size_kb, 0, 0, 0,
@@ -370,11 +392,19 @@ def main():
                     continue
 
                 sheet_type, variant = _detect(text, hint)
+
+                if (sheet_type == "Unknown" or variant == "Unknown") and pages > 0:
+                    plumb_text, plumb_tp, plumb_sp = _pdfplumber_fallback(
+                        str(pdf), pages)
+                    if len(plumb_text.strip()) >= 50:
+                        st2, v2 = _detect(plumb_text, hint)
+                        if st2 != "Unknown" and (v2 != "Unknown" or sheet_type == "Unknown"):
+                            sheet_type, variant = st2, v2
+                            text, tp, sp = plumb_text, plumb_tp, plumb_sp
+                            text_source = "pdfplumber_fallback"
+
                 op = _operator_hint(pdf.name, text)
 
-                # Scanned files get an OCR'd header instead of empty text,
-                # so clustering has something real to compare (see docstring).
-                text_source = "real"
                 display_text = text
                 if tp == 0 and sp > 0 and not args.skip_ocr_fallback:
                     ocr_text = _ocr_header_fallback(str(pdf))
