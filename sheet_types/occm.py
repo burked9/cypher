@@ -11,11 +11,11 @@ Public functions:
 from __future__ import annotations
 
 from sheet_types.occm_variants import (
-    a330_engineering_planning, aegean_erj_occm, avianca_occm,
+    a330_engineering_planning, aegean_erj_occm, aic_on_condition_report, avianca_occm,
     b777_annex7_occm, b777_annex8_occm,
     cca_a340_occm, swiss_a340_occm, a305_a340_occm, on_condition_monitoring_occm,
     msn_components_status_list, sedor_b737_occm, elal_b767_records_package,
-    georgian_airways_b737,
+    georgian_airways_b737, frontier_occm_components_list,
     aeroflot, aircraft_inventory_report, aircraft_rotables_report,
     aircraft_spec_file_occm, amos,
     cathay_occm, config_slot_occm, iberia_listado, oases,
@@ -70,12 +70,14 @@ from sheet_types.occm_variants import (
     on_condition_components_list_tt_tc,
     occm_parts_compliance_status,
     on_component_monitoring_listing_status,
+    occm_inventory_list_br,
     occm_inventory_sap_es,
     occm_component_status_parent_serial_grid,
     occm_status_list_type_model_header,
     aircraft_build_occm_status_boxed_header_scanned,
     aircraft_build_occm_status_scanned,
     aircraft_build_occm_status_rotated_scanned,
+    aircraft_occm_components_status_utilization,
     aircraft_occm_components_status_scanned,
     on_condition_monitored_components_engine_list,
     on_condition_component_status_scanned,
@@ -89,6 +91,10 @@ from sheet_types.occm_variants import (
     occm_list_current_fh_fc_ruled_grid,
     aircraft_kardex_status_broken_font_scanned,
     occm_list_pn_description_rotated_scanned,
+    rotable_components_occm,
+    occm_status_igo,
+    occm_components_list_pn_installed,
+    occm_inventory_numbered,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -101,6 +107,7 @@ from shared.variant_detection import match_variant_by_signatures
 VARIANTS = [
     aircraft_spec_file_occm,
     all_fitted_aircraft_component_log,
+    aic_on_condition_report,
     aegean_erj_occm,
     a330_engineering_planning,
     avianca_occm,
@@ -109,6 +116,7 @@ VARIANTS = [
     cca_a340_occm,
     swiss_a340_occm,
     a305_a340_occm,
+    frontier_occm_components_list,
     occm_part_status,
     occm_component_inventory,
     on_condition_monitoring_occm,
@@ -133,6 +141,15 @@ VARIANTS = [
     # in VARIANTS): no other module's own SIGNATURES entry collides with
     # either of this module's own two entries.
     occm_status_listing_ata_zone_fin,
+    # OCCM Status (IGO) -- its own variant-level SIGNATURES entry is the
+    # column-header line with U+2010 HYPHEN ("ATA PART NO. SERIAL NO.
+    # DESCRIPTION POSITION INST‐DATE TSN CSN TSI CSI"), a distinctive phrase
+    # unique to this module's own known source files. Checked directly (grep
+    # across every SIGNATURES list in sheet_types/{occm,ht,llp}.py and every
+    # existing occm_variants file): the phrase appears nowhere else, and is
+    # not a substring of (nor contains) any other variant's own SIGNATURES
+    # entries.
+    occm_status_igo,
     aeroflot, aircraft_inventory_report, aircraft_rotables_report, amos,
     cathay_occm, config_slot_occm, iberia_listado, oases,
     occm_list_as_at, occm_status_list, on_condition_components_report,
@@ -516,6 +533,7 @@ VARIANTS = [
     # "valido de", "numero de serie") appears anywhere else, and this
     # phrase does not contain (nor is contained by) any other variant's
     # own SIGNATURES entries.
+    occm_inventory_list_br,
     occm_inventory_sap_es,
     # OCCM Component Status (Parent Serial / TSN-CSN Grid, Scanned) -- known
     # source file has no text layer at all (0 chars via pdfplumber on every
@@ -600,6 +618,19 @@ VARIANTS = [
     # ht_variants/llp_variants file): no other module's own SIGNATURES/
     # ocr_detect anchor is the bare "AIRCRAFT BUILD" phrase.
     aircraft_build_occm_status_rotated_scanned,
+    # Aircraft OC/CM Components Status (Utilization) -- born-digital, full
+    # text layer, coordinate-bucketed columns. Its own variant-level
+    # SIGNATURES entry ("AIRCRAFT OC/CM COMPONENTS STATUS") is the report's
+    # own title phrase. Checked directly (grep across every SIGNATURES list
+    # in sheet_types/{occm,ht,llp}.py and every existing occm_variants/
+    # ht_variants/llp_variants file): the only other module referencing this
+    # phrase is the scanned sibling immediately below, whose own SIGNATURES
+    # list is deliberately empty (reached only via ocr_detect on blank-text
+    # files), so no collision on the pdfplumber text-match path. Must
+    # precede the scanned sibling so a born-digital file with a real text
+    # layer is matched here via SIGNATURES rather than falling through to
+    # ocr_detect.
+    aircraft_occm_components_status_utilization,
     # Aircraft OC/CM Components Status (Scanned) -- known source file has
     # no text layer at all (0 chars via pdfplumber on every page sampled),
     # so it is only ever reached via ocr_detect()'s blank-text fallback
@@ -827,6 +858,42 @@ VARIANTS = [
     # contiguous match either direction) no other module's own SIGNATURES/
     # ocr_detect anchor requires this combination.
     occm_list_pn_description_rotated_scanned,
+    # Rotable Components (FlyerTech card-style OCCM inventory) -- its own
+    # variant-level SIGNATURES entries ("ROTABLE COMPONENTS" and "Report
+    # Produced by FlyerTech" / "Report produced by FlyerTech") are the
+    # report's own title line and footer attribution, distinctive phrases
+    # unique to this module's own known source files. Checked directly (grep
+    # across every SIGNATURES list in sheet_types/{occm,ht,llp}.py and every
+    # existing occm_variants/ht_variants/llp_variants file): neither phrase
+    # appears anywhere else, and neither is a substring of (nor contains)
+    # any other variant's own SIGNATURES entries.
+    rotable_components_occm,
+    # OCCM Components List (PN Installed) -- its own variant-level SIGNATURES
+    # entries ("Part Number INSTALLED" and "AIRCRAFT EQUIPMENT LIST- OCCM")
+    # are distinctive column-header and title phrases unique to this module's
+    # own known source files. Checked directly (grep across every SIGNATURES
+    # list in sheet_types/{occm,ht,llp}.py and every existing occm_variants
+    # file): neither phrase appears anywhere else, and neither is a substring
+    # of (nor contains) any other variant's own SIGNATURES entries -- in
+    # particular occm_component_list.py's own "OCCM Component List" signature
+    # (singular COMPONENT, no INSTALLED) does not collide.
+    occm_components_list_pn_installed,
+    # OCCM Inventory (Numbered Row) -- its own variant-level SIGNATURES
+    # entries ("ON CONDITION COMPONENT MONITORING STATUS" and the
+    # column-header line "NO ATA PART DESCRIPTION PART NUMBER SERIAL
+    # NUMBER POSITION DATE INSTALLED TSN CSN") are distinctive phrases
+    # unique to this module's own known source file. Checked directly
+    # (grep across every SIGNATURES list in sheet_types/{occm,ht,llp}.py
+    # and every existing occm_variants/ht_variants/llp_variants file):
+    # the title phrase "ON CONDITION COMPONENT MONITORING STATUS" appears
+    # nowhere else -- in particular on_condition_monitoring_occm.py's own
+    # "ON CONDITION AND CONDITION MONITORING AIRCRAFT COMPONENTS STATUS"
+    # (leading "AND CONDITION MONITORING AIRCRAFT") is NOT a substring of
+    # this phrase nor vice versa, and on_condition_monitoring_components
+    # .py's own "ON CONDITION MONITORING COMPONENTS" (no "COMPONENT" vs
+    # "COMPONENTS", no "STATUS" at end vs different position) is also NOT
+    # a substring of this phrase nor vice versa.
+    occm_inventory_numbered,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
@@ -1106,6 +1173,49 @@ SIGNATURES = [
     # {occm,ht,llp}.py and every existing variant file first, with none
     # found.
     "LOCALIZATION",
+    # rotable_components_occm.py's known source files' title line reads
+    # literally "ROTABLE COMPONENTS" — no "OCCM" substring (confirmed
+    # directly), so without this entry the top-level router returns
+    # "Unknown" on them. Checked for collisions against every SIGNATURES
+    # list in sheet_types/{occm,ht,llp}.py and every existing variant file
+    # first, with none found.
+    "ROTABLE COMPONENTS",
+    # frontier_occm_components_list.py's known source files use "OC/CM
+    # Components" in the title (no "OCCM" substring), so the generic "OCCM"
+    # entry above does not match. The column-header line's own distinctive
+    # phrase is used here as the top-level anchor. Checked for collisions
+    # against every SIGNATURES list in sheet_types/{occm,ht,llp}.py and
+    # every existing variant file first, with none found.
+    "installed_position installed_date actual_hours actual_cycles",
+    # occm_status_igo.py's known source files have no "OCCM" text anywhere
+    # in the PDF text layer (confirmed via direct inspection -- the word
+    # "OCCM" appears only in the file name, not the content). Its column-
+    # header line (with U+2010 HYPHEN in INST‐DATE) is used here as the
+    # top-level anchor. Checked for collisions against every SIGNATURES list
+    # in sheet_types/{occm,ht,llp}.py and every existing variant file first.
+    "ATA PART NO. SERIAL NO. DESCRIPTION POSITION INST‐DATE TSN CSN TSI CSI",
+    # aic_on_condition_report.py's known source file has no "OCCM" text
+    # anywhere in it (confirmed via direct inspection) -- its title line
+    # reads literally "AIC ON CONDITION REPORT". Without an entry here the
+    # top-level router returns "Unknown" on it. Checked for collisions
+    # against every SIGNATURES list in sheet_types/{occm,ht,llp}.py and
+    # every existing variant file first, with none found.
+    "AIC ON CONDITION REPORT",
+    # occm_inventory_numbered.py's known source file's title reads
+    # literally "ON CONDITION COMPONENT MONITORING STATUS" -- no "OCCM"
+    # substring (confirmed directly), so without this entry the top-level
+    # router returns "Unknown" on it. Checked for collisions against every
+    # SIGNATURES list in sheet_types/{occm,ht,llp}.py and every existing
+    # variant file first, with none found.
+    "ON CONDITION COMPONENT MONITORING STATUS",
+    # aircraft_occm_components_status_utilization.py's known source file's
+    # title reads literally "AIRCRAFT OC/CM COMPONENTS STATUS" -- neither
+    # "OCCM" (no slash) nor any existing entry in this list matches it as a
+    # substring (confirmed directly: "OC/CM STATUS" has "COMPONENTS" between
+    # "OC/CM" and "STATUS" in the real title, breaking the contiguous match).
+    # Checked for collisions against every SIGNATURES list in
+    # sheet_types/{occm,ht,llp}.py and every existing variant file first.
+    "AIRCRAFT OC/CM COMPONENTS STATUS",
 ]
 _BY_NAME = {v.NAME: v for v in VARIANTS}
 

@@ -506,6 +506,15 @@ SOURCES = [
     # module's own docstring and sheet_types/occm.py's VARIANTS ordering
     # note.
     "sheet_types/occm_variants/occm_list_pn_description_rotated_scanned.py",
+    # OCCM variants added 2026-10-17 — text-layer unknowns from hydrated corpus
+    "sheet_types/occm_variants/aic_on_condition_report.py",
+    "sheet_types/occm_variants/aircraft_occm_components_status_utilization.py",
+    "sheet_types/occm_variants/frontier_occm_components_list.py",
+    "sheet_types/occm_variants/occm_components_list_pn_installed.py",
+    "sheet_types/occm_variants/occm_inventory_list_br.py",
+    "sheet_types/occm_variants/occm_inventory_numbered.py",
+    "sheet_types/occm_variants/occm_status_igo.py",
+    "sheet_types/occm_variants/rotable_components_occm.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
