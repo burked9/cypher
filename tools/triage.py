@@ -146,22 +146,22 @@ def _read_first_pages_text(path: str, n_pages: int = 3) -> tuple[str, int, int, 
 
 def _pdfplumber_fallback(path: str, total: int, n_pages: int = 3) -> tuple[str, int, int]:
     """When fitz finds no usable text, try pdfplumber which handles
-    some PDF encodings that fitz can't decode (garbled fonts, CID maps)."""
+    some PDF encodings that fitz can't decode (garbled fonts, CID maps).
+    Only reads the first n_pages for signature detection speed."""
     text_parts: list[str] = []
     text_pages = scanned = 0
     old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
     signal.alarm(PER_FILE_TIMEOUT_SECONDS)
     try:
         with pdfplumber.open(path) as pdf:
-            for i, page in enumerate(pdf.pages):
+            for i, page in enumerate(pdf.pages[:n_pages]):
                 t = page.extract_text() or ""
                 n = len(t)
                 if n > 1000:
                     text_pages += 1
                 elif n < 200:
                     scanned += 1
-                if i < n_pages:
-                    text_parts.append(t)
+                text_parts.append(t)
     except Exception:
         pass
     finally:
