@@ -95,6 +95,7 @@ from sheet_types.occm_variants import (
     occm_status_igo,
     occm_components_list_pn_installed,
     occm_inventory_numbered,
+    vim_component_fitted_list,
 )
 from shared.cleanup import clean_record, forward_fill_ata
 from shared.ocr_bridge import maybe_await
@@ -894,6 +895,7 @@ VARIANTS = [
     # "COMPONENTS", no "STATUS" at end vs different position) is also NOT
     # a substring of this phrase nor vice versa.
     occm_inventory_numbered,
+    vim_component_fitted_list,
 ]
 
 # Sheet-type level signatures, used by the top-level router (sheet_types/router.py)
@@ -1228,9 +1230,11 @@ async def detect_variant(pdf_path: str) -> str:
     matched = match_variant_by_signatures(VARIANTS, head)
     if matched:
         return matched.NAME
+    for v in VARIANTS:
+        data_check = getattr(v, "data_detect", None)
+        if data_check and data_check(head):
+            return v.NAME
     if text_layer_unusable(pdf_path, head=head):
-        # No usable text layer -- ask any OCR-capable variant to confirm its
-        # own template via a cheap header OCR pass rather than guessing.
         for v in VARIANTS:
             ocr_check = getattr(v, "ocr_detect", None)
             if ocr_check and await maybe_await(ocr_check(pdf_path)):

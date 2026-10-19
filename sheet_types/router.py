@@ -58,6 +58,13 @@ async def detect_sheet_type(pdf_path: str, has_text_layer: bool | None = None) -
         if st != "Unknown":
             return st
 
+        for st in DETECTION_ORDER:
+            mod = SHEET_TYPES[st]
+            for variant in getattr(mod, "VARIANTS", []):
+                data_check = getattr(variant, "data_detect", None)
+                if data_check and data_check(head):
+                    return st
+
         if has_text_layer is False or not text_layer_unusable(pdf_path, head=head):
             return "Unknown"
     # No usable text layer — ask any OCR-capable variant, across every
