@@ -515,6 +515,10 @@ SOURCES = [
     "sheet_types/occm_variants/occm_inventory_numbered.py",
     "sheet_types/occm_variants/occm_status_igo.py",
     "sheet_types/occm_variants/rotable_components_occm.py",
+    # OCCM variant added 2026-10-19 — headerless tabular OCCM, no title or
+    # column labels in text layer; detected via data_detect heuristic rather
+    # than SIGNATURES. Uses pdfplumber table extraction (7-column grid).
+    "sheet_types/occm_variants/vim_component_fitted_list.py",
     # HT variants — original + 6 added during the HT-coverage waves
     "sheet_types/ht_variants/__init__.py",
     "sheet_types/ht_variants/_base.py",
