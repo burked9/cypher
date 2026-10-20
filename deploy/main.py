@@ -27,6 +27,7 @@ import tempfile
 import pdfplumber
 
 from sheet_types import router
+from shared.cleanup import normalize_dates_in_record, canonical_column_order
 
 
 def _save_temp(pdf_bytes: bytes, original_name: str | None = None) -> str:
@@ -75,19 +76,19 @@ async def run(pdf_bytes: bytes, level: str = "auto", has_text_layer: bool | None
     if has_text_layer is None:
         has_text_layer = not _has_no_text_layer(path)
 
-    if sheet_type == "Unknown" and not has_text_layer:
+    if sheet_type == "Unknown":
+        from sheet_types.router import diagnose_unknown
+        from shared.text_layer import read_head_text
+        head = "" if has_text_layer is False else read_head_text(path)
+        diag = diagnose_unknown(path, head, has_text_layer=has_text_layer)
         return {
             "ok": True,
             "sheet_type": "Unknown",
             "variant": "Unknown",
             "columns": [],
             "rows": [],
-            "warning": ("This PDF has no extractable text layer, which usually "
-                        "means it's a scanned or image-only document, and "
-                        "this build's in-browser OCR doesn't recognize it as "
-                        "a supported variant. If you have local Python "
-                        "access to this project, the local pipeline handles "
-                        "more scanned formats than the browser does today."),
+            "warning": diag["detail"],
+            "diagnosis": diag,
         }
 
     try:
@@ -98,7 +99,8 @@ async def run(pdf_bytes: bytes, level: str = "auto", has_text_layer: bool | None
     if not result.get("ok"):
         return {"ok": False,
                 "error": result.get("error", "Unknown error"),
-                "sheet_type": sheet_type}
+                "sheet_type": sheet_type,
+                "diagnosis": result.get("diagnosis")}
 
     rows_in = result["records"]
     if not rows_in:
@@ -115,7 +117,11 @@ async def run(pdf_bytes: bytes, level: str = "auto", has_text_layer: bool | None
                         "for tuning."),
         }
 
-    columns = list(result["columns"]) + ["_issues", "_page"]
+    for r in rows_in:
+        normalize_dates_in_record(r)
+
+    raw_columns = list(result["columns"]) + ["_issues", "_page"]
+    columns = canonical_column_order(raw_columns, result["sheet_type"])
     rows = [{c: ("" if r.get(c) is None else str(r.get(c, ""))) for c in columns}
             for r in rows_in]
 
@@ -185,7 +191,10 @@ async def _extract_one(pdf_bytes: bytes, expected_sheet: str, filename: str | No
     except Exception as e:
         return {"ok": False, "error": f"Extraction failed: {e}", "path": path}
     rows_in = cleaned or []
-    columns = list(raw["columns"]) + ["_issues", "_page"]
+    for r in rows_in:
+        normalize_dates_in_record(r)
+    raw_columns = list(raw["columns"]) + ["_issues", "_page"]
+    columns = canonical_column_order(raw_columns, expected_sheet)
     rows = [{c: ("" if r.get(c) is None else str(r.get(c, "")))
              for c in columns} for r in rows_in]
     return {

@@ -305,6 +305,22 @@ button#run:focus-visible, button#run-combined:focus-visible {
 
 /* "Coming soon" fallback notice — shown under a failed/unsupported
    extraction, pointing at the future notebook-based deep-dive path. */
+.diagnosis-reason,
+.diagnosis-suggestion,
+.diagnosis-near-misses {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--fg);
+}
+.diagnosis-reason strong,
+.diagnosis-suggestion strong,
+.diagnosis-near-misses strong {
+  color: var(--fg);
+}
+.diagnosis-suggestion { color: var(--fg-muted); }
+.diagnosis-near-misses { color: var(--fg-muted); font-size: 13px; }
+
 .notebook-notice {
   margin-top: 16px;
   padding: 16px 18px;

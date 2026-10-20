@@ -265,10 +265,8 @@ function render(data, fname) {
     `Variant: <span class="tag ${tagCls}">${escapeHtml(variant)}</span>` +
     acLabel;
 
-  // Warning case — usually "unsupported/unrecognized format" or "zero rows",
-  // which for the user is functionally the same as "it didn't run".
   if (data.warning) {
-    showErrorPanel(data.warning, { filename: fname });
+    showErrorPanel(data.warning, { filename: fname, diagnosis: data.diagnosis });
     return;
   }
 
@@ -535,6 +533,15 @@ function showErrorPanel(message, opts) {
     context.push(`error: ${opts.error.message || opts.error}`);
     if (opts.error.stack) context.push(opts.error.stack);
   }
+  const diag = opts.diagnosis;
+  if (diag) {
+    context.push(`diagnosis.reason: ${diag.reason}`);
+    context.push(`diagnosis.stage: ${diag.stage}`);
+    context.push(`diagnosis.text_chars: ${diag.text_chars}`);
+    if (diag.near_misses && diag.near_misses.length) {
+      context.push(`near_misses: ${diag.near_misses.map(m => m.signature + " (" + m.match_ratio + ")").join(", ")}`);
+    }
+  }
   const consoleTail = _consoleLog.slice(-25);
   const debugText = [...context, "", "-- recent console output --", ...consoleTail]
     .join("\n");
@@ -542,14 +549,37 @@ function showErrorPanel(message, opts) {
   $("variant-info").hidden = false;
   $("summary").hidden = false;
   $("summary").className = "summary error";
+
+  let diagHtml = "";
+  if (diag) {
+    const reasonLabels = {
+      no_text_layer: "No text layer (scanned/image-only)",
+      near_blank_text: "Near-blank text layer",
+      garbled_cid: "Garbled text (broken font encoding)",
+      garbled_encoding: "Garbled text (unreadable characters)",
+      no_signature_match: "Unrecognised format",
+    };
+    const reasonLabel = reasonLabels[diag.reason] || diag.reason;
+    diagHtml += `<div class="diagnosis-reason"><strong>Why:</strong> ${escapeHtml(reasonLabel)}</div>`;
+    if (diag.suggestion) {
+      diagHtml += `<div class="diagnosis-suggestion"><strong>Next step:</strong> ${escapeHtml(diag.suggestion)}</div>`;
+    }
+    if (diag.near_misses && diag.near_misses.length) {
+      diagHtml += `<div class="diagnosis-near-misses"><strong>Closest matches:</strong> `;
+      diagHtml += diag.near_misses.map(m =>
+        `${escapeHtml(m.sheet_type)} / ${escapeHtml(m.source)} (${Math.round(m.match_ratio * 100)}% match)`
+      ).join(", ");
+      diagHtml += `</div>`;
+    }
+  }
+
   $("summary").innerHTML = `
     <div>${escapeHtml(message)}</div>
+    ${diagHtml}
     <div class="notebook-notice">
-      <strong>We're sorry — this PDF is more complex than the in-browser tool can handle today.</strong>
+      <strong>This PDF is more complex than the in-browser tool can handle today.</strong>
       <span class="badge">Coming soon</span><br>
-      We're building a more thorough, step-by-step analyst notebook for cases like this one,
-      but it isn't ready yet and isn't available right now.
-      For the time being, this deeper path is offline.
+      A more thorough analyst notebook for cases like this one is in development.
     </div>
     <details class="debug-details">
       <summary>Show technical details</summary>

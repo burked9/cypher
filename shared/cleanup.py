@@ -15,9 +15,12 @@ on a row, it inherits the most recently seen valid ATA. We track the most
 recent ATA in the user-specified range (default 20-83) and record an
 `_imputed:ATA` flag on rows whose ATA was filled this way, so the analyst
 sees that the value came from inference, not the source PDF.
+
+`normalize_date` converts the corpus's many date formats to ISO 8601 (YYYY-MM-DD).
 """
 from __future__ import annotations
 import re
+from datetime import datetime
 
 
 # Unicode dash variants that PDF writers occasionally emit instead of the
@@ -255,6 +258,136 @@ def _maybe_check_pn_master(record: dict, issue_bits: list[str]) -> None:
     record["_pn_known"] = known
     if known is False:
         issue_bits.append("PART_NUMBER:unknown_pn")
+
+
+_MONTH_MAP = {
+    "JAN": 1, "FEB": 2, "MAR": 3, "APR": 4, "MAY": 5, "JUN": 6,
+    "JUL": 7, "AUG": 8, "SEP": 9, "OCT": 10, "NOV": 11, "DEC": 12,
+    "JANUARY": 1, "FEBRUARY": 2, "MARCH": 3, "APRIL": 4, "JUNE": 6,
+    "JULY": 7, "AUGUST": 8, "SEPTEMBER": 9, "OCTOBER": 10,
+    "NOVEMBER": 11, "DECEMBER": 12,
+    "ENE": 1, "FEV": 2, "ABR": 4, "MAI": 5, "AGO": 8, "SET": 9,
+    "OUT": 10, "DEZ": 12, "DIC": 12,
+}
+
+_DATE_PATTERNS = [
+    re.compile(r"^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$"),
+    re.compile(r"^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$"),
+    re.compile(r"^(\d{1,2})[-/.]([A-Za-z]{3,9})[-/.](\d{4})$"),
+    re.compile(r"^(\d{1,2})[-/.]([A-Za-z]{3,9})[-/.](\d{2})$"),
+    re.compile(r"^([A-Za-z]{3,9})[-/.\s](\d{1,2})[-/.,\s]+(\d{4})$"),
+    re.compile(r"^([A-Za-z]{3,9})[-/.\s](\d{1,2})[-/.,\s]+(\d{2})$"),
+    re.compile(r"^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2})$"),
+]
+
+
+def normalize_date(value: str) -> str:
+    """Convert a date string to ISO 8601 (YYYY-MM-DD).
+
+    Handles the formats seen across the aviation PDF corpus:
+        2024-05-13, 13/05/2024, 13-May-24, 13.05.2024, 20-May-05,
+        May 13, 2024, 13/05/24, 13.Mai.2024, etc.
+
+    Returns the original string unchanged if parsing fails.
+    """
+    s = value.strip()
+    if not s:
+        return s
+    s = normalize_dashes(s)
+    if re.match(r"^\d{4}-\d{2}-\d{2}$", s):
+        return s
+
+    for i, pat in enumerate(_DATE_PATTERNS):
+        m = pat.match(s)
+        if not m:
+            continue
+        try:
+            g1, g2, g3 = m.group(1), m.group(2), m.group(3)
+            if i == 0:
+                y, mo, d = int(g1), int(g2), int(g3)
+            elif i == 1:
+                d, mo, y = int(g1), int(g2), int(g3)
+            elif i in (2, 3):
+                d = int(g1)
+                mo = _MONTH_MAP.get(g2.upper())
+                if mo is None:
+                    continue
+                y = int(g3)
+            elif i in (4, 5):
+                mo = _MONTH_MAP.get(g1.upper())
+                if mo is None:
+                    continue
+                d = int(g2)
+                y = int(g3)
+            elif i == 6:
+                d, mo, y = int(g1), int(g2), int(g3)
+            else:
+                continue
+
+            if y < 100:
+                y += 2000 if y <= 50 else 1900
+            dt = datetime(y, mo, d)
+            return dt.strftime("%Y-%m-%d")
+        except (ValueError, TypeError):
+            continue
+    return value
+
+
+DATE_COLUMNS = frozenset({
+    "INSTALL_DATE", "DATE", "LAST_DONE_DATE", "NEXT_DUE_DATE",
+    "REMOVAL_DATE", "EXPIRY_DATE", "OVERHAUL_DATE", "MANUFACTURE_DATE",
+    "LAST_SHOP_VISIT_DATE", "FITMENT_DATE", "COMPLIANCE_DATE",
+    "DUE_DATE", "LAST_DATE", "DONE_DATE", "CERT_DATE", "D.O.M",
+})
+
+
+def normalize_dates_in_record(record: dict) -> dict:
+    """Normalise all date-like columns in a record to ISO 8601."""
+    for col in record:
+        if col.startswith("_"):
+            continue
+        if col.upper() in DATE_COLUMNS or col.upper().endswith("_DATE"):
+            val = record[col]
+            if isinstance(val, str) and val.strip():
+                record[col] = normalize_date(val)
+    return record
+
+
+CANONICAL_ORDER_OCCM = [
+    "ATA", "PART_NUMBER", "SERIAL_NUMBER", "DESCRIPTION",
+    "POSITION", "FIN", "INSTALL_DATE", "REMARKS",
+]
+CANONICAL_ORDER_HT = [
+    "ATA", "PART_NUMBER", "SERIAL_NUMBER", "DESCRIPTION",
+    "POSITION", "FIN", "MPD_TASK", "INTERVAL",
+    "LAST_DONE_DATE", "NEXT_DUE_DATE", "REMAINING",
+]
+CANONICAL_ORDER_LLP = [
+    "ATA", "PART_NUMBER", "SERIAL_NUMBER", "DESCRIPTION",
+    "POSITION", "CYCLES_LIMIT", "CYCLES_TSN", "CYCLES_REMAINING",
+]
+
+_CANONICAL_ORDERS = {
+    "OCCM": CANONICAL_ORDER_OCCM,
+    "HT": CANONICAL_ORDER_HT,
+    "LLP": CANONICAL_ORDER_LLP,
+}
+
+
+def canonical_column_order(columns: list[str], sheet_type: str) -> list[str]:
+    """Reorder columns to a canonical order for the given sheet type.
+
+    Known columns appear first in canonical order. Remaining columns
+    (variant-specific extras) follow in their original order. Internal
+    columns (_issues, _page, etc.) always come last.
+    """
+    order = _CANONICAL_ORDERS.get(sheet_type, [])
+    order_set = set(order)
+    internal = [c for c in columns if c.startswith("_")]
+    normal = [c for c in columns if not c.startswith("_")]
+    ordered = [c for c in order if c in set(normal)]
+    extras = [c for c in normal if c not in order_set]
+    return ordered + extras + internal
 
 
 def clean_record(record: dict, column_rules: dict) -> dict:
